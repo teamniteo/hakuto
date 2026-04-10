@@ -1,8 +1,5 @@
 // @ts-check
 import { defineConfig, fontProviders } from "astro/config";
-import fs from "node:fs";
-import path from "node:path";
-
 import { defineConfig as viteConfig } from "vite";
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
@@ -11,34 +8,12 @@ import favicons from "astro-favicons";
 import pagefind from "astro-pagefind";
 import { agentsSummary } from "@nuasite/agent-summary";
 import { astroGrab } from "astro-grab";
-
 import cloudflare from "@astrojs/cloudflare";
 
-import sentry from "@sentry/astro";
-import spotlightjs from "@spotlightjs/astro";
-
-/**
- * Read Hakuto configuration from .hakuto/config.json
- * This allows domain and siteName to persist across template updates
- */
-function getHakutoConfig() {
-  try {
-    const configPath = path.resolve(process.cwd(), '.hakuto/config.json');
-    if (fs.existsSync(configPath)) {
-      return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    }
-  } catch {
-    // Ignore errors, use defaults
-  }
-  return { domain: null, siteName: "Hakuto" };
-}
-
-const hakuto = getHakutoConfig();
-const site = hakuto.domain ? `https://${hakuto.domain}` : "https://preview.hakuto.dev";
 
 // https://astro.build/config
 export default defineConfig({
-  site,
+  site: "http://localhost:4321",
   output: "static",
   integrations: [
       react(),
@@ -48,11 +23,9 @@ export default defineConfig({
       astroGrab(),
       favicons({
           input: "./src/assets/favicon.png",
-          name: hakuto.siteName,
-          short_name: hakuto.siteName,
+          name: "Site",
+          short_name: "Site Name",
       }),
-      sentry(),
-      spotlightjs(),
   ],
 
   vite: viteConfig({
