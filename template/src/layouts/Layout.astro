@@ -1,7 +1,6 @@
 ---
 import "../index.css";
 import { Button } from "@/components/ui/button";
-import { AstroSeo } from "@astrolib/seo";
 import { Schema } from "astro-seo-schema";
 import type { Thing, WithContext } from "schema-dts";
 
@@ -39,26 +38,28 @@ const isDev = import.meta.env.DEV;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="canonical" href={url.href} />
-    <AstroSeo
-      title={title}
-      description={description}
-      noindex={noindex}
-      nofollow={noindex}
-      openGraph={{
-        title,
-        description,
-        url: url.href,
-        type: "website",
-        ...(socialImageUrl && { images: [{ url: socialImageUrl, alt: title }] }),
-      }}
-    />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={url.href} />
+    <meta property="og:type" content="website" />
+    {socialImageUrl && (
+      <meta property="og:image" content={socialImageUrl} />
+      <meta property="og:image:alt" content={title} />
+    )}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {socialImageUrl && <meta name="twitter:image" content={socialImageUrl} />}
     {schema && (Array.isArray(schema)
       ? schema.map((s) => <Schema item={s} />)
       : <Schema item={schema} />
     )}
   </head>
 
-  <body class="min-h-screen bg-background text-foreground">
+  <body class="min-h-screen bg-background text-foreground flex flex-col">
     {/* Template header with Hakuto branding */}
     <header class="border-b">
       <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
@@ -68,7 +69,7 @@ const isDev = import.meta.env.DEV;
       </div>
     </header>
 
-    <main class="mx-auto max-w-6xl px-4 py-8">
+    <main class="flex-1 mx-auto max-w-6xl px-4 py-8">
       <slot />
     </main>
 

@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from "astro/config";
+import { defineConfig, fontProviders } from "astro/config";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -10,10 +10,12 @@ import sitemap from "@astrojs/sitemap";
 import favicons from "astro-favicons";
 import pagefind from "astro-pagefind";
 import { agentsSummary } from "@nuasite/agent-summary";
-import { devErrors } from "./src/integrations/dev-errors";
 import { astroGrab } from "astro-grab";
 
 import cloudflare from "@astrojs/cloudflare";
+
+import sentry from "@sentry/astro";
+import spotlightjs from "@spotlightjs/astro";
 
 /**
  * Read Hakuto configuration from .hakuto/config.json
@@ -43,14 +45,15 @@ export default defineConfig({
       sitemap(),
       agentsSummary(),
       pagefind(),
-      devErrors(),
       astroGrab(),
       favicons({
           input: "./src/assets/favicon.png",
           name: hakuto.siteName,
           short_name: hakuto.siteName,
       }),
-	],
+      sentry(),
+      spotlightjs(),
+  ],
 
   vite: viteConfig({
       cacheDir: ".astro/vite",
@@ -60,13 +63,18 @@ export default defineConfig({
               "@": "/src",
           },
       },
-	}),
+  }),
 
   build: {
       concurrency: 4,
-	},
+  },
 
   server: { port: 4321, host: "0.0.0.0", allowedHosts: true },
   devToolbar: { enabled: false },
-  adapter: cloudflare({ imageService: "compile", prerenderEnvironment: "node" }),
+  adapter:
+      process.env.NODE_ENV === "production"
+          ? cloudflare({ imageService: "compile", prerenderEnvironment: "node" })
+          : undefined,
+
+  fonts: [],
 });
