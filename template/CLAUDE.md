@@ -26,6 +26,10 @@ Avoid generic AI-generated aesthetics:
 For maximum efficiency, whenever you perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially. Prioritize calling tools in parallel whenever possible. For example, when reading 3 files, run 3 tool calls in parallel to read all 3 files into context at the same time. When running multiple read-only commands like `ls` or `list_dir`, always run all of the commands in parallel.
 </use_parallel_tool_calls>
 
+## Package Manager
+
+**Use `bun` exclusively.** Do not use npm, yarn, or pnpm for any commands (install, run, exec, etc.).
+
 <critical_information>
 - AGENTS.md - page entries, SEO tags, and descriptions (you will update this)
 - src/index.css - central styling, single source of truth
@@ -41,7 +45,7 @@ You are the Hakuto Landing Page Development Agent. You build landing pages using
 
 ## Communication Style
 
-**Report to users in a concise and short manner.** Keep status updates brief. If changes require a server restart, run: "pm2 restart preview"
+**Report to users in a concise and short manner.** Keep status updates brief.
 
 ## Available Tools
 
@@ -65,10 +69,10 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 ## Critical First Steps
 
 1.	Read package.json to understand the project setup and available scripts.
-2.	Proactively use Skills based on the user’s request — don’t wait to be asked.
+2.	Proactively use Skills based on the user's request — don't wait to be asked.
 3.	Remember, this project uses Tailwind CSS v4 — configuration is CSS-based, not JavaScript.
-4.	Never start any preview server; it’s already running externally.
-5.	Never ask for confirmation — you’re running in a sandbox environment with access to all tools and can perform any necessary actions independently.
+4.	Never start any preview server; it's already running externally.
+5.	Never ask for confirmation — you're running in a sandbox environment with access to all tools and can perform any necessary actions independently.
 6.  Never run build tools ({bun, yarn, npx, bunx, npm}) - external processes handle builds automatically via hooks.
 
 ## Mandatory Workflow (Follow This Exact Order)
@@ -209,9 +213,6 @@ Update the favicons plugin configuration in astro.config.mjs:
       name: "Site Name",                      // Update site name
       short_name: "Site Name",                // Update short name
     }),
-
-    pm2 restart preview
-
 
 | Directory | Purpose |
 |---|---|

@@ -5,7 +5,7 @@ description: Adds multi-page blog system to existing websites with listing page,
 
 # Blog Section
 
-Adds professional blog system to existing websites with listing pages, post templates, and flexible layouts. Complex multi-page system requiring existing site with `site-specification.md`.
+Adds professional blog system to existing websites with listing pages, post templates, and author boxes. Requires existing site with `src/index.css` theme variables.
 
 ---
 
@@ -30,19 +30,16 @@ Read `src/index.css` and `AGENTS.md` to extract:
 ### Step 2: Assess Content Needs
 
 **No articles exist:**
-- Create 2 placeholder posts with generic text
-- Post 1: Standard single-column layout
-- Post 2: Flexible layout (full-width sections, columns)
+- Create 1 placeholder post with generic text
 - **DO NOT invoke professional-copywriter**
-- Tell user: "Created 2 sample posts. Replace with your content."
+- Tell user: "Created a sample post. Replace with your content."
 
 **Existing articles provided:**
 - Format according to design language
-- Ask: "Standard or flexible layouts?"
 
 **User wants new post:**
-- Ask for: Title, slug, date, author
-- Optional: Category, tags, featured image, description, layout
+- Ask for: Title, slug, date, author, authorEmail
+- Optional: authorBio, category, featured image, description
 - Use generic placeholder text if no content provided
 - **DO NOT invoke professional-copywriter**
 
@@ -51,271 +48,253 @@ Read `src/index.css` and `AGENTS.md` to extract:
 Generate pages matching site's design using Astro content collections:
 
 **Required files:**
-- `src/layouts/StandardBlogLayout.astro` - Standard single-column layout component
-- `src/layouts/FlexibleBlogLayout.astro` - Flexible full-width layout component
-- `src/content.config.ts` - Collection definitions with Zod schemas
-- `src/content/blog/*.md` - Blog post markdown files (with `layout` frontmatter)
+- `src/content.config.ts` - Add blog collection (preserve existing collections)
+- `src/content/blog/*.md` - Blog post markdown files (NO `layout` frontmatter)
 - `src/pages/blog/index.astro` - Blog listing (uses `getCollection()`)
-- `src/pages/blog/[...slug].astro` - Dynamic post pages (uses `getStaticPaths()`)
-- `src/pages/blog/author/[name].astro` - Author archives (optional)
-- `src/pages/blog/category/[name].astro` - Category pages (optional)
+- `src/pages/blog/[...slug].astro` - Dynamic post pages with layout, author box, and content styling
 
 Update navigation with Blog link at appropriate position.
 
 ---
 
-## Layout Types
+## Critical: Astro Content Layer API
 
-Blog posts use Astro's layout frontmatter property to specify which layout component renders the markdown content.
+**CRITICAL**: The `layout` frontmatter property does NOT work with Astro's content layer glob loader. Do NOT create separate layout files for blog posts. Instead, apply all layout and styling directly in `src/pages/blog/[...slug].astro`.
 
-**Standard Layout** (default): Single column, images inline, 680-720px max-width. Traditional blog post format with centered content column, inline images/media, consistent reading width.
+**CRITICAL**: In Astro 5+ with content layer, `post.render()` does not exist. Use `render(post)` imported from `astro:content`:
 
-**Flexible Layout**: Mix of full-width and multi-column sections for visual content, tutorials, and feature showcases.
-
-### Implementation
-
-**Step 1: Create Layout Components**
-
-Create two layout files in `src/layouts/`:
-
-**StandardBlogLayout.astro** - Traditional single-column layout with Tailwind Prose:
 ```astro
 ---
-const { frontmatter } = Astro.props;
+import { getCollection, render } from "astro:content";
+
+const { post } = Astro.props;
+const { Content } = await render(post);
 ---
-<Layout title={frontmatter.title}>
-  <article class="max-w-[720px] mx-auto px-6">
-    <header class="mb-8">
-      <h1 class="text-4xl font-bold mb-4">{frontmatter.title}</h1>
-      <p class="text-gray-600">{frontmatter.date} • {frontmatter.author}</p>
-    </header>
-    <div class="prose prose-lg max-w-none">
-      <slot />
-    </div>
-  </article>
-</Layout>
+<Content />
 ```
 
-**FlexibleBlogLayout.astro** - Full-width with Tailwind Prose for content sections:
-```astro
----
-const { frontmatter } = Astro.props;
----
-<Layout title={frontmatter.title}>
-  <article class="w-full">
-    <header class="max-w-[720px] mx-auto px-6 mb-8">
-      <h1 class="text-4xl font-bold mb-4">{frontmatter.title}</h1>
-      <p class="text-gray-600">{frontmatter.date} • {frontmatter.author}</p>
-    </header>
-    <div class="prose prose-lg max-w-[720px] mx-auto px-6">
-      <slot />
-    </div>
-  </article>
-</Layout>
-```
-
-**Step 2: Use Layout in Markdown Frontmatter**
-
-Specify layout in each blog post's frontmatter:
-
-```markdown
----
-layout: ../../layouts/StandardBlogLayout.astro
-title: "Getting Started"
-date: "2025-01-20"
-author: "Dev Team"
----
-
-# Content here
-
-Regular content flows in single column...
-```
-
-or
-
-```markdown
----
-layout: ../../layouts/FlexibleBlogLayout.astro
-title: "Product Launch"
-date: "2025-01-20"
-author: "Marketing Team"
----
-
-# Content here
-
-Content can use full-width images and flexible sections...
-```
-
-**Step 3: Style Content Width and Typography**
-
-Use Tailwind utilities in layout components to control content width and typography:
-- Standard: `.max-w-[720px]` on article wrapper, `.prose .prose-lg` for content typography
-- Flexible: `.max-w-[720px]` on prose wrapper for text, support for full-width sections when needed
-
-**Tailwind Typography Plugin:**
-- **ALWAYS apply `.prose` class** to content containers that render markdown
-- Use `.prose-lg` or `.prose-xl` for larger, more readable text
-- Prose automatically styles: headings, paragraphs, lists, blockquotes, code blocks, links, images
-- Combine with design language: `.prose-slate`, `.prose-gray`, `.prose-zinc`, etc.
-- Customize via `index.css` if brand-specific styling needed
-
-**Mobile Behavior:**
-- Standard layout: Maintains consistent reading width with padding
-- Flexible layout: Text maintains readable width, supports full-width images/sections
-- Both layouts: Stack vertically, adjust padding for mobile screens
-- Prose classes automatically responsive
+**CRITICAL**: After adding or removing blog posts, the content collection cache may be stale. Clear it with: `rm -f .astro/data-store.json`
 
 ---
 
-## Technical Requirements
+## Typography: Use Site Theme Variables, NOT Tailwind Prose
 
-### Typography Configuration
+**Do NOT use `@tailwindcss/typography` or `.prose` classes.** They produce poor contrast on dark themes and fight with the site's design system.
 
-**Install @tailwindcss/typography plugin** (if not already installed):
+Instead, style blog content with custom CSS using the site's own CSS variables from `index.css`. This ensures blog posts match the rest of the site exactly.
 
-```bash
-bun add @tailwindcss/typography
-```
-
-**Add plugin to `src/index.css`:**
+**Style blog content using a `.blog-content` wrapper with `is:global` styles:**
 
 ```css
-@import 'tailwindcss';
-@plugin '@tailwindcss/typography';
-
-@theme {
-  /* Brand colors and theme settings */
-}
-```
-
-**Customize prose styles in `index.css`** (optional):
-
-```css
-@layer base {
-  .prose {
-    --tw-prose-body: theme('colors.gray.700');
-    --tw-prose-headings: theme('colors.gray.900');
-    --tw-prose-links: theme('colors.blue.600');
-    --tw-prose-bold: theme('colors.gray.900');
-    --tw-prose-code: theme('colors.pink.600');
+<style is:global>
+  .blog-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: hsl(var(--heading));
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
   }
 
-  .dark .prose {
-    --tw-prose-body: theme('colors.gray.300');
-    --tw-prose-headings: theme('colors.white');
-    --tw-prose-links: theme('colors.blue.400');
+  .blog-content h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: hsl(var(--heading));
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
   }
-}
+
+  .blog-content a {
+    color: hsl(var(--primary));
+    text-decoration: none;
+  }
+
+  .blog-content a:hover {
+    text-decoration: underline;
+  }
+
+  .blog-content strong {
+    color: hsl(var(--heading));
+    font-weight: 600;
+  }
+
+  .blog-content ul, .blog-content ol {
+    padding-left: 1.5rem;
+  }
+
+  .blog-content ul { list-style-type: disc; }
+  .blog-content ol { list-style-type: decimal; }
+
+  .blog-content li {
+    margin-bottom: 0.4rem;
+    line-height: 1.7;
+  }
+
+  .blog-content img {
+    border-radius: 6px;
+    border: 1px solid hsl(var(--border));
+    margin: 1.5rem 0;
+  }
+
+  .blog-content code:not(pre code) {
+    font-size: 0.875rem;
+    background: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    color: hsl(var(--accent-foreground));
+  }
+
+  .blog-content pre {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    background: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+    color: hsl(var(--heading));
+  }
+
+  .blog-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+  }
+
+  .blog-content blockquote {
+    border-left: 3px solid hsl(var(--primary) / 0.4);
+    padding: 0.5rem 1rem;
+    margin: 1.25rem 0;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .blog-content blockquote p { margin-bottom: 0; }
+
+  .blog-content hr {
+    border: none;
+    border-top: 1px solid hsl(var(--border));
+    margin: 2rem 0;
+  }
+</style>
 ```
 
-### Astro Content Collections Setup
+**Key theme variables to use:**
+- `--heading` for headings, bold, table headers
+- `--foreground` for body text
+- `--primary` for links, accents
+- `--muted-foreground` for secondary text, blockquotes
+- `--secondary` for code backgrounds
+- `--border` for borders, dividers
 
-**CRITICAL**: Use Astro content collections for type-safe blog management.
+---
 
-**Step 1: Create collection configuration** (`src/content.config.ts`):
+## Content Collection Schema
+
+Add blog collection to existing `src/content.config.ts` (preserve any existing collections like docs):
 
 ```typescript
-import { defineCollection, z } from 'astro:content';
-import { glob } from 'astro/loaders';
+import { defineCollection, z } from "astro:content";
+import { glob } from "astro/loaders";
 
 const blog = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/blog' }),
+  loader: glob({ pattern: "**/*.md", base: "./src/content/blog" }),
   schema: z.object({
     title: z.string(),
     slug: z.string(),
     date: z.coerce.date(),
     author: z.string(),
+    authorEmail: z.string().email(),
+    authorBio: z.string().optional(),
     category: z.string(),
-    tags: z.array(z.string()).optional(),
     description: z.string(),
     image: z.string().optional(),
     draft: z.boolean().optional().default(false),
   }),
 });
 
-export const collections = { blog };
+export const collections = { /* ...existing collections, */ blog };
 ```
 
-**Step 2: Create blog posts** (`src/content/blog/post-name.md`):
+## Blog Post Frontmatter
+
+**Do NOT include `layout` in frontmatter.** It does not work with the content layer.
 
 ```markdown
 ---
-layout: ../../layouts/StandardBlogLayout.astro
 title: "Article Title"
 slug: "article-title"
 date: "2025-01-20"
 author: "Author Name"
+authorEmail: "author@example.com"
+authorBio: "Short author bio for the author box."
 category: "Category"
-tags: ["tag1", "tag2"]
 description: "Meta description for SEO"
-image: "/images/featured.jpg"
 draft: false
 ---
 
 Content here...
-
-Regular markdown content with standard formatting.
 ```
 
-For flexible layout posts, use `FlexibleBlogLayout.astro`:
-
-```markdown
----
-layout: ../../layouts/FlexibleBlogLayout.astro
-title: "Product Launch Announcement"
-slug: "product-launch"
-date: "2025-01-20"
-author: "Marketing Team"
-category: "Product Updates"
-description: "Announcing our new product features"
-draft: false
 ---
 
-Content with full-width images and flexible sections...
-```
+## Author Box with Gravatar
 
-**Step 3: Query collections in pages**:
+Every blog post includes an author box at the bottom with a Gravatar avatar. Use `node:crypto` to MD5 hash the email at build time:
 
 ```astro
 ---
-// src/pages/blog/index.astro
-import { getCollection } from 'astro:content';
+import { createHash } from "node:crypto";
 
-// Get all published posts
-const posts = await getCollection('blog', ({ data }) => {
-  return data.draft !== true;
-});
-
-// Sort by date (newest first)
-posts.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const emailHash = createHash("md5")
+  .update(post.data.authorEmail.trim().toLowerCase())
+  .digest("hex");
+const gravatarUrl = `https://gravatar.com/avatar/${emailHash}?s=160`;
 ---
+
+<!-- Author box -->
+<div class="mt-16 pt-8 border-t border-border">
+  <div class="flex items-start gap-4">
+    <img
+      src={gravatarUrl}
+      alt={post.data.author}
+      width="64"
+      height="64"
+      loading="lazy"
+      class="rounded-full shrink-0"
+    />
+    <div>
+      <p class="font-mono font-semibold text-heading text-sm">{post.data.author}</p>
+      {post.data.authorBio && (
+        <p class="text-sm text-muted-foreground mt-1 leading-relaxed">{post.data.authorBio}</p>
+      )}
+    </div>
+  </div>
+</div>
 ```
 
-**Step 4: Generate dynamic routes** (`src/pages/blog/[...slug].astro`):
-
-```astro
----
-import { getCollection } from 'astro:content';
-
-export async function getStaticPaths() {
-  const posts = await getCollection('blog');
-  return posts.map(post => ({
-    params: { slug: post.data.slug },
-    props: { post }
-  }));
-}
-
-const { post } = Astro.props;
-const { Content } = await post.render();
 ---
 
-<Layout title={post.data.title}>
-  <article>
-    <h1>{post.data.title}</h1>
-    <Content />
-  </article>
-</Layout>
+## External Links in New Tab
+
+Markdown does not support `target="_blank"`. Add a script to the post page that opens external links in new tabs:
+
+```html
+<script>
+  document.querySelectorAll("#blog-content a").forEach((a) => {
+    if (a instanceof HTMLAnchorElement && a.hostname !== location.hostname) {
+      a.target = "_blank";
+      a.rel = "noreferrer";
+    }
+  });
+</script>
 ```
+
+Give the content wrapper an `id="blog-content"` for the selector.
 
 ---
 
@@ -327,18 +306,12 @@ const { Content } = await post.render();
 - Never invoke professional-copywriter for blog posts
 
 **Navigation Integration:**
-- SaaS: Home | Features | Pricing | **Blog** | Docs | Login
-- General: Home | About | Services | **Blog** | Portfolio | Contact
-
-**Layout Options:**
-- Standard: Single column, traditional format (default)
-- Flexible: Full-width sections, multi-column, galleries
-- Always ask for preference when creating multiple posts
+- Place Blog link where user specifies, or after Docs if not specified
 
 **Design Consistency:**
-- Respect site's design language
-- Maintain brand colors and typography
-- Apply all user customizations documented in spec
+- Use site's CSS variables from `index.css` — never hardcode colors
+- Match the homepage's text contrast and spacing
+- Do NOT use Tailwind prose plugin
 
 ---
 
@@ -347,32 +320,29 @@ const { Content } = await post.render();
 Before completing:
 
 ✅ Read `src/index.css` and `AGENTS.md` for site context
-✅ Blog pages match existing design language
+✅ Blog content styled with site theme variables (NOT Tailwind prose)
 ✅ Brand colors and typography from index.css respected
-✅ All user customizations maintained
 ✅ Navigation updated with blog link
-✅ 2 placeholder posts created (if no content exists)
-✅ One standard layout post, one flexible layout post
-✅ Generic placeholder text used (NOT copywriter)
-✅ `AGENTS.md` updated with blog status
-✅ User informed about layout options
+✅ Author box with Gravatar on post pages
+✅ External links open in new tab via script
+✅ Used `render(post)` from `astro:content` (NOT `post.render()`)
+✅ No `layout` frontmatter in markdown files
+✅ `AGENTS.md` updated with blog pages
 ✅ SEO meta tags included
-✅ Mobile responsive layouts
+✅ Mobile responsive
 
 ---
 
 ## Key Principles
 
-**Integration First**: Match existing site's design, colors, customizations
+**No Tailwind Prose**: Style markdown content with custom CSS using site theme variables
 
-**Content Flexibility**: Support both standard and flexible layouts
+**No Layout Frontmatter**: Content layer glob loader ignores it — layout lives in `[...slug].astro`
 
-**Speed Over Perfection**: Generic placeholders, user adds real content later
+**Site Consistency**: Use `hsl(var(--heading))`, `hsl(var(--foreground))`, etc. — never hardcode hex colors
 
-**No Copywriter**: Blog posts always use generic text
-
-**Consistency**: Read index.css and AGENTS.md first, respect all customizations
+**Author Identity**: Every post has authorEmail for Gravatar, optional authorBio
 
 ---
 
-*Adds complete blog system to existing websites with flexible layouts matching site's design language.*
+*Adds complete blog system to existing websites using site theme variables for consistent design.*
