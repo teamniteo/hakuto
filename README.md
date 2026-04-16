@@ -2,7 +2,7 @@
 
 An open-source website template powered by Claude Code. Clone it, describe what you want, and ship a production-ready site in minutes.
 
-Built with Astro, Tailwind CSS v4, and shadcn/ui. Deployed to Cloudflare Workers.
+Built with Astro, Tailwind CSS v4, and shadcn/ui. Deployed to Cloudflare CDN.
 
 ## Quick Start
 
