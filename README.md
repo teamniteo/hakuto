@@ -6,7 +6,12 @@ An open-source [static website builder](https://hakuto.dev/) powered by Claude C
 
 Built with Astro, Tailwind CSS v4, and shadcn/ui. Deployed to Cloudflare CDN.
 
-Documentation and more on https://hakuto.dev/
+Documentation and more on https://hakuto.dev/. Also an [announcement post](https://hakuto.dev/blog/how-we-killed-our-new-ai-product/). 
+
+Live example how a Hakuto repo looks like for a real website: https://github.com/teamniteo/site-hakuto
+
+Two more websites we built with it: https://trialtrack.net/ & https://vendorvigilance.net/
+
 
 
 ## Quick Start
