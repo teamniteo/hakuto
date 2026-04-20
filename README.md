@@ -1,4 +1,4 @@
-<img width="2048" height="533" alt="hakuto-light" src="https://github.com/user-attachments/assets/01aaaf47-2639-4f22-81aa-a4168126ef9f" />
+<img width="1200" height="630" alt="Image" src="https://github.com/user-attachments/assets/b3257a27-d252-44cd-a620-e3ce10fe9b15" />
 
 # Hakuto
 
