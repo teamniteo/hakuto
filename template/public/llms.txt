@@ -1,0 +1,17 @@
+# Site Name
+
+> Brief one-line description of your site.
+
+## Overview
+
+Describe what your site/product does and who it's for.
+
+## Key Pages
+
+- [Home](/)
+- [Documentation](/docs/)
+
+## Contact
+
+- Website: https://example.com
+- Email: hello@example.com
