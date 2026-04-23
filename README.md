@@ -118,6 +118,38 @@ The Claude Code agent has access to specialized skills for common tasks:
 - **plausible-analytics** — Privacy-friendly analytics
 - **testing-seo** — SEO validation
 
+## Forms
+
+These steps apply only when using Customer.io for forms.
+
+1. Choose a stable ASCII-safe form name. The HTML form `name` field must match
+   it; the form skill handles this for you. For example, submitting to
+   `/~/form-contact` creates a `contact` form in Customer.io.
+2. Merge and deploy the form to the live site, then submit the production form
+   once. Customer.io only shows forms that have received data.
+3. In Customer.io, open Integrations from the sidebar, then click Forms in the
+   main view. Click the form you created.
+4. Go to Campaigns and press Create campaign.
+5. In the campaign, open the Workflow tab and set up the messages. A workflow
+   can include email or Slack messages.
+6. For email, set a subject. The subject can use any event data, for example
+   `New sponsor-order from {{event.email}}`.
+7. In the email editor, use the event on the left side to preview the data that
+   triggered the workflow.
+8. Add this body to the email template to dump all submitted values. Use `+` to
+   customize the message:
+
+```liquid
+{% for pair in event %}
+{{ pair[0] }}: {{ pair[1] }}
+
+{% endfor %}
+```
+9. Use the email editor `...` menu to send a test email.
+10. Use the Sent tab to see sent or drafted messages.
+11. To enable sending, the campaign must not be in draft. Go to Actions and
+    start the campaign.
+
 ## License
 
 MIT
