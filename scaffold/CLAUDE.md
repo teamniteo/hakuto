@@ -71,9 +71,9 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 1.	Read package.json to understand the project setup and available scripts.
 2.	Proactively use Skills based on the user's request — don't wait to be asked.
 3.	Remember, this project uses Tailwind CSS v4 — configuration is CSS-based, not JavaScript.
-4.	Never start any preview server; it's already running externally.
-5.	Never ask for confirmation — you're running in a sandbox environment with access to all tools and can perform any necessary actions independently.
-6.  Never run build tools ({bun, yarn, npx, bunx, npm}) - external processes handle builds automatically via hooks.
+4.	Assume the user has a dev server running in another terminal (typically via `devenv up` or `bun run dev`). Do NOT start your own — it will collide on port 4321.
+5.	If `bun` is not on PATH, the user launched Claude outside the devenv shell. Tell them to `cd` into the project so direnv loads, or to run `devenv shell` first. Do NOT fall back to `npm` or `yarn` — this project uses `bun` exclusively.
+6.	`bun run check` (astro type-check) is safe to run when verifying edits. `bun install` and `bun run build` should only run when the user explicitly asks.
 
 ## Mandatory Workflow (Follow This Exact Order)
 
@@ -90,7 +90,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - Create site-specification.md to document your design decisions (see website-builder SKILL for template)
 
 ### Step 3: Update Base Layout (src/layouts/Layout.astro)
-- **Remove ALL Hakuto template placeholder content** from Layout.astro
+- **Remove ALL Hakuto scaffold placeholder content** from Layout.astro
 - Keep only essential structure: html, head, body tags
 - **Update `SITE_NAME` and `SITE_DESCRIPTION` constants** for the user's project
 - Structure: `<Header /> → <slot /> → <Footer />`
@@ -99,7 +99,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - **JSON-LD Schema**: Pass `schema` prop for structured data (see SEO section below)
 
 ### Step 4: Document Project Plan
-- **Create a `## Project Plan` section at the end of this CLAUDE.md** (in the workspace, not the template)
+- **Create a `## Project Plan` section at the end of this CLAUDE.md** (in this project)
 - List all pages and components needed with checkbox format
 - Example:
 ```markdown
@@ -128,7 +128,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 
 ### Step 7: Compose Final Pages
 - Import and use components in pages
-- **Remove ALL Hakuto template placeholder content**
+- **Remove ALL Hakuto scaffold placeholder content**
 - Check off completed items in CLAUDE.md
 
 ## Technical Requirements
@@ -187,6 +187,49 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - **NEVER use `style` props on React/shadcn components** - they don't support inline styles
 - Use Tailwind classes instead (e.g., `className="delay-100"` not `style={{ animationDelay: '100ms' }}`)
 - For animation delays, use Tailwind's `delay-*` utilities or define custom delays in `@theme {}`
+
+### Compound Components and Astro Islands (CRITICAL)
+
+Radix-based shadcn components that use **React Context** internally break when dropped into `.astro` files piece by piece. Each child becomes its own island and loses the parent's context — e.g., `<SelectValue> must be used within <Select>`.
+
+**Affected components** (anything with sub-parts): `Select`, `Tabs`, `Accordion`, `DropdownMenu`, `RadioGroup`, `Dialog`, `AlertDialog`, `Sheet`, `Popover`, `HoverCard`, `ContextMenu`, `Menubar`, `NavigationMenu`, `Command`, `Collapsible`, `ToggleGroup`, `Tooltip`.
+
+**Wrong** — each sub-component becomes a separate island, context is lost:
+```astro
+---
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+---
+<Select client:load>
+  <SelectTrigger client:load>
+    <SelectValue client:load />   <!-- breaks: outside Select context -->
+  </SelectTrigger>
+</Select>
+```
+
+**Right** — wrap the whole compound in a single `.tsx` component, export it, and use that as one island:
+```tsx
+// src/components/CountrySelect.tsx
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+
+export function CountrySelect() {
+  return (
+    <Select>
+      <SelectTrigger><SelectValue placeholder="Pick a country" /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="si">Slovenia</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+```
+```astro
+---
+import { CountrySelect } from "@/components/CountrySelect";
+---
+<CountrySelect client:load />
+```
+
+**For simple single-value selects in forms**, prefer a styled native `<select>` — no React island needed, no context dance, works without JS.
 
 ### Code Hygiene
 - **Remove unused imports** - Don't import modules you don't use (e.g., `import * as fs from "node:fs"` if fs is never used)
