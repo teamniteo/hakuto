@@ -146,8 +146,8 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 
 ### Web Fonts (Astro Fonts API) - REQUIRED for Custom Fonts
 - **ALWAYS invoke `fonts` skill** when using any custom fonts
-- **Use the experimental Fonts API** for custom typography (requires Astro 5.7.0+)
-- Configure fonts in `astro.config.mjs` using `experimental.fonts` array
+- **Use the Fonts API** for custom typography (stable in Astro 6+; `experimental.fonts` on Astro 5.7–5.x)
+- Configure fonts in `astro.config.mjs` using the top-level `fonts` array (Astro 6+)
 - **NEVER use @import or @font-face in CSS** for custom fonts - use the Fonts API instead
 - Add `<Font />` component from `astro:assets` to Layout.astro head
 - Use the CSS variable in `src/index.css` @theme block: `--font-sans: var(--font-custom);`

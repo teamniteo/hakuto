@@ -1,6 +1,6 @@
 ---
 name: fonts
-description: REQUIRED for any custom font usage. Configure web fonts using Astro's experimental Fonts API. MUST invoke this skill anytime custom fonts are needed, user requests font changes, typography updates, Google Fonts, Fontsource, local fonts, or asks to "add fonts", "change typography", "use custom fonts", "improve font loading", "optimize fonts". Never use @import for fonts in CSS.
+description: REQUIRED for any custom font usage. Configure web fonts using Astro's Fonts API (top-level `fonts` in Astro 6+). MUST invoke this skill anytime custom fonts are needed, user requests font changes, typography updates, Google Fonts, Fontsource, local fonts, or asks to "add fonts", "change typography", "use custom fonts", "improve font loading", "optimize fonts". Never use @import for fonts in CSS.
 ---
 
 # Fonts (Astro Fonts API)
@@ -13,23 +13,23 @@ Font setup MUST follow this exact sequence. The `<Font />` component and CSS var
 
 ### Step 1: Configure astro.config.mjs (FIRST)
 
-Add fonts to the `experimental.fonts` array:
+Add fonts to the top-level `fonts` array (Astro 6+ promoted from `experimental.fonts`):
 
 ```javascript
 import { defineConfig, fontProviders } from "astro/config";
 
 export default defineConfig({
-  experimental: {
-    fonts: [{
-      provider: fontProviders.google(),
-      name: "Crimson Pro",
-      cssVariable: "--font-display",
-      weights: [400, 600, 700],
-      styles: ["normal"]
-    }]
-  }
+  fonts: [{
+    provider: fontProviders.google(),
+    name: "Crimson Pro",
+    cssVariable: "--font-display",
+    weights: [400, 600, 700],
+    styles: ["normal"]
+  }]
 });
 ```
+
+> **Note**: Astro ≤ 5.x required `experimental: { fonts: [...] }`. Astro 6.x graduated the API; wrap in `experimental` only if you're on an older Astro.
 
 ### Step 2: Restart preview server (REQUIRED)
 
@@ -84,25 +84,23 @@ import { Font } from 'astro:assets';
 import { defineConfig, fontProviders } from "astro/config";
 
 export default defineConfig({
-  experimental: {
-    fonts: [
-      {
-        provider: fontProviders.google(),
-        name: "Crimson Pro",
-        cssVariable: "--font-display",
-        weights: [400, 600, 700],
-        styles: ["normal", "italic"],
-        subsets: ["latin"]
-      },
-      {
-        provider: fontProviders.google(),
-        name: "DM Sans",
-        cssVariable: "--font-body",
-        weights: [400, 500, 600],
-        styles: ["normal"]
-      }
-    ]
-  }
+  fonts: [
+    {
+      provider: fontProviders.google(),
+      name: "Crimson Pro",
+      cssVariable: "--font-display",
+      weights: [400, 600, 700],
+      styles: ["normal", "italic"],
+      subsets: ["latin"]
+    },
+    {
+      provider: fontProviders.google(),
+      name: "DM Sans",
+      cssVariable: "--font-body",
+      weights: [400, 500, 600],
+      styles: ["normal"]
+    }
+  ]
 });
 ```
 
@@ -112,18 +110,16 @@ export default defineConfig({
 import { defineConfig, fontProviders } from "astro/config";
 
 export default defineConfig({
-  experimental: {
-    fonts: [
-      {
-        provider: fontProviders.fontsource(),
-        name: "JetBrains Mono",
-        cssVariable: "--font-mono",
-        weights: [400, 700],
-        subsets: ["latin"],
-        fallbacks: ["monospace"]
-      }
-    ]
-  }
+  fonts: [
+    {
+      provider: fontProviders.fontsource(),
+      name: "JetBrains Mono",
+      cssVariable: "--font-mono",
+      weights: [400, 700],
+      subsets: ["latin"],
+      fallbacks: ["monospace"]
+    }
+  ]
 });
 ```
 
@@ -133,27 +129,25 @@ export default defineConfig({
 import { defineConfig, fontProviders } from "astro/config";
 
 export default defineConfig({
-  experimental: {
-    fonts: [{
-      provider: fontProviders.local(),
-      name: "Brand Font",
-      cssVariable: "--font-brand",
-      options: {
-        variants: [
-          {
-            weight: 400,
-            style: "normal",
-            src: ["./src/assets/fonts/BrandFont-Regular.woff2"]
-          },
-          {
-            weight: 700,
-            style: "normal",
-            src: ["./src/assets/fonts/BrandFont-Bold.woff2"]
-          }
-        ]
-      }
-    }]
-  }
+  fonts: [{
+    provider: fontProviders.local(),
+    name: "Brand Font",
+    cssVariable: "--font-brand",
+    options: {
+      variants: [
+        {
+          weight: 400,
+          style: "normal",
+          src: ["./src/assets/fonts/BrandFont-Regular.woff2"]
+        },
+        {
+          weight: 700,
+          style: "normal",
+          src: ["./src/assets/fonts/BrandFont-Bold.woff2"]
+        }
+      ]
+    }
+  }]
 });
 ```
 

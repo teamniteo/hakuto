@@ -12,13 +12,11 @@ The most comprehensive font library with 1500+ font families.
 import { defineConfig, fontProviders } from "astro/config";
 
 export default defineConfig({
-  experimental: {
-    fonts: [{
-      provider: fontProviders.google(),
-      name: "Roboto",
-      cssVariable: "--font-roboto"
-    }]
-  }
+  fonts: [{
+    provider: fontProviders.google(),
+    name: "Roboto",
+    cssVariable: "--font-roboto"
+  }]
 });
 ```
 
@@ -174,27 +172,25 @@ For custom brand fonts or fonts without CDN availability. Uses `fontProviders.lo
 import { defineConfig, fontProviders } from "astro/config";
 
 export default defineConfig({
-  experimental: {
-    fonts: [{
-      provider: fontProviders.local(),
-      name: "Brand Font",
-      cssVariable: "--font-brand",
-      options: {
-        variants: [
-          {
-            weight: 400,
-            style: "normal",
-            src: ["./src/assets/fonts/BrandFont-Regular.woff2"]
-          },
-          {
-            weight: 700,
-            style: "normal",
-            src: ["./src/assets/fonts/BrandFont-Bold.woff2"]
-          }
-        ]
-      }
-    }]
-  }
+  fonts: [{
+    provider: fontProviders.local(),
+    name: "Brand Font",
+    cssVariable: "--font-brand",
+    options: {
+      variants: [
+        {
+          weight: 400,
+          style: "normal",
+          src: ["./src/assets/fonts/BrandFont-Regular.woff2"]
+        },
+        {
+          weight: 700,
+          style: "normal",
+          src: ["./src/assets/fonts/BrandFont-Bold.woff2"]
+        }
+      ]
+    }
+  }]
 });
 ```
 
@@ -359,24 +355,22 @@ For Material Symbols icons as fonts.
 Download only specific weight/style combinations by specifying the same font multiple times:
 
 ```javascript
-experimental: {
-  fonts: [
-    {
-      name: "Roboto",
-      cssVariable: "--roboto",
-      provider: fontProviders.google(),
-      weights: [400, 500, 600],
-      styles: ["normal"]
-    },
-    {
-      name: "Roboto",
-      cssVariable: "--roboto",
-      provider: fontProviders.google(),
-      weights: [400],
-      styles: ["italic"]
-    }
-  ]
-}
+fonts: [
+  {
+    name: "Roboto",
+    cssVariable: "--roboto",
+    provider: fontProviders.google(),
+    weights: [400, 500, 600],
+    styles: ["normal"]
+  },
+  {
+    name: "Roboto",
+    cssVariable: "--roboto",
+    provider: fontProviders.google(),
+    weights: [400],
+    styles: ["italic"]
+  }
+]
 ```
 
 ## Custom Provider
@@ -413,13 +407,11 @@ export function myProvider(): FontProvider {
 import { myProvider } from "./font-provider";
 
 export default defineConfig({
-  experimental: {
-    fonts: [{
-      provider: myProvider(),
-      name: "Private Font",
-      cssVariable: "--font-private"
-    }]
-  }
+  fonts: [{
+    provider: myProvider(),
+    name: "Private Font",
+    cssVariable: "--font-private"
+  }]
 });
 ```
 
