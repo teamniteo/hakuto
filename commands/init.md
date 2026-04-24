@@ -41,7 +41,7 @@ If the guard trips, **stop**. Tell the user to run `/hakuto:init` in a clean dir
 > 3. `git add -A && git commit -m "Initial scaffold"` — a local git repo was initialized for you
 > 4. Describe your site ("Build me a landing page for a coffee roaster") and the `website-builder` skill will take over.
 >
-> Skills, agents, and statusline come from the installed plugin and update via `/plugin update hakuto`.
+> Skills and agents come from the installed plugin and update via `/plugin update hakuto`.
 >
 > **Not using devenv?** Delete `devenv.nix`, `devenv.yaml`, and `.envrc`. Nothing else depends on them.
 

@@ -72,8 +72,6 @@ commands/
 └── init.md             # /hakuto:init scaffolder
 skills/                 # 9 site-building skills
 agents/                 # Astro file editor subagent
-assets/
-└── statusline.sh       # Statusline renderer
 scaffold/               # Astro project copied by /hakuto:init
 ```
 
