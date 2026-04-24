@@ -160,6 +160,24 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - Import local images in frontmatter: `import heroImage from '@/assets/hero.jpg';`
 - Use `loading="eager"` for above-the-fold, `loading="lazy"` for below-the-fold
 
+#### Asset Path Rule (CRITICAL)
+
+**NEVER reference assets with raw `/src/assets/...` paths in `src` attributes.** Vite serves these paths in dev, but they don't exist in the production build — images 404 on the live site while appearing fine locally.
+
+- ❌ `<img src="/src/assets/photo.jpg" />` — breaks in production
+- ❌ `<img src="/src/assets/logo.svg" />` — breaks in production
+- ✅ Import the asset, then use `<Picture>` or `<Image>` from `astro:assets`:
+  ```astro
+  ---
+  import { Picture } from "astro:assets";
+  import photo from "@/assets/photo.jpg";
+  ---
+  <Picture src={photo} formats={['avif', 'webp']} widths={[400, 800]} alt="..." width={400} height={400} />
+  ```
+- For truly static files that must keep a stable public URL (e.g. `/favicon.ico`, `/robots.txt`), put them in `public/` and reference as `/filename.ext` — not `/src/assets/...`.
+
+Before declaring any page complete, grep the file for `"/src/assets` and `'/src/assets` — there should be zero matches.
+
 ### Tailwind CSS v4 Configuration
 - **DELETE tailwind.config.mjs if it exists** - it has no effect in v4
 - **CRITICAL: `@import` statements MUST come first** in CSS files (before any other rules)
@@ -311,6 +329,7 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | TypeScript errors with `class` | Use `className` on React/shadcn components |
 | Styles not applying | Check `@import 'tailwindcss'` is first line in index.css |
 | Images not optimizing | Use `<Picture>` for local assets only, `<img>` for external URLs. Ensure Cloudflare adapter uses `imageService: "compile"` (NOT `"passthrough"`) |
+| Images 404 in production but work in dev | Raw `/src/assets/...` paths in `src` attributes — import the asset and use `<Picture>`/`<Image>` instead. See "Asset Path Rule" above |
 | Images not loading in dev | The Cloudflare adapter `imageService: "passthrough"` disables image processing entirely (uses noop service), breaking `<Picture>` and `<Image>` in dev. Use `"compile"` instead |
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
