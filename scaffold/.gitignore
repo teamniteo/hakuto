@@ -21,8 +21,6 @@ dist-ssr
 .hakuto
 .claude
 .ports
-CLAUDE.md
-AGENTS.md
 
 # Editor directories and files
 .vscode/*
@@ -36,6 +34,7 @@ AGENTS.md
 *.sw?
 
 # Devenv
+.devenv
 .devenv*
 devenv.local.nix
 
