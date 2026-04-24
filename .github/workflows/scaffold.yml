@@ -1,0 +1,66 @@
+name: Scaffold
+
+on: push
+
+jobs:
+  devenv-build:
+    name: Build scaffold with devenv
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: cachix/install-nix-action@v31
+
+      - uses: cachix/cachix-action@v16
+        with:
+          name: devenv
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('scaffold/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install devenv
+        run: nix profile add nixpkgs#devenv
+
+      - name: Build
+        working-directory: scaffold
+        run: devenv shell bash -lc "node --version && bun --version && bun run build"
+
+  bun-build:
+    name: Build scaffold with Bun
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('scaffold/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Check versions
+        run: |
+          node --version
+          bun --version
+
+      - name: Install dependencies
+        working-directory: scaffold
+        run: bun i --frozen-lockfile
+
+      - name: Build
+        working-directory: scaffold
+        run: bun run build

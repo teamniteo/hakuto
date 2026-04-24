@@ -1,0 +1,11 @@
+{
+  "name": "hakuto",
+  "owner": { "name": "Niteo", "url": "https://github.com/teamniteo" },
+  "plugins": [
+    {
+      "name": "hakuto",
+      "source": "./",
+      "description": "AI-native Astro + Cloudflare site builder. Ship production sites with Claude Code."
+    }
+  ]
+}

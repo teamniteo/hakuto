@@ -1,4 +1,4 @@
-name = 'hakuto-site-'
+name = 'hakuto-site'
 main="worker/index.js"
 compatibility_date = "2025-12-30"
 compatibility_flags = [ "nodejs_compat" ]

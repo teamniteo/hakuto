@@ -10,15 +10,31 @@ Documentation and more on https://hakuto.dev/. Also an [announcement post](https
 
 Live example how a Hakuto repo looks like for a real website: https://github.com/teamniteo/site-hakuto
 
-Two more websites we built with it: https://trialtrack.net/ & https://vendorvigilance.net/
-
-
 
 ## Quick Start
 
+Hakuto ships as a [Claude Code plugin](https://code.claude.com/docs/en/plugins). Install once, scaffold new sites anywhere.
+
 ```sh
-git clone https://github.com/teamniteo/hakuto.git
-cd hakuto
+# Inside Claude Code:
+/plugin marketplace add teamniteo/hakuto
+/plugin install hakuto@hakuto
+```
+
+Then in an empty directory:
+
+```sh
+mkdir my-site && cd my-site
+claude
+```
+
+```
+/hakuto:init
+```
+
+Followed by:
+
+```sh
 bun install
 bun run dev
 ```
@@ -27,11 +43,12 @@ Open [localhost:4321](http://localhost:4321) to see the site.
 
 ## How It Works
 
-Hakuto is a website template designed to be edited by Claude Code. The `CLAUDE.md` file contains a full agent specification — design rules, component patterns, and a step-by-step workflow — so Claude can build and modify pages with consistent, high-quality output.
+Hakuto is a Claude Code plugin bundling skills, a subagent, and an Astro scaffold. Skills (design rules, component patterns, copy, analytics, etc.) live in the plugin and update via `/plugin update hakuto`. The scaffolded `CLAUDE.md` ties everything together inside your site repo.
 
-1. **Clone the template** — start from a working Astro site with shadcn/ui components pre-installed
-2. **Describe your site** — tell Claude Code what you want (landing page, docs site, blog, etc.)
-3. **Ship it** — deploy to Cloudflare Workers with `wrangler deploy`
+1. **Install the plugin** — one time, global
+2. **`/hakuto:init`** — drops an Astro + Cloudflare starter into an empty directory
+3. **Describe your site** — "Build me a landing page for a coffee roaster" and `website-builder` takes over
+4. **Ship it** — `wrangler deploy` pushes to Cloudflare Workers
 
 ## Stack
 
@@ -45,6 +62,21 @@ Hakuto is a website template designed to be edited by Claude Code. The `CLAUDE.m
 
 ## Project Structure
 
+### The plugin (this repo)
+
+```
+.claude-plugin/
+├── plugin.json         # Plugin manifest
+└── marketplace.json    # Single-plugin marketplace
+commands/
+└── init.md             # /hakuto:init scaffolder
+skills/                 # 9 site-building skills
+agents/                 # Astro file editor subagent
+scaffold/               # Astro project copied by /hakuto:init
+```
+
+### A scaffolded site (what `/hakuto:init` drops in your cwd)
+
 ```
 src/
 ├── assets/          # Images, favicon source
@@ -55,7 +87,7 @@ src/
 ├── pages/           # File-based routing
 └── index.css        # Theme tokens (Tailwind v4 @theme)
 
-CLAUDE.md            # Agent specification for Claude Code
+CLAUDE.md            # Agent spec for your site
 AGENTS.md            # Auto-generated page index
 site-specification.md # Design decisions & style guide
 worker/              # Cloudflare Worker entry

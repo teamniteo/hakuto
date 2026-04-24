@@ -36,6 +36,7 @@ AGENTS.md
 *.sw?
 
 # Devenv
+.devenv
 .devenv*
 devenv.local.nix
 
