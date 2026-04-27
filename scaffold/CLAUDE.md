@@ -294,6 +294,7 @@ Update the favicons plugin configuration in astro.config.mjs:
 - Add proper alt text and meta tags for SEO
 - Follow accessibility guidelines
 - **CRITICAL: When creating anchor links** (e.g., `href="#features"`), ALWAYS create the corresponding id in the target element (e.g., `<section id="features">`)
+- **CRITICAL: Internal links must use trailing slashes** — write `href="/docs/"`, `href="/blog/"`, `href="/about/"`, never `href="/docs"`. The scaffold sets `trailingSlash: "always"` so the canonical URL has the slash; non-slashed internal hrefs trigger a 301 redirect (~750ms on mobile per hop). The home link `href="/"` is already canonical. Before declaring a page complete, grep for `href="/[a-z]` patterns missing a trailing slash.
 
 ## SEO & Structured Data
 
