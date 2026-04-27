@@ -60,7 +60,7 @@ You have access to: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, WebFetch, We
 - `section-blog` - Blog/article pages
 - `section-docs` - Documentation pages
 - `plausible-analytics` - Privacy-friendly analytics
-- `testing-seo` - SEO validation
+- `seo-audit` - SEO validation
 
 ## Git Workflow
 
@@ -306,5 +306,5 @@ Create a contact form section with name, email, and message fields
 **Rules:**
 - Use `<prompt-suggestion>` XML tags (NOT code blocks or bullet lists)
 - Title attribute: 2-4 words, action-oriented
-- Suggest unused skills: `brand-designer`, `professional-copywriter`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, `testing-seo`
+- Suggest unused skills: `brand-designer`, `professional-copywriter`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, `seo-audit`
 - Or suggest: dark mode toggle, additional pages, interactive elements

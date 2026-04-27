@@ -1,9 +1,9 @@
 ---
-name: testing-seo
+name: seo-audit
 description: SEO validation for sites. Can test a single page, group of pages, or entire website based on user prompt. Reports issues and successes. Report-only - no fixes applied.
 ---
 
-# Testing SEO Skill
+# SEO Audit
 
 Validate SEO on Astro-built sites. Report findings only - user requests fixes separately.
 
@@ -87,7 +87,10 @@ For each file, run these checks:
 **Canonical:** `<link rel="canonical" href="...">` in `<head>`
 - Missing → critical
 - Relative URL (no http://) → warning: "Should be absolute URL"
-- Absolute URL → pass
+- Absolute URL pointing to a different page than the current file's URL → critical: "Cross-canonical: page X canonicals to Y (silently de-indexes X)"
+- Absolute, self-referencing → pass
+
+To check self-reference: derive expected URL from file path (e.g. `_dist/about/index.html` → `/about/` or `/about`) and compare against canonical href path. Account for trailing-slash variants.
 
 **Open Graph:** Check for og:title, og:description, og:image, og:url
 - Missing any → warning for each missing tag
@@ -113,6 +116,29 @@ Find `<script type="application/ld+json">`
   - Organization/LocalBusiness: check name, url → pass if present
   - Article: check headline, datePublished, author → pass if present
   - Other types → pass
+
+#### Image Alt Text
+
+Extract all `<img>` tags in `<body>`:
+- Missing `alt` attribute → critical: "Image missing alt: [src]"
+- Empty `alt=""` on a decorative image (no surrounding link/caption) → pass (intentional)
+- Empty `alt=""` on a content image (inside `<a>`, `<figure>`, or with no other text in link) → warning: "Empty alt on content image: [src]"
+- Non-empty descriptive alt → pass
+
+Ignore `<img>` inside `<picture>` only when the `<picture>` itself has an `<img>` child with alt (don't double-count).
+
+#### URL Hygiene
+
+Per page URL (from sitemap.xml or file path):
+- Uppercase letters in path → warning: "URL not lowercase: [url]"
+- Underscores in path segments → warning: "URL uses underscores instead of hyphens: [url]"
+- Query parameters (`?foo=bar`) on indexable pages → warning: "Indexable URL has query params: [url]"
+
+#### Mixed Content
+
+Scan built HTML for `http://` (not `https://`) references:
+- `<script src="http://...">`, `<link href="http://...">`, `<img src="http://...">`, `<iframe src="http://...">` → critical: "Mixed content: [tag] loads insecure [url]"
+- Ignore `http://` inside JSON-LD `@context` (`http://schema.org` is canonical) and inside text content / comments.
 
 #### Internal Links
 
@@ -237,6 +263,9 @@ To fix issues, edit the source .astro files in src/pages/ directory:
 - Title <30 chars, description <100 chars
 - Multiple H1s or broken heading hierarchy
 - Invalid JSON-LD
+- Cross-canonical (canonical points to a different page)
+- Missing `alt` attribute on `<img>` (different from intentional `alt=""`)
+- Mixed content (https page loading http resources)
 - Missing favicon: no `<link rel="icon">` in head, missing `favicon.ico`, or missing SVG/PNG fallback
 - Broken favicon reference (link points to file not present in `_dist`)
 
@@ -245,6 +274,8 @@ To fix issues, edit the source .astro files in src/pages/ directory:
 - Missing: Open Graph, schema, llms.txt
 - Missing recommended favicon assets: `apple-touch-icon`, web manifest link, or manifest file
 - Relative canonical URL
+- Empty `alt=""` on content images (inside links/figures)
+- URL hygiene: uppercase, underscores, or query params on indexable URLs
 - Duplicates, orphaned pages
 
 **Pass (✅):**

@@ -114,7 +114,7 @@ The Claude Code agent has access to specialized skills for common tasks:
 - **section-blog** — Multi-page blog system
 - **section-docs** — Documentation with sidebar nav
 - **plausible-analytics** — Privacy-friendly analytics
-- **testing-seo** — SEO validation
+- **seo-audit** — SEO validation
 
 ## Forms
 

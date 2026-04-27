@@ -43,6 +43,6 @@ Astro 6 · Tailwind CSS v4 · shadcn/ui · TypeScript · Biome · Bun · Cloudfl
 
 ## Working with Claude
 
-`CLAUDE.md` at the repo root carries the agent spec. The Hakuto plugin provides skills (`website-builder`, `brand-designer`, `professional-copywriter`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, `testing-seo`) that auto-invoke based on what you ask for.
+`CLAUDE.md` at the repo root carries the agent spec. The Hakuto plugin provides skills (`website-builder`, `brand-designer`, `professional-copywriter`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, `seo-audit`) that auto-invoke based on what you ask for.
 
 Update the plugin with `/plugin update hakuto` inside Claude Code.
