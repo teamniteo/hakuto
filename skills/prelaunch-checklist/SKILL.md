@@ -110,10 +110,10 @@ Read `src/pages/404.astro`. If it matches the scaffold default verbatim (or is s
 Use `AskUserQuestion` for each. These are confirmation gates, not auto-runs.
 
 **Gate 1 — SEO test:**
-> Have you run the `testing-seo` skill on the current build?
+> Have you run the `seo-audit` skill on the current build?
 > Options: Yes / No — run it after this / Not applicable
 
-If "No — run it after this" → add to `manual_reminders`: "Run `testing-seo` skill before going live."
+If "No — run it after this" → add to `manual_reminders`: "Run `seo-audit` skill before going live."
 If "Yes" → add to `passed`.
 
 **Gate 2 — Code review:**
