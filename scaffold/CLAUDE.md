@@ -60,7 +60,7 @@ You have access to: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, WebFetch, We
 - `section-blog` - Blog/article pages
 - `section-docs` - Documentation pages
 - `plausible-analytics` - Privacy-friendly analytics
-- `testing-seo` - SEO validation
+- `seo-audit` - SEO validation
 - `prelaunch-checklist` - Pre-launch validation (wrangler, forms, legal, placeholders, SEO/review status)
 
 ## Git Workflow
@@ -294,6 +294,7 @@ Update the favicons plugin configuration in astro.config.mjs:
 - Add proper alt text and meta tags for SEO
 - Follow accessibility guidelines
 - **CRITICAL: When creating anchor links** (e.g., `href="#features"`), ALWAYS create the corresponding id in the target element (e.g., `<section id="features">`)
+- **CRITICAL: Internal links must use trailing slashes** — write `href="/docs/"`, `href="/blog/"`, `href="/about/"`, never `href="/docs"`. The scaffold sets `trailingSlash: "always"` so the canonical URL has the slash; non-slashed internal hrefs trigger a 301 redirect (~750ms on mobile per hop). The home link `href="/"` is already canonical. Before declaring a page complete, grep for `href="/[a-z]` patterns missing a trailing slash.
 
 ## SEO & Structured Data
 
@@ -371,5 +372,5 @@ Create a contact form section with name, email, and message fields
 **Rules:**
 - Use `<prompt-suggestion>` XML tags (NOT code blocks or bullet lists)
 - Title attribute: 2-4 words, action-oriented
-- Suggest unused skills: `brand-designer`, `professional-copywriter`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, `testing-seo`
+- Suggest unused skills: `brand-designer`, `professional-copywriter`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, `seo-audit`
 - Or suggest: dark mode toggle, additional pages, interactive elements

@@ -7,7 +7,7 @@ description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sit
 
 Audit Hakuto-built sites against the project's own CLAUDE.md rules. Report findings only — the user asks for fixes separately.
 
-This skill is the **source-side** counterpart to `testing-seo` (which audits the built `_dist/` HTML). Together they cover both: this one catches issues in `src/`, `astro.config.mjs`, and `src/index.css` before build; `testing-seo` catches what the build produces.
+This skill is the **source-side** counterpart to `seo-audit` (which audits the built `_dist/` HTML). Together they cover both: this one catches issues in `src/`, `astro.config.mjs`, and `src/index.css` before build; `seo-audit` catches what the build produces.
 
 **Flexible Scope:** parses the user request to choose what to review:
 - **Single file**: "Review src/pages/index.astro" or "Audit Header.astro"
@@ -266,7 +266,7 @@ bun run check                            # Type-check (run AT MOST once per revi
 ## Notes
 
 - **Report-only.** The skill never edits files. The user runs follow-up prompts to fix.
-- **Complements `testing-seo`.** That skill audits built HTML in `_dist/` (titles, OG tags, sitemap). This skill audits source code in `src/`. Run both for full coverage.
+- **Complements `seo-audit`.** That skill audits built HTML in `_dist/` (titles, OG tags, sitemap). This skill audits source code in `src/`. Run both for full coverage.
 - **Stay in sync with CLAUDE.md.** Every check above ties to a rule in the project's `CLAUDE.md`. If rules change there, update the corresponding category here.
 - **Don't false-positive on intentional patterns.** External `<img>` URLs (Unsplash etc.) are fine; only flag bare `<img>` for *imported local* images. HTML elements correctly use `class=`; only flag `class=` on capitalised React/shadcn tags.
 - **Cite `file:line`** in every issue so the user can jump straight to the offending line.
