@@ -123,6 +123,13 @@ If "Yes" → add to `passed`.
 If "No — do it after this" → add to `manual_reminders`: "Run `code-review` skill or get a second pair of eyes on the source."
 If "Yes" → add to `passed`.
 
+**Gate 3 — Lock file freshness:**
+> Have you run `bun update` recently so `bun.lock` resolves to the latest stable package versions?
+> Options: Yes / No — do it after this / Not applicable
+
+If "No — do it after this" → add to `manual_reminders`: "Run `bun update` to refresh `bun.lock` to latest stable packages, then re-run `bun run check` and the build before shipping."
+If "Yes" → add to `passed`.
+
 ### 5. Add manual Cloudflare reminders
 
 Always include in the report (these can't be checked from the repo):
@@ -177,6 +184,7 @@ Prelaunch Checklist Results
 - 404 page customized
 - SEO test confirmed run
 - Code review confirmed run
+- `bun.lock` refreshed to latest stable packages
 
 ---
 
