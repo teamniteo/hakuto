@@ -326,8 +326,8 @@ The scaffold ships with signals that help AI agents discover and interact with t
 
 | File | What it does | What to update |
 |---|---|---|
-| `public/robots.txt` | Sets crawler permissions and AI training/search/input signals via `Content-Signal` | Adjust `Content-Signal` if the user wants different defaults (current default: `ai-train=no, search=yes, ai-input=yes`) |
-| `public/_headers` | Cloudflare Pages headers — advertises sitemap and llms.txt via `Link` relations | Usually leave as-is unless URLs change |
+| `public/robots.txt` | Standard crawler permissions | Usually leave as-is. Default allows all crawlers. |
+| `public/_headers` | Cloudflare Pages response headers — advertises sitemap and llms.txt via `Link`, and ships the `Content-Signal` AI preferences ([Cloudflare / IETF draft](https://datatracker.ietf.org/doc/draft-canel-robots-content-signal/)) | Adjust `Content-Signal` defaults if needed (shipped: `ai-train=no, search=yes, ai-input=yes`). Served as an HTTP response header rather than a `robots.txt` directive so Lighthouse doesn't flag it as an "Unknown directive" and drop the SEO sub-score. |
 | `public/llms.txt` | Plain-text site summary for LLMs ([llmstxt.org](https://llmstxt.org)) | **Must be customized**: replace `Site Name`, description, key pages, and contact with the user's real info |
 | `src/layouts/Layout.astro` — `ENABLE_WEBMCP` | Opt-in [WebMCP](https://webmcp.org) tools (`search-site`, `get-page-content`, `navigate`) for in-page agents | Default `false`. Flip to `true` only if the user explicitly wants to expose tools to AI agents — the spec is early |
 
