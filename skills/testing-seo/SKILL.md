@@ -136,9 +136,22 @@ Extract all `<a href="...">` tags:
 - Missing → warning
 - Present → pass
 
-**Favicon:** Check for favicon.ico, .svg, .png or `<link rel="icon">`
-- Missing → warning
-- Present → pass
+**Favicon:** Check both HTML head links AND generated files in `_dist`
+
+*HTML head checks* (per page in scope):
+- `<link rel="icon">` (any type) → required, missing = critical
+- `<link rel="apple-touch-icon">` → recommended, missing = warning
+- `<link rel="manifest">` (web app manifest) → recommended, missing = warning
+
+*File checks* (in `_dist`, site-wide):
+- `favicon.ico` → required, missing = critical
+- `favicon.svg` OR `favicon-32x32.png` (or similar PNG fallback) → required, missing = critical
+- `apple-touch-icon.png` (or `apple-touch-icon-180x180.png`) → recommended, missing = warning
+- `manifest.webmanifest` (or `site.webmanifest`) → recommended, missing = warning
+
+*Validation*:
+- For each `<link rel="icon" href="...">`, confirm the referenced file exists in `_dist` → broken reference = critical
+- All required present and resolving → pass
 
 ### 7. Analyze Structure
 
@@ -224,10 +237,13 @@ To fix issues, edit the source .astro files in src/pages/ directory:
 - Title <30 chars, description <100 chars
 - Multiple H1s or broken heading hierarchy
 - Invalid JSON-LD
+- Missing favicon: no `<link rel="icon">` in head, missing `favicon.ico`, or missing SVG/PNG fallback
+- Broken favicon reference (link points to file not present in `_dist`)
 
 **Warning (⚠️):**
 - Title/description outside optimal range (but >30/>100)
-- Missing: Open Graph, schema, llms.txt, favicon
+- Missing: Open Graph, schema, llms.txt
+- Missing recommended favicon assets: `apple-touch-icon`, web manifest link, or manifest file
 - Relative canonical URL
 - Duplicates, orphaned pages
 
