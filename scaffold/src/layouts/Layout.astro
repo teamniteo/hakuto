@@ -16,6 +16,9 @@ interface Props {
 const SITE_NAME = "Hakuto";
 const SITE_DESCRIPTION = "Astro + shadcn/ui website template for Hakuto.";
 
+// Agent readiness — set to true to expose site tools to AI agents via WebMCP
+const ENABLE_WEBMCP = false;
+
 const { url } = Astro;
 const {
 	title: pageTitle,
@@ -72,6 +75,65 @@ const isDev = import.meta.env.DEV;
     <main class="flex-1 mx-auto max-w-6xl px-4 py-8">
       <slot />
     </main>
+
+    {ENABLE_WEBMCP && (
+      <script is:inline>
+        // WebMCP: expose site tools to AI agents
+        (function() {
+          if (!navigator.modelContext) return;
+          navigator.modelContext.registerTool({
+            name: "search-site",
+            description: "Search this site for a given query. Returns matching page titles and URLs.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                query: { type: "string", description: "Search query" }
+              },
+              required: ["query"]
+            },
+            async execute({ query }) {
+              try {
+                const pagefind = await import("/pagefind/pagefind.js");
+                await pagefind.init();
+                const search = await pagefind.search(query);
+                const results = await Promise.all(search.results.slice(0, 5).map(r => r.data()));
+                return results.map(r => ({ title: r.meta?.title, url: r.url, excerpt: r.excerpt }));
+              } catch (e) {
+                return { results: [], message: "Search unavailable" };
+              }
+            }
+          });
+          navigator.modelContext.registerTool({
+            name: "get-page-content",
+            description: "Get the main text content of the current page as plain text.",
+            inputSchema: { type: "object", properties: {}, required: [] },
+            async execute() {
+              const main = document.querySelector("main");
+              return {
+                title: document.title,
+                url: window.location.href,
+                content: main ? main.innerText.slice(0, 4000) : document.body.innerText.slice(0, 4000)
+              };
+            }
+          });
+          navigator.modelContext.registerTool({
+            name: "navigate",
+            description: "Navigate to a page on this site by path.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                path: { type: "string", description: "Site path to navigate to" }
+              },
+              required: ["path"]
+            },
+            async execute({ path }) {
+              window.location.href = path;
+              return { navigated: path };
+            }
+          });
+        })();
+      </script>
+    )}
 
     {isDev && (
       <script is:inline>
