@@ -97,6 +97,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - Title construction is automatic: `{pageTitle} | {SITE_NAME}` or just `{SITE_NAME}` if no title
 - Pages pass only page-specific title: `<Layout title="About">` → renders as "About | SiteName"
 - **JSON-LD Schema**: Pass `schema` prop for structured data (see SEO section below)
+- **Agent Readiness**: also update `public/llms.txt` and review `ENABLE_WEBMCP` in Layout.astro (see "Agent Readiness" section below)
 
 ### Step 4: Document Project Plan
 - **Create a `## Project Plan` section at the end of this CLAUDE.md** (in this project)
@@ -316,6 +317,19 @@ const websiteSchema = {
 ```
 
 **Common schema types**: WebSite, Organization, LocalBusiness, Product, Article, FAQPage, BreadcrumbList
+
+## Agent Readiness
+
+The scaffold ships with signals that help AI agents discover and interact with the site (based on the [Is it Agent Ready?](https://isitagentready.com/) checklist). When customizing a site for a user, update these alongside the usual SITE_NAME/SITE_DESCRIPTION pass.
+
+| File | What it does | What to update |
+|---|---|---|
+| `public/robots.txt` | Sets crawler permissions and AI training/search/input signals via `Content-Signal` | Adjust `Content-Signal` if the user wants different defaults (current default: `ai-train=no, search=yes, ai-input=yes`) |
+| `public/_headers` | Cloudflare Pages headers — advertises sitemap and llms.txt via `Link` relations | Usually leave as-is unless URLs change |
+| `public/llms.txt` | Plain-text site summary for LLMs ([llmstxt.org](https://llmstxt.org)) | **Must be customized**: replace `Site Name`, description, key pages, and contact with the user's real info |
+| `src/layouts/Layout.astro` — `ENABLE_WEBMCP` | Opt-in [WebMCP](https://webmcp.org) tools (`search-site`, `get-page-content`, `navigate`) for in-page agents | Default `false`. Flip to `true` only if the user explicitly wants to expose tools to AI agents — the spec is early |
+
+The WebMCP `search-site` tool depends on Pagefind being built — it's wired up by `section-docs` and any future search integration. If neither exists on the site, leave `ENABLE_WEBMCP = false`.
 
 ## Available shadcn Components
 All compatible with raw Astro: accordion, alert, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, button, calendar, card, carousel, checkbox, collapsible, command, context-menu, dialog, drawer, dropdown-menu, form, hover-card, input, input-otp, label, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, skeleton, slider, sonner, switch, table, tabs, textarea, toast, toggle, toggle-group, tooltip
