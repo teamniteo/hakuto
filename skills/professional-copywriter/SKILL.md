@@ -40,21 +40,34 @@ Translate every feature into user outcomes. Apply the "So what?" test.
 Ask questions that resonate with user problems:
 "Tired of [pain point]?" or "Ready to [desired outcome]?"
 
-## Banned Language
+### Voice & Specificity
+- **Have a stance** — react to facts, don't just list them
+- **Vary rhythm** — mix short punchy sentences with longer ones; uniform cadence reads as AI
+- **Be concrete** — "Cut weekly reporting from 4hrs to 15min" beats "Streamline your workflow"
+- **Mirror customer language** — use the words customers use in reviews, support tickets, and interviews; don't invent marketing vocabulary for them
 
-Avoid these overused terms that dilute clarity:
-- meticulous, navigating, complexities, realm
-- bespoke, tailored, towards, underpins
-- ever-changing, ever-evolving, the world of
-- not only, seeking more than just
-- designed to enhance, it's not merely
-- our suite, it is advisable, daunting
-- in the heart of, when it comes to
-- in the realm of, amongst
-- unlock/unveil the secrets
-- robust
+## AI Tells to Avoid
+
+Strip these patterns. They make copy sound machine-generated and dilute trust.
+
+- **Significance puffery** — "marks a pivotal moment", "stands as a testament", "in the evolving landscape", "deeply rooted"
+- **Promotional clichés** — "nestled in the heart of", "groundbreaking", "vibrant", "robust", "seamless", "bespoke", "tailored", "meticulous", "unlock/unveil the secrets"
+- **Copula avoidance** — "serves as / stands as / functions as" → just write "is"
+- **Fake-depth -ing tails** — "...empowering teams, fostering collaboration, driving outcomes" (cut the trailing -ing clause)
+- **Negative parallelisms & forced triplets** — "It's not just X, it's Y"; rule-of-three lists that pad with synonyms
+- **Em-dash & filler overuse** — em dashes where commas/periods work; "in order to" → "to"; "at this point in time" → "now"; "the ability to" → "can"
+- **Vague attributions** — "industry leaders", "experts agree", "studies show" without a specific source
+- **Stale connectors** — "not only", "designed to enhance", "when it comes to", "in the realm of", "amongst"
 
 Use specific, direct language instead.
+
+### Before / After
+
+❌ **AI-sounding:**
+> Our groundbreaking platform serves as a vibrant hub, empowering teams to navigate the complexities of modern collaboration. It's not just a tool — it's a testament to seamless productivity.
+
+✅ **Human:**
+> One shared inbox for your whole team. Reply from Slack, archive in one click, and stop losing threads in CC chains.
 
 ## Page-Specific Patterns
 
@@ -63,6 +76,11 @@ Use specific, direct language instead.
 - Specific subhead
 - Clear CTA
 - Trust indicator (logos/stat)
+
+**Headline formulas:**
+- `{Outcome} without {pain point}` — "Ship faster without breaking production"
+- `The {category} for {audience}` — "The CRM for solo founders"
+- `{Pain-point question}?` — "Still chasing approvals over email?"
 
 ### Features/Services
 - Benefit headline per section
@@ -79,8 +97,10 @@ Use specific, direct language instead.
 ## CTAs
 Make specific and benefit-focused. Place frequently (every other screen).
 
+**Formula:** `[Action verb] + [what they get]` — e.g. "Start free trial", "See pricing", "Get the checklist".
+
 **Examples:**
-- ❌ "Sign Up Now"
+- ❌ "Sign Up Now", "Submit", "Learn More"
 - ✅ "Start Your Free Trial", "See How It Works"
 
 ## Decision Framework
@@ -97,6 +117,8 @@ Make specific and benefit-focused. Place frequently (every other screen).
 
 **Mixed content:** Generate only what's missing, preserve what exists.
 
+**For headlines and primary CTAs**, return 2-3 alternatives with a one-line rationale each so the user can pick. Body copy and section text can be returned as a single best draft.
+
 ## Quality Checklist
 
 Before delivering:
@@ -104,9 +126,10 @@ Before delivering:
 - [ ] Features translated to benefits
 - [ ] Headlines scannable
 - [ ] CTAs clear and action-oriented
-- [ ] No banned language
+- [ ] No AI tells (see list above)
 - [ ] Short paragraphs (1-3 sentences)
 - [ ] Conversational tone
+- [ ] **Final anti-AI pass** — re-read once; ask "what here sounds AI-generated?" and revise those lines
 
 ## Remember
 
