@@ -61,6 +61,7 @@ You have access to: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, WebFetch, We
 - `section-docs` - Documentation pages
 - `plausible-analytics` - Privacy-friendly analytics
 - `testing-seo` - SEO validation
+- `prelaunch-checklist` - Pre-launch validation (wrangler, forms, legal, placeholders, SEO/review status)
 
 ## Git Workflow
 
