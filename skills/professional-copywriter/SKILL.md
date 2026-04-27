@@ -1,6 +1,6 @@
 ---
 name: professional-copywriter
-description: Professional SaaS and website copywriting focused on benefit-driven messaging and conversion optimization. Use when content is missing, incomplete, or user explicitly requests copy generation/improvement. Critical constraint: preserve user-provided copy verbatim unless they request edits.
+description: "Professional SaaS and website copywriting focused on benefit-driven messaging and conversion optimization. Use when content is missing, incomplete, or user explicitly requests copy generation/improvement. Critical constraint: preserve user-provided copy verbatim unless they request edits."
 ---
 
 # Professional Copywriting
