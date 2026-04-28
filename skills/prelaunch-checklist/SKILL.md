@@ -135,7 +135,7 @@ If "Yes" → add to `passed`.
 Always include in the report (these can't be checked from the repo):
 
 - **Toggle Cloudflare Access on for the `workers.dev` URL** in the Cloudflare dashboard once your custom domain is live, so Google doesn't index the site under two URLs. (Workers & Pages → your worker → Settings → Domains & Routes → click `…` on the `workers.dev` row → enable Cloudflare Access.) Leave Cloudflare Access **off** on the Preview URLs row so per-PR previews stay publicly shareable.
-- **Confirm custom domain** is configured and DNS has propagated. See the [custom domain guide](/docs/setting-up/custom-domain).
+- **Confirm custom domain** is configured and DNS has propagated (Cloudflare dashboard → Workers & Pages → your worker → Settings → Domains & Routes → Add Custom Domain).
 - **Verify analytics** is firing on the live domain (if Plausible or another analytics tool is installed).
 - **Submit sitemap** to Google Search Console at `yourdomain.com/sitemap-index.xml` after first deploy.
 

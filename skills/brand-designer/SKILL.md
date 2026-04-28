@@ -38,7 +38,10 @@ For advanced color theory (hue rotation for complementary/triadic/analogous sche
 | Colorful | Vibrant | Muted → boost saturation |
 | Elegant | Sophisticated | Saturated → mute |
 
-If incompatible, offer user: adjust color, use strategically, or keep as-is.
+If the chosen color clashes with the design language (e.g. neon colors on Elegant, pastels on Brutalist), tell the user *what* clashes and *why*, then offer three concrete options:
+1. **Adjust the hue/saturation** — show a tweaked hex that fits (e.g. "shift to a deeper #3A6BC8 to keep the corporate restraint")
+2. **Apply strategically** — keep the color but limit to accents/CTAs only, leaving body palette neutral
+3. **Keep as-is** — apply verbatim, accepting the aesthetic shift, and update `site-specification.md` with the new direction
 
 ### 5. Apply to Site
 
@@ -51,8 +54,9 @@ If approved:
 
 ## Logo Scenarios
 
-**Initial build:** Add to header, use default palette, DON'T invoke skill
-**Color extraction:** User says "extract colors from logo" → analyze, confirm, generate palette
+**Initial build:** Add to header, use the design language's default palette, do NOT invoke this skill. Reason: a logo upload alone isn't a request to redesign the palette — many users keep stock site colors and place the logo in the header. Wait for an explicit color-extraction ask before regenerating.
+
+**Color extraction:** User says "extract colors from logo" → analyze, confirm, generate palette.
 
 ## Common Examples
 
@@ -69,9 +73,9 @@ If approved:
 | Request | Colors Exist? | Action |
 |---------|---------------|--------|
 | Provides hex | No | ✅ Generate |
-| Provides hex | Yes | ⚠️ Confirm replace |
+| Provides hex | Yes | ⚠️ Confirm before replacing — existing palette may be intentional |
 | "Extract from logo" | No | ✅ Generate |
-| "Use brand colors" | Yes | ❌ Read CSS |
+| "Use brand colors" | Yes | ❌ Read existing CSS — the user is referring to colors already in `index.css`, not asking for a regen |
 
 ## Color Application by Design
 

@@ -1,6 +1,6 @@
 ---
 name: section-form
-description: Adds forms to Astro pages using React with Zod validation. Use when user requests "add form", "contact form", "newsletter signup", "inquiry form", "booking form", "feedback form", "registration form", "waitlist", or any form functionality requiring client-side validation and server submission.
+description: Adds forms to Astro pages using React with Zod validation, submitting to a Cloudflare Workers handler. Use when user requests "add form", "contact form", "newsletter signup", "inquiry form", "booking form", "feedback form", "registration form", "waitlist", or any form functionality requiring client-side validation and server submission. Skip for pure mailto: links, static HTML forms posting to third-party services (Formspree, Netlify Forms), or display-only fake forms used as visual mockups.
 ---
 
 # Form Section

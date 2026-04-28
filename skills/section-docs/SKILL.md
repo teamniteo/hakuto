@@ -25,7 +25,7 @@ Documentation Integration:
 
 ### Step 1: Read Site Specification
 
-Read `/home/claude/site-specification.md` to extract:
+Read `site-specification.md` (project root) to extract:
 - Site type (SaaS or General)
 - Theme (light or dark - docs will match)
 - Existing navigation structure
@@ -51,7 +51,7 @@ If no answer provided, create default structure:
 
 ### Step 3: Apply Minimal Design System
 
-**Critical**: Documentation uses extreme simplicity regardless of main site design. ALL design languages (Minimalist, Technology, Dark, Corporate, Brutalist, Colorful, Elegant) converge to this minimal system.
+Docs prioritize legibility for long-form technical reading, so all design languages (Minimalist, Technology, Dark, Corporate, Brutalist, Colorful, Elegant) converge to the same minimal system. Brand color and decoration belong on marketing pages, not in reference material.
 
 **Design Principles:**
 - NO brand colors: No gradients, accent colors, colorful badges, category colors
@@ -83,7 +83,7 @@ Dark Theme:
 
 ### Step 4: Create Documentation Pages
 
-**CRITICAL**: Use Astro content collections for type-safe documentation.
+Use Astro content collections — they give a typed schema, dynamic routing, and automatic TOC generation, which a flat directory of pages cannot match.
 
 **Step 4a: Create collection configuration** (`src/content.config.ts`):
 
@@ -165,9 +165,11 @@ const docsByCategory = allDocs.reduce((acc, doc) => {
 
 **Step 4e: Generate dynamic routes** (`src/pages/docs/[...slug].astro`):
 
+In Astro 5+ with the content layer, `doc.render()` no longer exists — import `render` from `astro:content` and call `render(doc)` instead. Same change applies whenever you migrate older Astro 4 docs code.
+
 ```astro
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
   const docs = await getCollection('docs');
@@ -178,7 +180,7 @@ export async function getStaticPaths() {
 }
 
 const { doc } = Astro.props;
-const { Content, headings } = await doc.render();
+const { Content, headings } = await render(doc);
 ---
 
 <Layout title={doc.data.title}>
@@ -233,7 +235,7 @@ const { Content, headings } = await doc.render();
 
 ### Step 5: Use Technical Placeholders
 
-**CRITICAL**: Do NOT invoke professional-copywriter skill.
+Do NOT invoke `professional-copywriter`. Marketing copy ("Transform your workflow…") is the wrong tone for reference docs — users want literal, accurate descriptions of how the product works, written by someone with the product in front of them. Generic technical placeholders give the user a clean canvas to fill in.
 
 **Placeholder approach:**
 - Generic but technically correct
@@ -303,64 +305,15 @@ If user has existing documentation:
 
 ---
 
-## Important Rules
-
-**Design System:**
-- Always use minimal design (white/black + blue links only)
-- Ignore main site's design language and brand colors
-- Use generous whitespace and flat design
-- No decorative elements or colorful badges
-
-**Content Strategy:**
-- Use technical placeholders only
-- Never invoke professional-copywriter
-- Keep placeholders brief and generic
-- User adds their technical content
-
-**Navigation:**
-- SaaS sites: Add "Docs" to main navigation
-- General sites: Add "Help" to main navigation or footer
-- Preserve all existing pages and structure
-
-**Consistency:**
-- Read site-specification.md first
-- Match theme (light/dark) to main site
-- Update specification after completion
-
----
-
 ## Quality Checklist
 
 Before completing:
 
-✅ Read `site-specification.md` for site context
-✅ Asked user for doc structure or used defaults
-✅ Created /docs home page
-✅ Created nested category pages
-✅ Applied minimal design (white/black + blue only)
-✅ Used technical placeholders (not copywriter)
-✅ Added sidebar navigation
-✅ Included search functionality
-✅ Theme matches main site (light/dark)
-✅ Updated site-specification.md
-✅ Told user to add their technical content
-✅ SEO meta tags included
-✅ Mobile responsive layouts
-
----
-
-## Key Principles
-
-**Minimal Design**: Documentation always uses content-focused design with only blue links for color
-
-**Technical Placeholders**: Generic, brief placeholders - never invoke copywriter
-
-**Separate System**: Docs ignore main site aesthetic, use own design system
-
-**User Content**: User adds technical content after structure is created
-
-**Consistency**: Read spec first, update spec after completion
-
----
-
-*Documentation sections use minimal content-focused design with only blue links for color, regardless of main site aesthetic.*
+✅ Read `site-specification.md` and matched its theme (light/dark)
+✅ Asked user for doc structure or used the defaults above
+✅ Created `/docs` home + nested category pages with sidebar + search
+✅ Used minimal design system (white/black + blue links only) regardless of main site aesthetic
+✅ Used technical placeholders — did NOT invoke `professional-copywriter`
+✅ Added "Docs" (SaaS) or "Help" (General) to main nav, preserving existing pages
+✅ Included SEO meta tags, mobile responsive layouts
+✅ Updated `site-specification.md` and told the user to add their technical content

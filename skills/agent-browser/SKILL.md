@@ -235,18 +235,15 @@ agent-browser get text @e1 --json
 ## Debugging
 
 ```bash
-agent-browser open example.com --headed              # Show browser window
-agent-browser console                                # View console messages
-agent-browser errors                                 # View page errors
+agent-browser open example.com --headed   # Show browser window
+agent-browser --cdp 9222 snapshot         # Connect via CDP
+agent-browser console                     # View console messages
+agent-browser console --clear             # Clear console
+agent-browser errors                      # View page errors
+agent-browser errors --clear              # Clear errors
+agent-browser highlight @e1               # Highlight element
 agent-browser record start ./debug.webm   # Record from current page
-agent-browser record stop                            # Save recording
-agent-browser open example.com --headed  # Show browser window
-agent-browser --cdp 9222 snapshot        # Connect via CDP
-agent-browser console                    # View console messages
-agent-browser console --clear            # Clear console
-agent-browser errors                     # View page errors
-agent-browser errors --clear             # Clear errors
-agent-browser highlight @e1              # Highlight element
-agent-browser trace start                # Start recording trace
-agent-browser trace stop trace.zip       # Stop and save trace
+agent-browser record stop                 # Save recording
+agent-browser trace start                 # Start recording trace
+agent-browser trace stop trace.zip        # Stop and save trace
 ```
