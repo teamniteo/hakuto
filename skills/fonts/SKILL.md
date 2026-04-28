@@ -1,6 +1,6 @@
 ---
 name: fonts
-description: REQUIRED for any custom font usage. Configure web fonts using Astro's Fonts API (top-level `fonts` in Astro 6+). MUST invoke this skill anytime custom fonts are needed, user requests font changes, typography updates, Google Fonts, Fontsource, local fonts, or asks to "add fonts", "change typography", "use custom fonts", "improve font loading", "optimize fonts". Never use @import for fonts in CSS.
+description: Configure web fonts via Astro's Fonts API (top-level `fonts` in Astro 6+, `experimental.fonts` in 5.x). Use whenever custom fonts come up — user mentions Google Fonts, Fontsource, local fonts, typography changes, font loading or performance, or asks to "add fonts", "change typography", "use custom fonts", "improve font loading", "optimize fonts". The Fonts API replaces `@import` and `@font-face` in CSS.
 ---
 
 # Fonts (Astro Fonts API)
@@ -31,15 +31,17 @@ export default defineConfig({
 
 > **Note**: Astro ≤ 5.x required `experimental: { fonts: [...] }`. Astro 6.x graduated the API; wrap in `experimental` only if you're on an older Astro.
 
-### Step 2: Restart preview server (REQUIRED)
+### Step 2: Restart the dev/preview server
 
-The dev server must restart to register the new font configuration. Without this, `import { Font } from 'astro:assets'` will fail and the CSS variables won't exist.
+The dev server reads `astro.config.mjs` once at startup. Without a restart, `import { Font } from 'astro:assets'` will fail and the CSS variables won't exist yet.
 
-```bash
-pm2 restart preview
-```
+How to restart depends on how the server was started — pick the one that matches your setup:
 
-**Do NOT proceed to Step 3 until the server has restarted.**
+- **Hakuto preview hook (this repo):** the preview server is managed externally; ask the user to restart it, or wait for the next file-save hook trigger.
+- **Manual `bun run dev` / `bun run preview`:** stop the process (Ctrl-C) and re-run the same command.
+- **PM2-managed (`pm2 list` shows it):** `pm2 restart <process-name>` — typical names are `preview` or the package name.
+
+Don't proceed to Step 3 until the server has restarted — the next step depends on the new config being live.
 
 ### Step 3: Add Font declarations to .astro files (ONLY AFTER RESTART)
 
@@ -289,8 +291,8 @@ Avoid "AI slop" aesthetics with distinctive combinations:
 
 | Issue | Solution |
 |-------|----------|
-| `Font` import fails | Restart preview server after config change |
-| CSS variable undefined | Restart preview server, verify `cssVariable` matches config |
+| `Font` import fails | Restart dev/preview server after config change (Step 2) |
+| CSS variable undefined | Restart dev/preview server, verify `cssVariable` matches config |
 | Fonts not loading | Check `<Font />` is in Layout head |
 | Build fails | Ensure local font paths are correct |
 | FOUT (flash of unstyled text) | Add `preload` to critical fonts |

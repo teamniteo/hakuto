@@ -29,9 +29,11 @@ Read `src/index.css` and `AGENTS.md` to extract:
 
 ### Step 2: Assess Content Needs
 
+> **Why no `professional-copywriter` for blog posts?** Blog content is the user's own voice — case studies, release notes, opinion pieces. Generated marketing copy would flatten that voice and force the user to rewrite from scratch. A neutral placeholder is faster to replace than polished prose pointing in the wrong direction.
+
 **No articles exist:**
 - Create 1 placeholder post with generic text
-- **DO NOT invoke professional-copywriter**
+- Do NOT invoke `professional-copywriter` (see note above)
 - Tell user: "Created a sample post. Replace with your content."
 
 **Existing articles provided:**
@@ -41,7 +43,7 @@ Read `src/index.css` and `AGENTS.md` to extract:
 - Ask for: Title, slug, date, author, authorEmail
 - Optional: authorBio, category, featured image, description
 - Use generic placeholder text if no content provided
-- **DO NOT invoke professional-copywriter**
+- Do NOT invoke `professional-copywriter` (see note above)
 
 ### Step 3: Create Blog Pages
 
@@ -57,23 +59,24 @@ Update navigation with Blog link at appropriate position.
 
 ---
 
-## Critical: Astro Content Layer API
+## Astro Content Layer API (gotchas)
 
-**CRITICAL**: The `layout` frontmatter property does NOT work with Astro's content layer glob loader. Do NOT create separate layout files for blog posts. Instead, apply all layout and styling directly in `src/pages/blog/[...slug].astro`.
+A few Astro 5+ content-layer behaviors that bite if you assume the older `getEntryBySlug` API:
 
-**CRITICAL**: In Astro 5+ with content layer, `post.render()` does not exist. Use `render(post)` imported from `astro:content`:
+- **`layout` frontmatter is ignored** by the content-layer glob loader. Apply all layout + styling directly in `src/pages/blog/[...slug].astro` rather than creating per-post layout files.
+- **`post.render()` no longer exists.** Import `render` from `astro:content` and call `render(post)`:
 
-```astro
----
-import { getCollection, render } from "astro:content";
+  ```astro
+  ---
+  import { getCollection, render } from "astro:content";
 
-const { post } = Astro.props;
-const { Content } = await render(post);
----
-<Content />
-```
+  const { post } = Astro.props;
+  const { Content } = await render(post);
+  ---
+  <Content />
+  ```
 
-**CRITICAL**: After adding or removing blog posts, the content collection cache may be stale. Clear it with: `rm -f .astro/data-store.json`
+- **Stale collection cache** after adding/removing posts can leave routes 404ing. Clear it with `rm -f .astro/data-store.json` and restart the dev server.
 
 ---
 
@@ -83,107 +86,11 @@ const { Content } = await render(post);
 
 Instead, style blog content with custom CSS using the site's own CSS variables from `index.css`. This ensures blog posts match the rest of the site exactly.
 
-**Style blog content using a `.blog-content` wrapper with `is:global` styles:**
+**Style blog content using a `.blog-content` wrapper with `is:global` styles.** The full stylesheet lives in `assets/blog-content.css` — copy it verbatim into a `<style is:global>` block on `[...slug].astro`, or import it as a global stylesheet. Wrap the rendered `<Content />` in an element with `id="blog-content"` and `class="blog-content"`.
 
-```css
-<style is:global>
-  .blog-content h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    line-height: 1.3;
-    color: hsl(var(--heading));
-    margin-top: 2.5rem;
-    margin-bottom: 0.75rem;
-  }
+The stylesheet is plain CSS using the site's HSL theme variables (`--heading`, `--foreground`, `--primary`, `--muted-foreground`, `--secondary`, `--accent-foreground`, `--border`), so it adapts automatically to the site's light/dark theme without changes.
 
-  .blog-content h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
-    line-height: 1.4;
-    color: hsl(var(--heading));
-    margin-top: 2rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .blog-content a {
-    color: hsl(var(--primary));
-    text-decoration: none;
-  }
-
-  .blog-content a:hover {
-    text-decoration: underline;
-  }
-
-  .blog-content strong {
-    color: hsl(var(--heading));
-    font-weight: 600;
-  }
-
-  .blog-content ul, .blog-content ol {
-    padding-left: 1.5rem;
-  }
-
-  .blog-content ul { list-style-type: disc; }
-  .blog-content ol { list-style-type: decimal; }
-
-  .blog-content li {
-    margin-bottom: 0.4rem;
-    line-height: 1.7;
-  }
-
-  .blog-content img {
-    border-radius: 6px;
-    border: 1px solid hsl(var(--border));
-    margin: 1.5rem 0;
-  }
-
-  .blog-content code:not(pre code) {
-    font-size: 0.875rem;
-    background: hsl(var(--secondary));
-    border: 1px solid hsl(var(--border));
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-    color: hsl(var(--accent-foreground));
-  }
-
-  .blog-content pre {
-    font-size: 0.875rem;
-    line-height: 1.6;
-    background: hsl(var(--secondary));
-    border: 1px solid hsl(var(--border));
-    border-radius: 6px;
-    padding: 1rem 1.25rem;
-    overflow-x: auto;
-    margin-bottom: 1.25rem;
-    color: hsl(var(--heading));
-  }
-
-  .blog-content pre code {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: inherit;
-    color: inherit;
-  }
-
-  .blog-content blockquote {
-    border-left: 3px solid hsl(var(--primary) / 0.4);
-    padding: 0.5rem 1rem;
-    margin: 1.25rem 0;
-    color: hsl(var(--muted-foreground));
-  }
-
-  .blog-content blockquote p { margin-bottom: 0; }
-
-  .blog-content hr {
-    border: none;
-    border-top: 1px solid hsl(var(--border));
-    margin: 2rem 0;
-  }
-</style>
-```
-
-**Key theme variables to use:**
+**Key theme variables used:**
 - `--heading` for headings, bold, table headers
 - `--foreground` for body text
 - `--primary` for links, accents

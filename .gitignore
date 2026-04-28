@@ -46,3 +46,6 @@ devenv.local.nix
 # pre-commit
 .pre-commit-config.yaml
 .cachebro
+
+# Skill-creator eval workspaces
+skills/*-workspace/

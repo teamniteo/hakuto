@@ -130,7 +130,3 @@ Before delivering:
 - [ ] Short paragraphs (1-3 sentences)
 - [ ] Conversational tone
 - [ ] **Final anti-AI pass** — re-read once; ask "what here sounds AI-generated?" and revise those lines
-
-## Remember
-
-Transform visitors into customers through clear value communication. But respect user autonomy—their words are sacred unless they ask for help.

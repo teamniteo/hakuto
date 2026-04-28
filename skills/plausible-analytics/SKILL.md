@@ -1,6 +1,6 @@
 ---
 name: plausible-analytics
-description: Adds Plausible Analytics to Astro sites with Cloudflare Workers proxy for privacy and ad-blocker bypass. Use when user requests "add Plausible", "add analytics", "add tracking", "page views", "visitor tracking", or privacy-friendly analytics.
+description: Adds Plausible Analytics to Astro sites with a Cloudflare Workers proxy for privacy and ad-blocker bypass. Requires a project deploying to Cloudflare Workers (uses `worker/index.js` route registration). Use when user requests "add Plausible", "add analytics", "add tracking", "page views", "visitor tracking", or privacy-friendly analytics. Skip if the project deploys to Vercel/Netlify/static-only — Plausible's standard `<script>` tag is the right path there.
 ---
 
 # Plausible Analytics

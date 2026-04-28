@@ -43,16 +43,12 @@ bun run build
 Build the Astro site. Output will be in `_dist` folder. If build fails, report error and stop.
 
 ### 2. Read Page Metadata
-```bash
-view AGENTS.md
-```
-Read AGENTS.md file which contains Astro metadata about all pages in the site. This provides context about page structure and routes.
+
+Use the `Read` tool on `AGENTS.md` for Astro metadata about all pages in the site — page structure, routes, intended titles/descriptions. This is your context for what *should* be on each page.
 
 ### 3. List Built Files
-```bash
-view _dist
-```
-Record all .html files in `_dist` folder. Filter to only the pages in scope (from Step 0). If path invalid or no files found, report error and stop.
+
+Use `Glob` with `_dist/**/*.html` to enumerate built pages, then filter to the pages in scope (from Step 0). If the glob returns nothing or `_dist/` is missing, report the error and stop.
 
 ### 4. Initialize Trackers
 ```
@@ -148,17 +144,19 @@ Extract all `<a href="...">` tags:
 
 ### 6. Check Technical Files
 
-**Sitemap:** `view _dist/sitemap.xml`
+Use `Read` for each file's contents and `Glob` to confirm presence in `_dist/`.
+
+**Sitemap:** read `_dist/sitemap.xml` (or `_dist/sitemap-index.xml` if present)
 - Missing → critical
 - Present, list all URLs → pass
 - Check if all pages in sitemap → warning if any missing
 
-**Robots.txt:** `view _dist/robots.txt`
+**Robots.txt:** read `_dist/robots.txt`
 - Missing → critical
 - Present, has "Sitemap:" → pass
 - Present, no "Sitemap:" → warning
 
-**llms.txt:** `view _dist/llms.txt`
+**llms.txt:** read `_dist/llms.txt`
 - Missing → warning
 - Present → pass
 
@@ -294,21 +292,14 @@ To fix issues, edit the source .astro files in src/pages/ directory:
 
 ## Tool Usage
 
-**Build site:**
-```bash
-bun run build                  # Build Astro site to _dist
-```
+- **Build:** `Bash` → `bun run build` (produces `_dist/`).
+- **Enumerate built pages:** `Glob` with `_dist/**/*.html`.
+- **Read a file:** `Read` (HTML pages, `AGENTS.md`, `sitemap.xml`, `robots.txt`, `llms.txt`).
+- **Search across files:** `Grep` for things like `<link rel="canonical"`, `<h1`, `og:image`, `http://` (mixed-content scan).
+- **Confirm asset presence:** `Glob` for `_dist/favicon.ico`, `_dist/apple-touch-icon*`, `_dist/site.webmanifest` etc.
+- **Validate JSON-LD:** extract the script content with `Grep`/`Read` and parse with `JSON.parse` via a one-liner in `Bash` or by inspection.
 
-**View files:**
-```bash
-view AGENTS.md                 # Page metadata
-view _dist                     # Directory listing
-view _dist/index.html          # File content
-```
-
-**Count elements:** After viewing, scan content for patterns
-**Extract text:** Parse displayed content for tag values
-**Validate JSON:** Attempt to parse extracted JSON-LD content
+Read-only throughout — never `Write` or `Edit` from this skill.
 
 ---
 

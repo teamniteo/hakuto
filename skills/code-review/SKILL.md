@@ -238,6 +238,13 @@ To fix issues, ask Claude:
 
 **Pass (✅)** — meets the requirement.
 
+**Cross-cutting reminders** (apply to every check above):
+- **Report-only** — never edit files; never run `bun install` or `bun run build`. The user runs follow-up prompts to fix.
+- **Cite `file:line`** in every issue so the user can jump straight to it.
+- **Don't false-positive on intentional patterns** — external `<img>` URLs (Unsplash etc.) are fine, only flag bare `<img>` for *imported local* images; HTML elements correctly use `class=`, only flag `class=` on capitalised React/shadcn tags.
+- **Stay in sync with CLAUDE.md** — every check ties to a rule there; when rules change, update the corresponding category.
+- **Complements `seo-audit`** — that skill audits built HTML in `_dist/`; this one audits source in `src/`. Run both for full coverage.
+
 ---
 
 ## Error Handling
@@ -246,7 +253,6 @@ To fix issues, ask Claude:
 - File unreadable → log a critical for that file, continue with the rest.
 - `bun run check` fails to launch (`bun` not on PATH) → single warning, continue with static checks.
 - Git scope requested but project is not a git repo → tell the user, fall back to whole-project scope only if they confirm.
-- Never modify files. Never run `bun install` or `bun run build`.
 
 ---
 
@@ -260,14 +266,3 @@ bun run check                            # Type-check (run AT MOST once per revi
 ```
 
 **File inspection:** use Read, Glob, Grep — never Edit/Write.
-
----
-
-## Notes
-
-- **Report-only.** The skill never edits files. The user runs follow-up prompts to fix.
-- **Complements `seo-audit`.** That skill audits built HTML in `_dist/` (titles, OG tags, sitemap). This skill audits source code in `src/`. Run both for full coverage.
-- **Stay in sync with CLAUDE.md.** Every check above ties to a rule in the project's `CLAUDE.md`. If rules change there, update the corresponding category here.
-- **Don't false-positive on intentional patterns.** External `<img>` URLs (Unsplash etc.) are fine; only flag bare `<img>` for *imported local* images. HTML elements correctly use `class=`; only flag `class=` on capitalised React/shadcn tags.
-- **Cite `file:line`** in every issue so the user can jump straight to the offending line.
-- **Keep the report scannable.** Group by severity, sort critical issues by file, end with a short "how to fix" pointer.
