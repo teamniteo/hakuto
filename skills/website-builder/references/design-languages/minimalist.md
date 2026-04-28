@@ -78,15 +78,15 @@ Border: #E8E6E1
 
 ### Modern Sans (Default)
 **Use for**: Most sites, SaaS, general purpose
-- **Font**: Inter or System UI, weights 400 (body), 600-700 (headings)
+- **Font**: Instrument Sans or DM Sans, weights 400 (body), 600-700 (headings)
 - **Sizes**: H1 48px, H2 36px, H3 24px, Body 16px
 - **Line heights**: Headings 1.1-1.3, Body 1.6
-- **Characteristics**: Clean, neutral, excellent readability
+- **Characteristics**: Clean, neutral, excellent readability — distinctive without being attention-grabbing
 
 ### Editorial Serif + Sans
 **Use for**: Content sites, blogs, agencies
-- **Headings**: Merriweather or Playfair Display, weight 600-700
-- **Body**: Inter or System UI, weight 400
+- **Headings**: Spectral or Crimson Pro, weight 600-700 (pair literary serif with geometric sans for high contrast)
+- **Body**: Instrument Sans or DM Sans, weight 400
 - **Sizes**: H1 52px, H2 40px, H3 28px, Body 18px
 - **Line heights**: Headings 1.1-1.3, Body 1.7
 - **Characteristics**: Sophisticated, readable, editorial feel

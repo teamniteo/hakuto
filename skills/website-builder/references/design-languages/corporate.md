@@ -86,18 +86,18 @@ Trust: Serious, conservative, timeless
 
 ### Classic Serif + Sans (Default, Traditional)
 **Use for**: Traditional industries, authoritative feel
-- **Headings**: Merriweather or Georgia, weight 700
+- **Headings**: Bitter or Spectral, weight 600-700 (slab/literary serif conveys established credibility without being clichéd)
   - H1: 44px, H2: 34px, H3: 26px
-- **Body**: Open Sans or system-ui, weight 400
+- **Body**: Instrument Sans, weight 400 (geometric sans pairs with serif for high contrast)
   - Body: 17px, line-height 1.7
 - **Characteristics**: Traditional, credible, established
 - **Best for**: Law firms, financial institutions, consulting
 
 ### Modern Sans (Clean, professional)
 **Use for**: Tech companies, modern businesses
-- **Headings**: Inter or Roboto, weight 600-700
+- **Headings**: Sora or Archivo, weight 600-700 (modern geometric sans, distinctive yet professional)
   - H1: 46px, H2: 36px, H3: 26px
-- **Body**: Inter or Roboto, weight 400
+- **Body**: Sora or Archivo, weight 400 (use one family decisively across the site)
   - Body: 17px, line-height 1.7
 - **Characteristics**: Modern, readable, professional
 - **Best for**: Tech companies, modern B2B, contemporary consultancies

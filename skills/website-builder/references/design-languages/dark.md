@@ -87,16 +87,16 @@ Error: #E88388 (warm red)
 
 ### Modern Sans (Default, Clean)
 **Use for**: Most sites, excellent readability
-- **Font**: Inter, weights 400 (body), 700-800 (headings)
+- **Font**: Instrument Sans or DM Sans, weights 400 (body), 700-800 (headings)
 - **Sizes**: H1 48px, H2 36px, H3 26px, Body 17px
 - **Line heights**: Headings 1.1-1.3, Body 1.7 (larger for dark readability)
-- **Characteristics**: Proven dark mode readability
+- **Characteristics**: Distinctive geometric sans with strong dark-mode legibility — push weight contrast (400 vs 800) for hierarchy
 
 ### Display + Sans (Premium, distinctive)
 **Use for**: Luxury/premium brands
-- **Headings**: Playfair Display or Fraunces, weight 700
+- **Headings**: Spectral or Crimson Pro, weight 600-700 (literary serif for sophistication)
   - H1: 52px, H2: 40px, H3: 28px
-- **Body**: Inter or system-ui, weight 400, 17px, line-height 1.7
+- **Body**: Instrument Sans or DM Sans, weight 400, 17px, line-height 1.7 (geometric sans for body — high contrast against serif headings)
 - **Characteristics**: Elegant, sophisticated, fashion/luxury feel
 
 **Selection**:

@@ -94,9 +94,9 @@ Border: #E8E2D8
 
 ### Modern Serif + Sans (Contemporary)
 **Use for**: Contemporary luxury brands
-- **Headings**: Freight Display or Tiempos, weight 500-600
+- **Headings**: Spectral or Crimson Pro, weight 400-500 (lighter weights read as more refined)
   - H1: 56px, H2: 42px, H3: 32px
-- **Body**: Inter or Helvetica Neue, weight 300-400
+- **Body**: Instrument Sans or DM Sans, weight 300-400 (geometric sans pairs with serif headings for high contrast)
   - Body: 17px, line-height 1.7, letter-spacing 0.01em
 - **Characteristics**: Modern elegance, refined contrast
 

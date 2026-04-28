@@ -83,18 +83,18 @@ Border: #D0D7DE
 
 ### Monospace Accents (Default, Balanced)
 **Use for**: Most tech sites, professional with tech touches
-- **Headings**: Space Grotesk or Inter, weight 600-700
+- **Headings**: Sora or Archivo, weight 600-700 (geometric sans pairs with monospace for high contrast)
   - H1: 46px, H2: 34px, H3: 24px
-- **Body**: Inter, weight 400, 16px, line-height 1.6
+- **Body**: Instrument Sans, weight 400, 16px, line-height 1.6
 - **Code/Labels**: JetBrains Mono or Fira Code
   - Used for: code blocks, buttons, labels, nav items
-- **Characteristics**: Professional with technical touches
+- **Characteristics**: Professional with technical touches — geometric sans + monospace is the canonical high-contrast tech pairing
 
 ### Monospace Primary (Bold tech statement)
 **Use for**: Strong tech identity
 - **Headings**: JetBrains Mono or Fira Code, weight 700
   - H1: 42px, H2: 32px, H3: 24px
-- **Body**: Inter or system-ui, weight 400, 16px, line-height 1.6
+- **Body**: Instrument Sans, weight 400, 16px, line-height 1.6
 - **Code**: JetBrains Mono or Fira Code
 - **Characteristics**: Headings look like code, bold statement
 
@@ -286,7 +286,7 @@ Border: #D0D7DE
 
 **Code/Monospace**: Use for headings, labels, buttons, nav items, code blocks - NOT body text (readability)
 
-**Body Text**: Sans-serif (Inter, system-ui) for readability, high contrast (4.5:1 minimum), line-height 1.6-1.7, max-width 680-720px
+**Body Text**: Sans-serif (Instrument Sans or DM Sans) for readability, high contrast (4.5:1 minimum), line-height 1.6-1.7, max-width 680-720px
 
 **Lists**: Square bullets or dashes, monospace markers optional, terminal-style prefixes (`>`, `$`, `*`) acceptable, accent color for markers
 
