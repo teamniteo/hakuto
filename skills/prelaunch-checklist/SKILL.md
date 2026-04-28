@@ -25,8 +25,6 @@ Read these into context up front:
 - `src/layouts/Layout.astro`
 - `src/components/Footer.astro` (if it exists; otherwise glob `src/components/*Footer*`)
 - `astro.config.mjs`
-- `.hakuto/config.json` (if it exists)
-- `.gitignore`
 
 Glob for:
 - `src/pages/privacy.*`, `src/pages/terms.*`, `src/pages/cookies.*` (any extension)
@@ -106,20 +104,6 @@ In `src/layouts/Layout.astro`:
 #### Check 8 — 404 page customized
 
 Read `src/pages/404.astro`. If it matches the scaffold default verbatim (or is suspiciously short / generic — under ~30 lines and contains only the scaffold's "Page not found" boilerplate) → warning: "404 page appears to be the scaffold default. Customize it to match your site's voice."
-
-#### Check 9 — `.hakuto/config.json` is set and tracked
-
-`.hakuto/config.json` is what Astro reads to set the production `site` URL (drives the sitemap, canonical links, JSON-LD). If this file is missing, has a null domain, or isn't tracked in git, production deploys silently bake the wrong domain into the sitemap.
-
-Run these checks (parallel where possible):
-
-- **9a — file exists.** If `.hakuto/config.json` is missing → critical: "`.hakuto/config.json` is missing. Astro reads `domain` and `siteName` from this file; the production build will throw without it. Create it with `{\"domain\":\"yoursite.com\",\"siteName\":\"Your Site\"}` and commit."
-- **9b — domain is set.** Parse the file. If `domain` is null, missing, or empty → critical: "`.hakuto/config.json` has no `domain`. Set it to your live domain (e.g. `\"yoursite.com\"`) — production builds fail without it."
-- **9c — siteName is customized.** If `siteName` is `"Hakuto"` (the scaffold default) → warning: "`.hakuto/config.json` `siteName` is still `\"Hakuto\"`. Update it to match your project."
-- **9d — file is tracked in git.** Run `git check-ignore .hakuto/config.json` (exit 0 = ignored, 1 = tracked).
-  - Exit 0 → critical: "`.hakuto/config.json` is gitignored. Cloudflare builds from git and won't see the file — production will use the wrong domain. Fix `.gitignore`: replace `.hakuto` with `.hakuto/*` and add `!.hakuto/config.json` on the next line."
-  - Also run `git ls-files --error-unmatch .hakuto/config.json` (exit 0 = tracked, non-zero = untracked). If untracked → critical: "`.hakuto/config.json` exists but is not tracked in git. Run `git add .hakuto/config.json` and commit before deploying."
-- **9e — `.gitignore` exception present.** If `.gitignore` contains a bare `.hakuto` line (without the `!.hakuto/config.json` exception below it) → warning: "`.gitignore` ignores all of `.hakuto/` — `.hakuto/config.json` may not be reachable. Replace the `.hakuto` line with `.hakuto/*` followed by `!.hakuto/config.json`."
 
 ### 4. Ask user to confirm gates (do not auto-invoke)
 
@@ -226,7 +210,6 @@ list is empty and the manual steps are done, you're ready to ship.
 - Forms submitting to placeholder/missing endpoints
 - Placeholder text in user-facing content (Lorem ipsum, TODO, your-email@, etc.)
 - Missing required wrangler fields (`main`)
-- `.hakuto/config.json` missing, has null `domain`, gitignored, or untracked (production sitemap will be wrong)
 
 **Warning (⚠️)** — review but don't block:
 - `wrangler.toml` / `package.json` `name` still scaffold default
