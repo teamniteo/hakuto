@@ -94,6 +94,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - **Remove ALL Hakuto scaffold placeholder content** from Layout.astro
 - Keep only essential structure: html, head, body tags
 - **Update `SITE_NAME` and `SITE_DESCRIPTION` constants** for the user's project
+- **Update `site` in `astro.config.mjs`** to the production URL (e.g. `"https://yoursite.com"`). This is the [Astro `site` option](https://docs.astro.build/en/reference/configuration-reference/#site) and is what the sitemap, canonical links, and JSON-LD bake in. Leaving it as `http://localhost:4321` in production produces a wrong sitemap.
 - Structure: `<Header /> → <slot /> → <Footer />`
 - Title construction is automatic: `{pageTitle} | {SITE_NAME}` or just `{SITE_NAME}` if no title
 - Pages pass only page-specific title: `<Layout title="About">` → renders as "About | SiteName"
@@ -350,6 +351,7 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
 | Anchor links broken | Ensure target element has matching `id` attribute |
+| Sitemap / canonical URLs show `localhost:4321` (or wrong domain) in production | `site` in `astro.config.mjs` was never updated. Set it to the production URL (e.g. `"https://yoursite.com"`) and redeploy — see [Astro `site` config](https://docs.astro.build/en/reference/configuration-reference/#site) |
 
 ### Cloudflare Adapter & Image Service (CRITICAL)
 

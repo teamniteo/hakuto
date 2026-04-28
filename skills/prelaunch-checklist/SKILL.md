@@ -105,6 +105,15 @@ In `src/layouts/Layout.astro`:
 
 Read `src/pages/404.astro`. If it matches the scaffold default verbatim (or is suspiciously short / generic — under ~30 lines and contains only the scaffold's "Page not found" boilerplate) → warning: "404 page appears to be the scaffold default. Customize it to match your site's voice."
 
+#### Check 9 — `site` in `astro.config.mjs` is the production URL
+
+Astro's [`site` option](https://docs.astro.build/en/reference/configuration-reference/#site) is what the sitemap, canonical links, and JSON-LD bake in. If it's still `http://localhost:4321` (the scaffold default) at deploy time, the live sitemap will reference localhost.
+
+In `astro.config.mjs`:
+- `site: "http://localhost:4321"` → critical: "`site` in astro.config.mjs is still the scaffold default. Set it to your production URL (e.g. `\"https://yoursite.com\"`) before deploying."
+- `site` missing entirely → critical: "`site` is not set in astro.config.mjs. Sitemap and canonical links will be wrong. Add `site: \"https://yoursite.com\"`."
+- Anything else (production-looking URL) → pass.
+
 ### 4. Ask user to confirm gates (do not auto-invoke)
 
 Use `AskUserQuestion` for each. These are confirmation gates, not auto-runs.
@@ -210,6 +219,7 @@ list is empty and the manual steps are done, you're ready to ship.
 - Forms submitting to placeholder/missing endpoints
 - Placeholder text in user-facing content (Lorem ipsum, TODO, your-email@, etc.)
 - Missing required wrangler fields (`main`)
+- `site` in `astro.config.mjs` still `http://localhost:4321` or missing (production sitemap/canonicals will be wrong)
 
 **Warning (⚠️)** — review but don't block:
 - `wrangler.toml` / `package.json` `name` still scaffold default

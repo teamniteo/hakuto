@@ -36,8 +36,9 @@ User says: "Build me a SaaS site", "Create a website", "I need a landing page"
    - Missing/partial → INVOKE professional-copywriter
    - Complete → Use verbatim
 6. Generate site using design language as starting aesthetic
-7. Create `site-specification.md` documenting starting point and any customizations
-8. Inform user of starting aesthetic and customization flexibility
+7. **Set `site` in `astro.config.mjs`** to the production URL (e.g. `"https://yoursite.com"`) — if the user has provided a domain. If they haven't, leave the scaffold default (`http://localhost:4321`) and add a reminder to update it before deploy. This is Astro's [`site` option](https://docs.astro.build/en/reference/configuration-reference/#site) and drives the sitemap, canonical links, and JSON-LD.
+8. Create `site-specification.md` documenting starting point and any customizations
+9. Inform user of starting aesthetic and customization flexibility
 
 ### B) Add Standard Page
 User says: "Build the features page", "Add pricing", "Create about page", "Make contact page"
