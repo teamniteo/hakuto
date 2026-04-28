@@ -36,8 +36,9 @@ User says: "Build me a SaaS site", "Create a website", "I need a landing page"
    - Missing/partial → INVOKE professional-copywriter
    - Complete → Use verbatim
 6. Generate site using design language as starting aesthetic
-7. Create `site-specification.md` documenting starting point and any customizations
-8. Inform user of starting aesthetic and customization flexibility
+7. **Update `.hakuto/config.json`** with the site's `domain` (if known — else leave `null`) and `siteName`. See "Domain configuration" below.
+8. Create `site-specification.md` documenting starting point and any customizations
+9. Inform user of starting aesthetic and customization flexibility
 
 ### B) Add Standard Page
 User says: "Build the features page", "Add pricing", "Create about page", "Make contact page"
@@ -144,6 +145,33 @@ See reference files for color palettes, typography, component styling, and layou
 ```
 
 **Always read before subsequent pages.** Ensures consistency and respects all customizations across sessions.
+
+---
+
+## Domain configuration (`.hakuto/config.json`)
+
+`.hakuto/config.json` is what `astro.config.mjs` reads to set the production `site` URL — it drives the sitemap, canonical links, JSON-LD, and `Astro.site`. The scaffold ships it with `{"domain": null, "siteName": "Hakuto"}`. **Always update it when you build or modify a site.**
+
+### When you write to `.hakuto/config.json`
+
+After editing the file:
+
+1. **Verify it isn't gitignored**, since the scaffold's `.gitignore` uses `.hakuto/*` + `!.hakuto/config.json`:
+   ```bash
+   git check-ignore .hakuto/config.json
+   ```
+   - Exit code `1` (no output) → file is tracked, good.
+   - Exit code `0` (path printed) → file is being ignored. The `!.hakuto/config.json` exception is missing or wrong. Fix `.gitignore` to include both lines:
+     ```
+     .hakuto/*
+     !.hakuto/config.json
+     ```
+2. **Tell the user explicitly:**
+   > Updated `.hakuto/config.json` (`domain`: `<value>`, `siteName`: `<value>`). **Commit this file** — Cloudflare builds from git, so an uncommitted change won't reach production. If it isn't committed, the production build will fail loud (intentional, to prevent a wrong domain in the sitemap).
+
+### Don't conflate with other "domain" knobs
+
+Updating `package.json` `name` or `wrangler.toml` `name`/`[[routes]]` does **not** change Astro's `site`. Those control the worker name and Cloudflare routing — independent concerns. If a user reports that the sitemap or canonical URL still shows the wrong domain after a "domain change" PR, the fix is almost always `.hakuto/config.json`.
 
 ---
 

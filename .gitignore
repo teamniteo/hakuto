@@ -18,7 +18,8 @@ dist-ssr
 .out
 .astro
 .osgrep
-.hakuto
+.hakuto/*
+!.hakuto/config.json
 .claude
 .ports
 AGENTS.md

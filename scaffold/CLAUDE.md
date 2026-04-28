@@ -94,6 +94,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - **Remove ALL Hakuto scaffold placeholder content** from Layout.astro
 - Keep only essential structure: html, head, body tags
 - **Update `SITE_NAME` and `SITE_DESCRIPTION` constants** for the user's project
+- **Update `.hakuto/config.json`** with the user's `domain` and `siteName` — this is what Astro reads for the production `site` URL (sitemap, canonical links). See "Domain configuration" below.
 - Structure: `<Header /> → <slot /> → <Footer />`
 - Title construction is automatic: `{pageTitle} | {SITE_NAME}` or just `{SITE_NAME}` if no title
 - Pages pass only page-specific title: `<Layout title="About">` → renders as "About | SiteName"
@@ -286,6 +287,36 @@ Update the favicons plugin configuration in astro.config.mjs:
 - If you find a favicon inside `public/` that you want to use, **copy it into `src/assets/` first**, then update `astro.config.mjs`.
 
 
+## Domain configuration
+
+`.hakuto/config.json` is the **single source of truth for the site URL** that Astro bakes into the sitemap, canonical links, JSON-LD, and any `Astro.site`-derived URL. The scaffold ships it with a `null` domain:
+
+```json
+{
+  "domain": null,
+  "siteName": "Hakuto"
+}
+```
+
+`astro.config.mjs` reads this file via `getHakutoConfig()` and uses `https://{domain}` as the production `site`. Locally (no `NODE_ENV=production`, no `CF_PAGES`, no `CI`) a missing or null domain falls back to `http://localhost:4321` so `astro dev` works. **In a production build, the config throws if the file is missing or `domain` is null** — this is intentional, to prevent a wrong domain from being baked into a live sitemap (the previous bug: prod builds silently fell back to `preview.hakuto.dev`).
+
+### Rules
+
+1. **Always commit `.hakuto/config.json`.** The scaffold's `.gitignore` ignores all of `.hakuto/` *except* `.hakuto/config.json` (`.hakuto/*` + `!.hakuto/config.json`). After editing the file, verify it is tracked:
+   ```bash
+   git check-ignore .hakuto/config.json   # should exit non-zero (i.e. NOT ignored)
+   git status .hakuto/config.json         # should show it as tracked / staged
+   ```
+   If `git check-ignore` reports it as ignored, the `.gitignore` exception is missing — fix `.gitignore` first.
+2. **`.hakuto/config.json` is the canonical place for `domain` and `siteName`.** `package.json` `name` and `wrangler.toml` `name`/`routes` are separate (worker name, custom domain routing). Updating those does NOT change Astro's `site`. If a sitemap shows the wrong domain after a "domain change" PR, check that `.hakuto/config.json` was actually updated and committed.
+3. **Tell the user explicitly** when you write or update `.hakuto/config.json` that it must be committed for production to pick up the domain. Cloudflare builds from git — uncommitted changes are invisible to the deploy.
+
+### When to update
+
+- During Step 3 of the build workflow (Layout.astro pass), set `domain` and `siteName` from the user's input.
+- When the user changes their custom domain, update `.hakuto/config.json` *and* `wrangler.toml` (if using `[[routes]]`) — they are independent.
+- The `prelaunch-checklist` skill verifies `.hakuto/config.json` has a non-null `domain` and is tracked in git.
+
 ## Quality Standards
 
 - Generate semantic HTML with proper heading hierarchy
@@ -350,6 +381,8 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
 | Anchor links broken | Ensure target element has matching `id` attribute |
+| Sitemap shows wrong domain in production (e.g. `preview.hakuto.dev`) | `.hakuto/config.json` was not committed. Check `git check-ignore .hakuto/config.json` — if it's ignored, `.gitignore` is missing the `!.hakuto/config.json` exception. Set `domain` and commit. See "Domain configuration" |
+| Production build throws `[hakuto] Production build but .hakuto/config.json…` | Expected fail-loud behavior. Set `domain` in `.hakuto/config.json` and commit before deploying |
 
 ### Cloudflare Adapter & Image Service (CRITICAL)
 
