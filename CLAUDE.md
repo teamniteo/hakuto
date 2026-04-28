@@ -17,6 +17,8 @@ Avoid generic AI-generated aesthetics:
 
 **Actionable creativity rules:**
 - Typography: Rotate through distinctive fonts (Crimson Pro, Instrument Sans, Bitter, Spectral, DM Sans, Sora, Archivo)
+- Type pairing: High contrast = interesting. Pair display + monospace, serif + geometric sans, or pick one distinctive font and use it decisively across the whole site. Don't pair two fonts from the same family of sans-serifs.
+- Type contrast: Push weight contrast hard (300 body vs 800–900 display) and size contrast harder still (≥3× jumps between H1 and body). Timid scales read as generic.
 - Colors: Use TheColorAPI-generated palettes; vary hues; 60/30/10 ratio for dominant/accent/highlight
 - Layouts: Alternate between 12-col grids, asymmetric layouts, bento boxes, masonry patterns
 - Themes: Deliberately vary between light/dark/colored backgrounds across projects
