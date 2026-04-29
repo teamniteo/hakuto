@@ -8,6 +8,7 @@
 
 import type { AstroIntegration } from "astro";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { HotPayload } from "vite";
 
 interface ErrorInfo {
 	message: string;
@@ -54,53 +55,40 @@ export function devErrors(): AstroIntegration {
 
 				// Hook into Vite's WebSocket to capture errors
 				const originalSend = server.ws.send.bind(server.ws);
-				server.ws.send = (payload: unknown) => {
-					if (typeof payload === "object" && payload !== null) {
-						const msg = payload as {
-							type?: string;
-							err?: {
-								message?: string;
-								stack?: string;
-								id?: string;
-								frame?: string;
-								loc?: { file?: string; line?: number; column?: number };
-							};
+				server.ws.send = ((payload: HotPayload) => {
+					if (payload.type === "error" && payload.err) {
+						const err = payload.err;
+						const errorInfo: ErrorInfo = {
+							message: err.message || "Unknown error",
+							file: err.loc?.file || err.id,
+							line: err.loc?.line,
+							column: err.loc?.column,
+							frame: err.frame,
+							stack: err.stack,
+							timestamp: Date.now(),
 						};
 
-						if (msg.type === "error" && msg.err) {
-							const err = msg.err;
-							const errorInfo: ErrorInfo = {
-								message: err.message || "Unknown error",
-								file: err.loc?.file || err.id,
-								line: err.loc?.line,
-								column: err.loc?.column,
-								frame: err.frame,
-								stack: err.stack,
-								timestamp: Date.now(),
-							};
-
-							// Add to error list (keep last 10 errors)
-							state.errors.unshift(errorInfo);
-							if (state.errors.length > 10) {
-								state.errors.pop();
-							}
-							state.lastUpdate = Date.now();
-
-							logger.error(`[dev-errors] Captured: ${errorInfo.message}`);
+						// Add to error list (keep last 10 errors)
+						state.errors.unshift(errorInfo);
+						if (state.errors.length > 10) {
+							state.errors.pop();
 						}
+						state.lastUpdate = Date.now();
 
-						// Clear errors on successful update
-						if (msg.type === "update" || msg.type === "full-reload") {
-							if (state.errors.length > 0) {
-								logger.info("[dev-errors] Errors cleared after successful update");
-								state.errors = [];
-								state.lastUpdate = Date.now();
-							}
+						logger.error(`[dev-errors] Captured: ${errorInfo.message}`);
+					}
+
+					// Clear errors on successful update
+					if (payload.type === "update" || payload.type === "full-reload") {
+						if (state.errors.length > 0) {
+							logger.info("[dev-errors] Errors cleared after successful update");
+							state.errors = [];
+							state.lastUpdate = Date.now();
 						}
 					}
 
 					return originalSend(payload);
-				};
+				}) as typeof server.ws.send;
 
 				// Also listen for connection errors
 				server.ws.on("error", (err: Error) => {
