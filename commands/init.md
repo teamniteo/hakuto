@@ -22,7 +22,7 @@ done
 cp -a "${CLAUDE_PLUGIN_ROOT}/scaffold/." ./
 
 # Sanity check the copy
-ls package.json astro.config.mjs CLAUDE.md .claude/settings.json >/dev/null
+ls package.json astro.config.mjs CLAUDE.md >/dev/null
 
 # Initialize git (scaffold ships a .gitignore)
 [ -d .git ] || git init -q -b main
