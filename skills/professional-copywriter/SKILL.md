@@ -55,7 +55,10 @@ Strip these patterns. They make copy sound machine-generated and dilute trust.
 - **Copula avoidance** — "serves as / stands as / functions as" → just write "is"
 - **Fake-depth -ing tails** — "...empowering teams, fostering collaboration, driving outcomes" (cut the trailing -ing clause)
 - **Negative parallelisms & forced triplets** — "It's not just X, it's Y"; rule-of-three lists that pad with synonyms
-- **Em-dash & filler overuse** — em dashes where commas/periods work; "in order to" → "to"; "at this point in time" → "now"; "the ability to" → "can"
+- **Em-dash & filler overuse** — em dashes where commas/periods work; trim wordy phrases:
+  - "in order to" → "to"
+  - "at this point in time" → "now"
+  - "the ability to" → "can"
 - **Vague attributions** — "industry leaders", "experts agree", "studies show" without a specific source
 - **Stale connectors** — "not only", "designed to enhance", "when it comes to", "in the realm of", "amongst"
 
@@ -119,6 +122,10 @@ Make specific and benefit-focused. Place frequently (every other screen).
 
 **For headlines and primary CTAs**, return 2-3 alternatives with a one-line rationale each so the user can pick. Body copy and section text can be returned as a single best draft.
 
+## Final Anti-AI Pass
+
+Before any other check, re-read the full draft once and ask: **"what here sounds AI-generated?"** Revise those lines. This single pass catches more drift than the rest of the checklist combined — the AI Tells list is exhaustive but easy to satisfy in spirit while still violating in feel. Reading the draft as a human, with one job, surfaces what a checklist misses.
+
 ## Quality Checklist
 
 Before delivering:
@@ -129,4 +136,4 @@ Before delivering:
 - [ ] No AI tells (see list above)
 - [ ] Short paragraphs (1-3 sentences)
 - [ ] Conversational tone
-- [ ] **Final anti-AI pass** — re-read once; ask "what here sounds AI-generated?" and revise those lines
+- [ ] Final anti-AI pass completed (see section above)

@@ -7,15 +7,23 @@ description: Adds forms to Astro pages using React with Zod validation, submitti
 
 Adds accessible, validated forms using React state + Zod. Forms work as React islands with `client:load`. Submits to `/~/form-{name}` worker endpoint.
 
+## Why this stack
+
+- **React island over native HTML form**: Zod schemas + reactive state give per-field error rendering, conditional fields, and on-blur validation that vanilla forms can't express without manual DOM wiring. The island is small (~5KB gzipped), hydrates only when the form is in scope, and the rest of the page stays static.
+- **Zod over native browser validation**: native `required`/`pattern`/`type=email` checks scatter rules across HTML attributes, give browser-localized error strings, and don't share types with the worker. Zod is a single typed source of truth for both client and server, with custom messages and composable schemas.
+- **Cloudflare Workers handler over `mailto:` or third-party services**: a worker route validates submissions server-side (mailto skips validation entirely), enables anti-spam (rate-limiting, honeypots, Turnstile), structures payloads for downstream systems (CRM, email, DB), and keeps secrets out of the client. mailto also leaks the recipient's address and depends on the user having a mail client configured.
+
 ## Workflow
 
-1. Install deps: `bun add zod sonner`
-2. Install shadcn: `bunx --bun shadcn@latest add input textarea label button --overwrite`
+> **Bun rule note:** Steps 1–2 invoke `bun add` and `bunx shadcn` — dependency installs, not builds. CLAUDE.md's "Never run build tools" rule targets builds (handled by hooks); package installs are one-time setup operations the skill needs to perform. Always **check first** before running: skip the install if the package is already in `package.json` (Step 1) or if the shadcn primitive already exists in `src/components/ui/` (Step 2). This avoids redundant work and surfaces only the genuinely-needed installs.
+
+1. Install deps: `bun add zod sonner` — first read `package.json`; skip if both are already listed
+2. Install shadcn: `bunx --bun shadcn@latest add input textarea label button --overwrite` — first check `src/components/ui/`; only add the primitives that are missing
 3. Create `src/components/ui/field.tsx` (see `assets/field.tsx` - adapt styling)
 4. Create `worker/form.js` handler (see `assets/form.js` - adapt logic)
 5. Register route in `worker/index.js`
 6. Create form component (see `assets/ContactForm.tsx` - adapt fields)
-7. Add to page with `client:load`
+7. Add to page with `client:load` (above-the-fold) or `client:visible` (below-the-fold, e.g. footer newsletter — defers hydration until the form scrolls into view, saving initial JS work)
 
 ## Worker Setup
 
@@ -44,6 +52,8 @@ import { ContactForm } from "@/components/ContactForm"
 </section>
 ```
 
+For below-the-fold forms (newsletter signup in the footer, contact form near page bottom), prefer `client:visible` over `client:load` — hydration is deferred until the form scrolls into view, which trims initial JS execution without harming UX.
+
 ## Field Pattern
 
 For additional fields, use standard React controlled inputs with the Field UI components:
@@ -67,7 +77,7 @@ const [errors, setErrors] = useState<Record<string, string>>({})
 
 ## Additional Field Types
 
-**Select**: `bunx --bun shadcn@latest add select --overwrite`
+**Select**: `bunx --bun shadcn@latest add select --overwrite` (skip if `src/components/ui/select.tsx` already exists)
 ```tsx
 <Select value={values.option} onValueChange={(v) => setValues(s => ({ ...s, option: v }))}>
   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
@@ -75,7 +85,7 @@ const [errors, setErrors] = useState<Record<string, string>>({})
 </Select>
 ```
 
-**Checkbox**: `bunx --bun shadcn@latest add checkbox --overwrite`
+**Checkbox**: `bunx --bun shadcn@latest add checkbox --overwrite` (skip if `src/components/ui/checkbox.tsx` already exists)
 ```tsx
 <Field orientation="horizontal">
   <Checkbox

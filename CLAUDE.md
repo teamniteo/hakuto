@@ -76,7 +76,6 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 3.	Remember, this project uses Tailwind CSS v4 — configuration is CSS-based, not JavaScript.
 4.	Never start any preview server; it’s already running externally.
 5.	Never ask for confirmation — you’re running in a sandbox environment with access to all tools and can perform any necessary actions independently.
-6.  Never run build tools ({bun, yarn, npx, bunx, npm}) - external processes handle builds automatically via hooks.
 
 ## Mandatory Workflow (Follow This Exact Order)
 

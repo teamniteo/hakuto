@@ -20,7 +20,7 @@ Documentation Integration:
 - [ ] Step 3: Apply minimal design system
 - [ ] Step 4: Create documentation pages
 - [ ] Step 5: Use technical placeholders
-- [ ] Step 6: Update site-specification.md
+- [ ] Step 6: Update site-specification.md and AGENTS.md
 ```
 
 ### Step 1: Read Site Specification
@@ -59,27 +59,41 @@ Docs prioritize legibility for long-form technical reading, so all design langua
 - Generous whitespace (2-3x more than main site)
 - Flat design throughout
 
-**Color Palette:**
+**Color Palette (CSS custom properties):**
 
-Light Theme:
-- Background: `#FFFFFF`
-- Text: `#000000` / `#333333`
-- Links: `#0066FF` (ONLY color accent)
-- Borders: `#E5E5E5`
-- Code blocks: `#F5F5F5` background
+Define docs colors as CSS custom properties in `index.css` so themes can override them. Hardcoding hex values inline locks the docs to a single appearance and breaks dark-mode toggles.
 
-Dark Theme:
-- Background: `#0A0A0A`
-- Text: `#FFFFFF` / `#E0E0E0`
-- Links: `#0066FF` (ONLY color accent)
-- Borders: `#2A2A2A`
-- Code blocks: `#1A1A1A` background
+```css
+@layer base {
+  :root {
+    --docs-bg: #ffffff;
+    --docs-fg: #000000;
+    --docs-fg-muted: #333333;
+    --docs-accent: #0066ff;     /* links — the ONLY color accent */
+    --docs-border: #e5e5e5;
+    --docs-code-bg: #f5f5f5;
+  }
+
+  [data-theme="dark"] {
+    --docs-bg: #0a0a0a;
+    --docs-fg: #ffffff;
+    --docs-fg-muted: #e0e0e0;
+    --docs-accent: #0066ff;
+    --docs-border: #2a2a2a;
+    --docs-code-bg: #1a1a1a;
+  }
+}
+```
+
+Then reference via `var(--docs-bg)`, `var(--docs-accent)`, etc. in docs styles.
 
 **Typography:**
-- System fonts: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
+- Reuse the site's font tokens: `font-family: var(--font-sans)` for body text, `var(--font-mono)` for code blocks. The docs intentionally drop the rest of the brand palette to maximize legibility, but reusing the site's chosen fonts keeps it visually coherent. (Falling back to a generic system stack like `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto` contradicts CLAUDE.md's "avoid generic fonts" rule and produces inconsistent rendering between docs and the rest of the site.)
 - Body: 16px, line-height 1.8
-- Code: Menlo, Monaco, "Courier New", monospace (14-15px)
+- Code: 14–15px (font-family supplied by `--font-mono`)
 - Max content width: 800px
+
+**Do NOT use `@tailwindcss/typography` / `.prose` classes.** They produce poor contrast on dark themes and fight with the docs' minimal design system. Style content with the CSS custom properties above instead.
 
 ### Step 4: Create Documentation Pages
 
@@ -243,6 +257,13 @@ Do NOT invoke `professional-copywriter`. Marketing copy ("Transform your workflo
 - Keep brief - user will replace
 - Mark as placeholder clearly
 
+### Step 6: Update site-specification.md and AGENTS.md
+
+Record what was added so future agents and humans have an accurate map of the site:
+
+- **`site-specification.md`** — append a "Documentation" section listing the docs structure (categories, top-level pages, theme used) and any user-supplied customizations. Tell the user explicitly: "I've scaffolded the docs with placeholders — fill in the technical content under `src/content/docs/`."
+- **`AGENTS.md`** — add the new `/docs` routes (home + each category page) with their intended titles and descriptions, matching the format used for other pages. This keeps the SEO and routing context in sync with the rest of the site.
+
 **Sidebar Navigation Structure:**
 ```
 [Logo / Docs Home Link]
@@ -312,8 +333,11 @@ Before completing:
 ✅ Read `site-specification.md` and matched its theme (light/dark)
 ✅ Asked user for doc structure or used the defaults above
 ✅ Created `/docs` home + nested category pages with sidebar + search
-✅ Used minimal design system (white/black + blue links only) regardless of main site aesthetic
+✅ Used minimal design system via CSS custom properties (`--docs-bg`, `--docs-accent`, etc.) — no hardcoded hex values
+✅ Reused site's `--font-sans` / `--font-mono` tokens — did NOT introduce a generic system-font stack
+✅ Did NOT use `@tailwindcss/typography` / `.prose` classes
 ✅ Used technical placeholders — did NOT invoke `professional-copywriter`
 ✅ Added "Docs" (SaaS) or "Help" (General) to main nav, preserving existing pages
 ✅ Included SEO meta tags, mobile responsive layouts
-✅ Updated `site-specification.md` and told the user to add their technical content
+✅ Updated `site-specification.md` with the new docs structure and told the user to fill in technical content
+✅ `AGENTS.md` updated with docs pages (titles, descriptions, routes)

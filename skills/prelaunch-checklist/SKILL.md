@@ -1,6 +1,6 @@
 ---
 name: prelaunch-checklist
-description: Pre-launch validation for Hakuto sites. Verifies wrangler config, form wiring, legal pages, and placeholder content; confirms SEO test and code review have been run; reminds the user of manual Cloudflare dashboard steps. Report-only - no fixes applied.
+description: Pre-launch validation for Hakuto sites — verifies wrangler config, form wiring, legal pages, placeholder content scrub; confirms `seo-audit` and `code-review` have been run; reminds the user of manual Cloudflare dashboard steps. Report-only — no fixes applied. Use when user requests "run prelaunch checklist", "is the site ready to ship?", "ready to go live", "pre-launch check", "launch check", or "final check before deploy".
 ---
 
 # Prelaunch Checklist Skill
@@ -138,6 +138,8 @@ If "Yes" → add to `passed`.
 
 If "No — do it after this" → add to `manual_reminders`: "Run `bun update` to refresh `bun.lock` to latest stable packages, then re-run `bun run check` and the build before shipping."
 If "Yes" → add to `passed`.
+
+> **Bun rule note:** the `bun update` / `bun run check` references above are *user reminders* (text added to `manual_reminders` for the user to act on), not commands the skill executes. CLAUDE.md's "Never run build tools" rule governs what the skill does, not what it suggests to the user.
 
 ### 5. Add manual Cloudflare reminders
 

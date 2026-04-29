@@ -160,12 +160,14 @@ export default defineConfig({
 ```javascript
 {
   provider: fontProviders.google(),
-  name: "Inter",
-  cssVariable: "--font-inter",
-  weights: ["100 900"],  // Variable weight range
+  name: "Recursive",
+  cssVariable: "--font-recursive",
+  weights: ["300 1000"],  // Variable weight range
   styles: ["normal"]
 }
 ```
+
+`Recursive` (and `Sora`, `Inter Tight`, `Crimson Pro`, `Spectral`) ships as a single variable font file covering the full weight range — one network request instead of 5–9 separate weight files. Pick a distinctive variable font; avoid `Inter` and `Roboto` defaults.
 
 ## Integration with Tailwind v4
 
@@ -198,9 +200,12 @@ Usage in components:
 
 ### Basic Setup (Layout.astro)
 
+Import CSS via the frontmatter — Astro processes the import and emits a hashed stylesheet link automatically. Don't use `<link rel="stylesheet" href="/src/index.css" />`; `/src/` paths don't resolve in production builds.
+
 ```astro
 ---
 import { Font } from 'astro:assets';
+import '../index.css';
 ---
 
 <!doctype html>
@@ -212,8 +217,6 @@ import { Font } from 'astro:assets';
     <!-- Font declarations and preloads -->
     <Font cssVariable="--font-display" preload />
     <Font cssVariable="--font-body" preload />
-
-    <link rel="stylesheet" href="/src/index.css" />
   </head>
   <body class="font-sans">
     <slot />
@@ -274,29 +277,37 @@ subsets: ["latin", "latin-ext", "cyrillic"]
 }
 ```
 
+## Type Contrast (Read This Before Pairing)
+
+Pairings work because of **contrast**, not similarity. The two cardinal rules:
+
+1. **Don't pair two fonts from the same family of sans-serifs.** `Sora + Inter`, `Archivo + Nunito`, `DM Sans + Work Sans` — all flat. The reader can't tell where the heading ends and the body begins. Pair a serif with a sans, a display with a monospace, or a humanist sans with a geometric sans.
+2. **Push weight contrast hard — 300 body vs 800–900 display.** Timid scales (400 body / 600 heading) read as generic. The same goes for size: aim for ≥3× jumps between H1 and body.
+
+A single distinctive font used decisively across the whole site often beats a weak pair.
+
 ## Recommended Font Pairings
 
-Avoid "AI slop" aesthetics with distinctive combinations:
+Avoid "AI slop" aesthetics with distinctive combinations. Each row pairs across-family deliberately:
 
-| Display | Body | Vibe |
-|---------|------|------|
-| Crimson Pro | DM Sans | Elegant editorial |
-| Sora | Inter | Modern tech |
-| Spectral | Source Sans Pro | Professional |
-| Instrument Serif | Instrument Sans | Contemporary |
-| Bitter | Open Sans | Warm & approachable |
-| Archivo | Nunito | Bold & friendly |
+| Display | Body | Why this works |
+|---------|------|----------------|
+| Crimson Pro (serif) | DM Sans (geometric sans) | Editorial weight against modern minimal — clear hierarchy |
+| Spectral (serif) | Source Sans Pro (humanist sans) | Refined editorial paired with workhorse legibility |
+| Instrument Serif | Instrument Sans | Designed-as-a-pair; complementary contrast built-in |
+| Bitter (slab serif) | Open Sans (humanist sans) | Friendly slab against neutral body — warm but readable |
+| Fraunces (display serif) | Inter Tight (geometric sans) | Expressive display paired with tight, distraction-free body |
+| Sora (geometric sans, 800) | Crimson Pro (serif, 400) | Single-distinctive-font feel by inverting the usual sans-display / serif-body convention |
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| `Font` import fails | Restart dev/preview server after config change (Step 2) |
-| CSS variable undefined | Restart dev/preview server, verify `cssVariable` matches config |
+| `Font` import fails or CSS variable undefined | Server hasn't picked up the new config — see Step 2. Also verify `cssVariable` name matches between `astro.config.mjs` and your CSS/component usage. |
 | Fonts not loading | Check `<Font />` is in Layout head |
 | Build fails | Ensure local font paths are correct |
 | FOUT (flash of unstyled text) | Add `preload` to critical fonts |
-| Large bundle | Reduce weights/subsets |
+| Large bundle | Reduce weights/subsets, prefer a variable font |
 
 ## Advanced: Programmatic Access
 

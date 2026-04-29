@@ -1,6 +1,6 @@
 ---
 name: section-blog
-description: Adds multi-page blog system to existing websites with listing page, post templates, author archives, and category pages. Supports flexible content layouts beyond single-column text. Use when user requests "add blog", "add articles section", "add news", or mentions blog functionality.
+description: Adds multi-page blog system to existing websites with listing page, post templates, author archives, and category pages. Supports flexible content layouts beyond single-column text. Use when user requests "add blog", "add articles section", "add news", or mentions blog functionality. Skip for headless CMS integrations (Contentful, Sanity, Strapi), single one-off articles embedded in existing pages, or sites already using a different content collection setup.
 ---
 
 # Blog Section
@@ -151,7 +151,9 @@ Content here...
 
 ## Author Box with Gravatar
 
-Every blog post includes an author box at the bottom with a Gravatar avatar. Use `node:crypto` to MD5 hash the email at build time:
+Every blog post includes an author box at the bottom with a Gravatar avatar. Use `node:crypto` to MD5 hash the email at build time.
+
+> **Why a plain `<img>` instead of `<Picture>`?** Gravatar URLs are external CDN-served images outside Astro's asset pipeline. `<Picture>`/`<Image>` only optimize local imports (`@/assets/...`); for external URLs they pass through unchanged, so using `<img>` directly keeps the markup simpler without losing optimization.
 
 ```astro
 ---
@@ -188,7 +190,26 @@ const gravatarUrl = `https://gravatar.com/avatar/${emailHash}?s=160`;
 
 ## External Links in New Tab
 
-Markdown does not support `target="_blank"`. Add a script to the post page that opens external links in new tabs:
+Markdown does not support `target="_blank"`. Two options:
+
+**Preferred — `rehype-external-links` (build-time, no JS shipped):**
+
+```js
+// astro.config.mjs
+import rehypeExternalLinks from "rehype-external-links";
+
+export default defineConfig({
+  markdown: {
+    rehypePlugins: [
+      [rehypeExternalLinks, { target: "_blank", rel: ["noopener", "noreferrer"] }],
+    ],
+  },
+});
+```
+
+This rewrites links during MDX/Markdown compile, so no client JS runs and external behaviour is correct on first paint. Add the plugin to your dependencies.
+
+**Fallback — runtime script (if you can't add a build dep):**
 
 ```html
 <script>
@@ -201,24 +222,7 @@ Markdown does not support `target="_blank"`. Add a script to the post page that 
 </script>
 ```
 
-Give the content wrapper an `id="blog-content"` for the selector.
-
----
-
-## Important Rules
-
-**Content Strategy:**
-- User content: Use as-is, preserve exactly
-- No content: Generic placeholders only
-- Never invoke professional-copywriter for blog posts
-
-**Navigation Integration:**
-- Place Blog link where user specifies, or after Docs if not specified
-
-**Design Consistency:**
-- Use site's CSS variables from `index.css` — never hardcode colors
-- Match the homepage's text contrast and spacing
-- Do NOT use Tailwind prose plugin
+Give the content wrapper an `id="blog-content"` for the selector. Note: this ships JS for one DOM operation and runs after hydration, so links briefly behave as same-tab links until the script executes.
 
 ---
 
@@ -226,30 +230,15 @@ Give the content wrapper an `id="blog-content"` for the selector.
 
 Before completing:
 
-✅ Read `src/index.css` and `AGENTS.md` for site context
-✅ Blog content styled with site theme variables (NOT Tailwind prose)
-✅ Brand colors and typography from index.css respected
-✅ Navigation updated with blog link
-✅ Author box with Gravatar on post pages
-✅ External links open in new tab via script
-✅ Used `render(post)` from `astro:content` (NOT `post.render()`)
-✅ No `layout` frontmatter in markdown files
-✅ `AGENTS.md` updated with blog pages
-✅ SEO meta tags included
-✅ Mobile responsive
-
----
-
-## Key Principles
-
-**No Tailwind Prose**: Style markdown content with custom CSS using site theme variables
-
-**No Layout Frontmatter**: Content layer glob loader ignores it — layout lives in `[...slug].astro`
-
-**Site Consistency**: Use `hsl(var(--heading))`, `hsl(var(--foreground))`, etc. — never hardcode hex colors
-
-**Author Identity**: Every post has authorEmail for Gravatar, optional authorBio
-
----
-
-*Adds complete blog system to existing websites using site theme variables for consistent design.*
+- Read `src/index.css` and `AGENTS.md` for site context
+- Blog content styled with site theme variables (NOT Tailwind prose) — use `hsl(var(--heading))`, `hsl(var(--foreground))`, etc., never hardcode hex colors
+- Brand colors and typography from `index.css` respected
+- Navigation updated with blog link (placement: where user specifies, or after Docs if unspecified)
+- Author box with Gravatar on post pages (every post has `authorEmail`, optional `authorBio`)
+- External links open in new tab (preferred: `rehype-external-links`; fallback: runtime script)
+- Used `render(post)` from `astro:content` (NOT `post.render()`)
+- No `layout` frontmatter in markdown files (content layer glob loader ignores it — layout lives in `[...slug].astro`)
+- User-provided content used verbatim; generic placeholders only when content missing; never invoke `professional-copywriter` for blog posts
+- `AGENTS.md` updated with blog pages
+- SEO meta tags included
+- Mobile responsive
