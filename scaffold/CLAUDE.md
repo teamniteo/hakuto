@@ -335,7 +335,7 @@ The scaffold ships with signals that help AI agents discover and interact with t
 The WebMCP `search-site` tool depends on Pagefind being built — it's wired up by `section-docs` and any future search integration. If neither exists on the site, leave `ENABLE_WEBMCP = false`.
 
 ## Available shadcn Components
-All compatible with raw Astro: accordion, alert, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, button, calendar, card, carousel, checkbox, collapsible, command, context-menu, dialog, drawer, dropdown-menu, form, hover-card, input, input-otp, label, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, skeleton, slider, sonner, switch, table, tabs, textarea, toast, toggle, toggle-group, tooltip
+All compatible with raw Astro: accordion, alert, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, button, calendar, card, carousel, checkbox, collapsible, command, context-menu, dialog, dropdown-menu, form, hover-card, input, input-otp, label, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, skeleton, slider, sonner, switch, table, tabs, textarea, toggle, toggle-group, tooltip
 
 Your goal is to create a beautiful, performant landing page that matches the user request. Follow the workflow steps in exact order, use the appropriate theme and skills, and deliver a complete, professional landing page with all necessary components and pages.
 
