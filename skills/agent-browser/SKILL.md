@@ -7,7 +7,14 @@ description: Automates browser interactions for web testing, form filling, scree
 
 ## Prerequisites
 
-The `agent-browser` binary is bundled with Hakuto's setup and should be on `$PATH` automatically. If you hit `command not found`, surface it to the user — don't try to install it yourself; the binary's provenance is part of the workstation setup, not the project.
+If `agent-browser` is missing from `$PATH`, install it globally and run the one-time Chrome download:
+
+```bash
+bun install -g agent-browser
+agent-browser install   # Downloads Chrome for Testing (first run only)
+```
+
+Alternatives: `npm install -g agent-browser`, `brew install agent-browser`, or `cargo install agent-browser` — each followed by `agent-browser install`. Surface any install failures to the user rather than improvising workarounds.
 
 ## Why refs over selectors
 
