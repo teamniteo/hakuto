@@ -1,10 +1,17 @@
 ---
 name: agent-browser
-description: Automates browser interactions for web testing, form filling, screenshots, and data extraction. Use when the user needs to navigate websites, interact with web pages, fill forms, take screenshots, test web applications, or extract information from web pages.
-allowed-tools: Bash(agent-browser:*)
+description: Automates browser interactions for web testing, form filling, screenshots, and data extraction. Use when the user needs to navigate websites, interact with web pages, fill forms, take screenshots, test web applications, or extract information from web pages. Skip if the user just needs static page contents — use WebFetch instead. Use this skill only when interaction (clicking, typing, JS execution) is required.
 ---
 
 # Browser Automation with agent-browser
+
+## Prerequisites
+
+The `agent-browser` binary is bundled with Hakuto's setup and should be on `$PATH` automatically. If you hit `command not found`, surface it to the user — don't try to install it yourself; the binary's provenance is part of the workstation setup, not the project.
+
+## Why refs over selectors
+
+The core pattern is **snapshot → ref → act**. Refs (`@e1`, `@e2`) come from the snapshot's accessibility tree and survive minor DOM mutations between actions; CSS selectors and XPath break easily on re-renders, dynamic class names, or hydration. Re-snapshot whenever the page navigates or the DOM changes meaningfully.
 
 ## Quick start
 
@@ -219,8 +226,8 @@ agent-browser open https://app.example.com/dashboard
 ## Sessions (parallel browsers)
 
 ```bash
-agent-browser --session test1 open site-a.com
-agent-browser --session test2 open site-b.com
+agent-browser --session test1 open https://site-a.com
+agent-browser --session test2 open https://site-b.com
 agent-browser session list
 ```
 
@@ -242,8 +249,8 @@ agent-browser console --clear             # Clear console
 agent-browser errors                      # View page errors
 agent-browser errors --clear              # Clear errors
 agent-browser highlight @e1               # Highlight element
-agent-browser record start ./debug.webm   # Record from current page
-agent-browser record stop                 # Save recording
 agent-browser trace start                 # Start recording trace
 agent-browser trace stop trace.zip        # Stop and save trace
 ```
+
+For video recording during debugging, see [Video recording](#video-recording) above — same `record start` / `record stop` commands apply.

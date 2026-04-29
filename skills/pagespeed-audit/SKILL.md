@@ -1,12 +1,11 @@
 ---
 name: pagespeed-audit
-description: Live performance audit for deployed pages using Google PageSpeed Insights API. Runs Lighthouse against public URLs and reports Core Web Vitals, scores, and top opportunities. Report-only - no fixes applied.
+description: Live performance audit for deployed pages using Google PageSpeed Insights API. Runs Lighthouse against public URLs and scores them across Performance, Accessibility, Best Practices, and SEO, plus Core Web Vitals (LCP, INP, CLS, FCP, TTFB) and the top opportunities to improve each. Report-only — no fixes applied. Use when user requests "run pagespeed", "test core web vitals", "audit performance", "check Lighthouse score", "run a performance audit", or "test how fast the site is".
 ---
 
 # PageSpeed Audit
 
 Run Google's PageSpeed Insights against deployed pages and report findings.
-Report-only — user requests fixes separately.
 
 **Scope:** Tests one or more public URLs. Audits both **mobile** and
 **desktop** strategies by default.

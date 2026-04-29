@@ -1,6 +1,6 @@
 ---
 name: brand-designer
-description: Generate custom brand color palettes using color theory. Use when user provides hex codes, requests "customize colors", "generate color palette", "create color palette", or uploads logo for color extraction.
+description: Generate custom brand color palettes using color theory (complementary, triadic, analogous) — built around a 60/30/10 dominant/accent/highlight ratio with TheColorAPI for hue rotation. Use when user provides hex codes, requests "customize colors", "generate color palette", "create color palette", "pick brand colors", "design a palette", "what colors should I use", or asks to extract colors from a logo. A bare logo upload alone does NOT trigger this skill — wait for an explicit color-extraction or palette request.
 ---
 
 # Designing Brand Colors
@@ -19,12 +19,14 @@ Accept: hex codes, color names, descriptions, or logo analysis (identify 1-3 dom
 
 **Use Tailwind v4 color utilities** for most conversions (hex to RGB, opacity variants, shade generation).
 
-For advanced color theory (hue rotation for complementary/triadic/analogous schemes), use Bun to calculate HSL transformations. Write a temporary JavaScript file with color functions, run with `bun`, then delete.
+For hue rotation (complementary/triadic/analogous), prefer **[TheColorAPI](https://www.thecolorapi.com/)** — fetch via WebFetch with `https://www.thecolorapi.com/scheme?hex={HEX}&mode={complement|triad|analogic}&count=5` and use the returned hexes directly. This gives consistent, perceptually-tuned results without writing math. Fall back to a temporary Bun HSL script only if the API is unreachable.
+
+**Compose with a 60/30/10 ratio** — one dominant color (~60% of UI, usually the neutral or background tone), one accent (~30%, the brand's primary hue), one highlight (~10%, used for CTAs and key emphasis). Timid, evenly-distributed palettes read as generic; commit to a hierarchy.
 
 **Design language scheme selection:**
-- Minimalist/Corporate/Elegant → Complementary (180°)
-- Technology/Dark/Brutalist → Triadic (120°)
-- Colorful → Analogous (40°)
+- Minimalist/Corporate/Elegant → Complementary (180°) — high contrast with only two hues keeps the page calm and disciplined
+- Technology/Dark/Brutalist → Triadic (120°) — three vibrant hues in tension, energetic without monochromatic flatness
+- Colorful → Analogous (40°) — adjacent hues blend smoothly, supporting saturation without visual chaos
 
 ### 4. Check Compatibility
 

@@ -1,11 +1,31 @@
 ---
 name: website-builder
-description: Generates production-ready websites through conversational design. Use when user requests website creation, landing pages, site modifications, or adding pages. Handles site architecture, design systems, and coordinates with copywriting and brand customization skills.
+description: Core orchestrator for generating production-ready Astro websites through conversational design. Use when user requests "build a SaaS site", "make me a landing page", "create a website", "I need a portfolio site", "create a company website", "build a marketing site", or wants to add or modify pages ("add a features page", "build the pricing page", "create about page", "add contact"). Handles site architecture and design systems, and coordinates with `professional-copywriter`, `brand-designer`, `fonts`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, and the audit skills.
 ---
 
 # Website Builder
 
-Generate production-ready websites by starting with site types and design languages as intelligent defaults, then customizing to user's exact vision. Coordinates with copywriting and brand customization skills.
+Generate production-ready websites by starting with site types and design languages as intelligent defaults, then customizing to user's exact vision. Coordinates with copywriting, brand, fonts, section, and audit skills.
+
+---
+
+## Working Alongside CLAUDE.md
+
+This skill is the orchestrator referenced by Hakuto's CLAUDE.md. **Follow CLAUDE.md's "Mandatory Workflow" (the 7-step `index.css` → `Layout.astro` → Project Plan → Components flow) alongside this skill's design workflows.** CLAUDE.md is always loaded; this skill adds the conversational, design-aware layer on top of that mechanical sequence.
+
+When the two overlap, CLAUDE.md owns the *how* (which files to touch, what conventions to follow) and this skill owns the *what* (which site type, which design language, which content strategy, when to invoke siblings).
+
+---
+
+## Technical Constraints
+
+These rules are enforced by CLAUDE.md and apply to every page this skill produces. See CLAUDE.md for full details.
+
+- **Tailwind CSS v4** — config lives in `src/index.css` via `@theme {}`, not `tailwind.config.mjs` (delete that file if present).
+- **`className` (not `class`) on React/shadcn components** — `<Button className="...">` is correct; `<Button class="...">` is a TypeScript error. Native HTML in `.astro` keeps `class`.
+- **Astro Fonts API for custom fonts** — `experimental.fonts` (5.x) or top-level `fonts` (6+) in `astro.config.mjs`. Never use `@import` or `@font-face` for custom fonts. ALWAYS invoke the `fonts` skill when custom fonts are involved.
+- **Cloudflare adapter `imageService: "compile"`** (NOT `"passthrough"`). Passthrough installs a noop image service that breaks `<Picture>`/`<Image>` in dev and build.
+- **`<Picture>` for local images, `<img>` for external URLs** — local assets go through `astro:assets` for AVIF/WebP/responsive widths. Unsplash and other external URLs use plain `<img>`.
 
 ---
 
@@ -18,7 +38,9 @@ Design languages provide starting aesthetics with proven patterns. All elements 
 2. User provides direction → Adapt design language to match
 3. User provides no input → Use design language as intelligent default
 
-Design languages prevent blank canvas paralysis while remaining fully flexible to user vision.
+**Why this order:** explicit user intent always wins because the user knows their context (existing brand, audience, taste) better than any default can model. Direction comes second because it's a real signal of preference, just less precise than a literal answer. Defaults sit last so the model never blocks on a blank canvas — but they're scaffolding, not constraints. Treat each tier as a *starting point* for the next: explicit choices override direction, direction overrides defaults.
+
+Design languages prevent blank canvas paralysis while remaining fully flexible to user vision — they exist to give the model a concrete creative starting point so the first draft has *character*, not generic AI-slop neutrality. Users always have the final word.
 
 ---
 
@@ -56,6 +78,8 @@ User says: "Build the features page", "Add pricing", "Create about page", "Make 
    - Complete → Use verbatim
 4. Build page matching existing style and any user customizations
 5. Update `site-specification.md`
+
+**Note on Customization Hierarchy:** Workflow B does not re-consult the explicit/direction/default hierarchy because `site-specification.md` is already the authoritative source of truth — every prior customization is recorded there as the *Current* style. Apply Current; don't re-derive from defaults.
 
 ### C) Brand Colors
 User says: "Use my brand colors #3B82F6", "Match my logo", "Extract colors"
@@ -123,32 +147,40 @@ See reference files for color palettes, typography, component styling, and layou
 
 **Critical rule:** User-provided content is sacred. Generate only when missing/partial or explicitly requested.
 
+**Why:** Users provide copy because they know their product, audience, voice, and factual claims better than a generative model can. Rewriting verbatim copy silently — even to "polish" it — risks introducing inaccuracies (numbers, feature claims, names), eroding the user's voice, and breaking the trust contract: "I gave you my words, you used them." When you're unsure whether to rewrite, default to verbatim; users can always ask for an edit explicitly.
+
 ---
 
 ## State Management
 
 ### Create site-specification.md After Every Build
 
+Minimum template:
+
 ```markdown
 # Site Specification
 
 ## Configuration
-- **Site Type**: [SaaS/General/E-commerce/Portfolio/etc.]
-- **Design Language (Starting Point)**: [Technology/Modern/Minimalist/etc.]
+- **Site Type**: [SaaS or General — see `references/site-types/`]
+- **Design Language (Starting Point)**: [Minimalist/Technology/Dark/Corporate/Brutalist/Colorful/Elegant — see `references/design-languages/`]
 - **Target Audience**: [Describe target audience]
 - **Primary Goal**: [Conversion/credibility/leads/signups/etc.]
 
 ## Design Evolution
 - **Starting aesthetic**: [Design language description from starting point]
-- **User customizations**: [List any user-requested deviations from starting design language, or "None yet - using default {language} design"]
-- **Current style**: [Concise description of actual aesthetic currently in use, including specific colors, typography, visual patterns]
+- **User customizations**: [List any user-requested deviations, or "None yet - using default {language} design"]
+- **Current style**: [Concise description of the actual aesthetic in use, including specific colors, typography, visual patterns]
 ```
+
+**See `site-specification-guide.md`** (in this skill folder) for the full guide — when to create, read, and update the spec; example evolution flows; the rule "always build to *Current*, not *Starting*"; and complete worked examples.
 
 **Always read before subsequent pages.** Ensures consistency and respects all customizations across sessions.
 
 ---
 
 ## Skill Coordination
+
+The website-builder is the orchestrator. Other skills own their domains; invoke them when the user's intent crosses into one. Below are the canonical handoffs.
 
 ### Professional-Copywriter
 
@@ -184,6 +216,40 @@ See reference files for color palettes, typography, component styling, and layou
 - Generates palette via TheColorAPI
 - Checks compatibility with design language
 - Presents for approval → applies → updates spec
+
+### Fonts
+
+**Always invoke** whenever any custom font is used (CLAUDE.md mandate). The Astro Fonts API is the only correct way to wire custom fonts on Hakuto sites — never `@import` or `@font-face` in CSS.
+
+**Invoke when:**
+- Choosing typography during initial build
+- User requests "change fonts", "use Crimson Pro", "add Google Fonts", "use a custom font"
+- Updating type pairings or weights
+
+### Section-Form / Section-Blog / Section-Docs
+
+**Section-Form — invoke when:** user wants any interactive form ("contact form", "newsletter", "waitlist", "booking", "feedback"). Skip for pure mailto:, third-party-hosted forms, or visual-only mockups.
+
+**Section-Blog — invoke when:** user wants a blog/articles/news/changelog section requiring listing pages, post templates, and category/author archives.
+
+**Section-Docs — invoke when:** user wants a `/docs` area with sidebar navigation, search, and nested category pages.
+
+These are content-area builders — the website-builder lays the foundation; section skills bolt on the specialized area.
+
+### Plausible-Analytics
+
+**Invoke when:** user requests "add analytics", "add Plausible", "add tracking", "page views", or privacy-friendly visitor tracking — *and* the project deploys to Cloudflare Workers. Skip for Vercel/Netlify/static-only deploys (the standard Plausible `<script>` tag is the right path there).
+
+### Audit Skills (post-build handoffs)
+
+After a build is in a shippable state, hand off to the audit skills as part of the launch pass:
+
+- **seo-audit** — meta tags, headings, canonicals, schema, sitemap, robots.txt, alt text, mixed content, internal links, image sizes, favicons. Run before every launch.
+- **pagespeed-audit** — live Lighthouse run via Google PageSpeed Insights (Core Web Vitals + scores) for deployed pages.
+- **code-review** — Hakuto-specific source audit against CLAUDE.md rules (className, Tailwind v4, Fonts API, Cloudflare adapter, image optimization, accessibility).
+- **prelaunch-checklist** — final pre-launch verification (wrangler config, form wiring, legal pages, placeholder content, SEO/code-review pass confirmation, manual Cloudflare dashboard reminders).
+
+Suggest these proactively when the user says "I'm ready to ship", "going live", "launch check", or once a site has all its pages built.
 
 ---
 
@@ -223,18 +289,24 @@ Adapt based on feedback:
 
 ## Skill Invocation Quick Reference
 
-| Situation | Copywriter? | Brand-Designer? |
-|-----------|-------------|-----------------|
-| No content | ✅ YES | ❌ NO |
-| Partial content | ✅ YES | ❌ NO |
-| Complete content | ❌ NO | ❌ NO |
-| "Improve copy" | ✅ YES | ❌ NO |
-| "Use my colors" | ❌ NO | ✅ YES |
-| "Extract logo colors" | ❌ NO | ✅ YES |
-| Logo (initial build) | ❌ NO | ❌ NO |
-| "Make it warmer/darker/etc" | ❌ NO | ❌ NO (you handle) |
-| "Use this font" | ❌ NO | ❌ NO (you handle) |
-| "Round the buttons" | ❌ NO | ❌ NO (you handle) |
+| Situation | Skill to invoke |
+|-----------|-----------------|
+| No / partial content | `professional-copywriter` |
+| "Improve copy", "rewrite this" | `professional-copywriter` |
+| Complete content provided | (none — use verbatim) |
+| "Use my brand colors", "use #3B82F6" | `brand-designer` |
+| "Extract colors from my logo" | `brand-designer` |
+| Logo upload, initial build, no color request | (none — add to header, default palette) |
+| Any custom font / "use Crimson Pro" / "add Google Fonts" | `fonts` (always — CLAUDE.md mandate) |
+| "Add a contact / newsletter / inquiry form" | `section-form` |
+| "Add a blog / articles / news section" | `section-blog` |
+| "Add docs / API docs / developer docs" | `section-docs` |
+| "Add analytics / Plausible / tracking" (Cloudflare deploy) | `plausible-analytics` |
+| "Make it warmer/darker", "round the buttons", color/spacing tweaks | (none — handle directly) |
+| "Run SEO test", "check meta tags" | `seo-audit` |
+| "Test page speed", "run Lighthouse" | `pagespeed-audit` |
+| "Code review", "lint the site" | `code-review` |
+| "Ready to ship", "launch check", "go live" | `prelaunch-checklist` |
 
 ---
 
@@ -253,7 +325,3 @@ Adapt based on feedback:
 **Consistency:** Always read spec before building subsequent pages to respect all customizations.
 
 **Communication:** Frame design languages as starting points, not limits. "We can customize anything" should be clear from the start.
-
----
-
-*Builds websites by starting with site types and design languages as intelligent defaults, then adapting freely based on user feedback. Invokes professional-copywriter for content needs and brand-designer for color customization. Maintains consistency and tracks evolution via site-specification.md.*

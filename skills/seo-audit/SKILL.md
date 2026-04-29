@@ -1,11 +1,11 @@
 ---
 name: seo-audit
-description: SEO validation for sites. Can test a single page, group of pages, or entire website based on user prompt. Reports issues and successes. Report-only - no fixes applied.
+description: Static SEO audit for Astro `_dist/` HTML — meta tags, headings, canonicals, schema, sitemap, robots.txt, alt text, mixed content, internal links, image sizes, favicons. Can scope to a single page, group of pages, or whole site. Report-only — no fixes applied. Use when user requests "run SEO test", "SEO audit", "check meta tags", "validate canonicals", "audit indexability", or "check site for SEO issues".
 ---
 
 # SEO Audit
 
-Validate SEO on Astro-built sites. Report findings only - user requests fixes separately.
+Validate SEO on Astro-built sites.
 
 **Flexible Scope:** This skill adapts to test based on user request:
 - **Single page**: "Test SEO for homepage" or "Check SEO on about page"
@@ -36,11 +36,14 @@ Parse user request to identify which pages to test:
 
 If page names are ambiguous, list available pages from _dist and confirm with user.
 
-### 1. Build Site
-```bash
-bun run build
-```
-Build the Astro site. Output will be in `_dist` folder. If build fails, report error and stop.
+### 1. Ensure `_dist/` Exists
+
+Check whether `_dist/` already contains built HTML (Hakuto's hooks keep it fresh during dev — usually it's already there). Use `Glob` for `_dist/**/*.html`.
+
+- If `_dist/` already has built pages → proceed to Step 2
+- If `_dist/` is missing or empty → run `bun run build` and re-check. If the build fails, report and stop.
+
+This avoids redundant builds; Hakuto's external build hooks handle compilation automatically during normal work.
 
 ### 2. Read Page Metadata
 
@@ -92,6 +95,13 @@ To check self-reference: derive expected URL from file path (e.g. `_dist/about/i
 - Missing any → warning for each missing tag
 - All present → pass
 
+#### HTML Document
+
+**Lang Attribute:** `<html lang="...">` on the root element. Screen readers and translation tools rely on this to pronounce content correctly and offer the right translation.
+- Missing `lang` attribute → warning: "Missing `<html lang>` attribute"
+- Present but empty (`lang=""`) → warning: "Empty `<html lang>` attribute"
+- Present with non-empty value → pass
+
 #### Heading Hierarchy
 
 **H1 Count:**
@@ -105,7 +115,7 @@ To check self-reference: derive expected URL from file path (e.g. `_dist/about/i
 
 #### Schema Markup
 
-Find `<script type="application/ld+json">`
+Find `<script type="application/ld+json">`. JSON-LD unlocks rich results in Google (knowledge panels, breadcrumbs, FAQ accordions, sitelinks) — pages without it forfeit those SERP enhancements.
 - Not found → warning: "No schema markup"
 - Found, invalid JSON → critical: "Invalid JSON-LD: [error]"
 - Found, valid JSON:
@@ -123,6 +133,16 @@ Extract all `<img>` tags in `<body>`:
 
 Ignore `<img>` inside `<picture>` only when the `<picture>` itself has an `<img>` child with alt (don't double-count).
 
+#### Image Asset Health
+
+For each `<img src="...">` and `<source srcset="...">` referencing a **local** path (starts with `/` or relative, not `http://`/`https://`), `stat` the resolved file in `_dist/`:
+
+- > 2 MB → critical: "Oversized image: [src] (X MB) — will tank LCP"
+- 1–2 MB → warning: "Large image: [src] (X MB) — consider compressing"
+- ≤ 1 MB → pass
+
+Skip external images (Unsplash, CDN URLs) — they're outside our control. Skip SVG files (typically tiny). Astro's build fails on broken `<Picture>`/`<Image>` imports, so existence is already guaranteed at this stage.
+
 #### URL Hygiene
 
 Per page URL (from sitemap.xml or file path):
@@ -134,13 +154,26 @@ Per page URL (from sitemap.xml or file path):
 
 Scan built HTML for `http://` (not `https://`) references:
 - `<script src="http://...">`, `<link href="http://...">`, `<img src="http://...">`, `<iframe src="http://...">` → critical: "Mixed content: [tag] loads insecure [url]"
+- `<a href="http://...">` → warning: "Insecure link: anchor points to http:// [url]" — following the link drops the user from HTTPS to HTTP
 - Ignore `http://` inside JSON-LD `@context` (`http://schema.org` is canonical) and inside text content / comments.
 
 #### Internal Links
 
 Extract all `<a href="...">` tags:
-- Record internal links (ignore external URLs with http://)
+- Record internal links (ignore external URLs that start with `http://` or `https://`)
 - Track in links{}: current_page → [linked_pages]
+
+**Target validation:** for each internal href, confirm the target resolves to a file in `_dist/`:
+- `/about` → `_dist/about.html` or `_dist/about/index.html`
+- `/blog/post-name/` → `_dist/blog/post-name/index.html`
+- `#section-id` (in-page anchor) → confirm an element with `id="section-id"` exists on the current page
+- `/page#section` → confirm both the file exists AND the id exists on that page
+
+Strip query strings (`?utm_source=...`) before resolving. Ignore `mailto:`, `tel:`, `javascript:` schemes.
+
+- Target file not found → critical: "Broken internal link: [href] on [page] (target missing in _dist)"
+- In-page anchor with no matching id → critical: "Broken anchor: [href] on [page] (no element with id=[fragment])"
+- Resolves correctly → pass
 
 ### 6. Check Technical Files
 
@@ -156,7 +189,7 @@ Use `Read` for each file's contents and `Glob` to confirm presence in `_dist/`.
 - Present, has "Sitemap:" → pass
 - Present, no "Sitemap:" → warning
 
-**llms.txt:** read `_dist/llms.txt`
+**llms.txt:** read `_dist/llms.txt`. Hints to LLM crawlers (ChatGPT, Perplexity, Claude) which content is canonical and how to summarize the site — without it, these tools fall back to generic crawling.
 - Missing → warning
 - Present → pass
 
@@ -217,6 +250,12 @@ Scope: [All pages | Single page: index.html | Pages: pricing.html, contact.html]
 4. Broken heading hierarchy (line 45): H1→H3 (skipped H2)
    File: _dist/pricing.html
 
+5. Broken internal link: /pricng (target missing in _dist)
+   File: _dist/index.html
+
+6. Oversized image: /assets/hero.png (3.4 MB) — will tank LCP
+   File: _dist/index.html
+
 ---
 
 ## Warnings (⚠️)
@@ -232,6 +271,12 @@ Scope: [All pages | Single page: index.html | Pages: pricing.html, contact.html]
 
 4. Orphaned page (unreachable from homepage)
    File: _dist/old-page.html
+
+5. Missing `<html lang>` attribute
+   File: _dist/index.html
+
+6. Large image: /assets/team.jpg (1.4 MB) — consider compressing
+   File: _dist/about.html
 
 ---
 
@@ -266,6 +311,8 @@ To fix issues, edit the source .astro files in src/pages/ directory:
 - Mixed content (https page loading http resources)
 - Missing favicon: no `<link rel="icon">` in head, missing `favicon.ico`, or missing SVG/PNG fallback
 - Broken favicon reference (link points to file not present in `_dist`)
+- Broken internal link (anchor href targets a file or in-page id that doesn't exist)
+- Local image > 2 MB
 
 **Warning (⚠️):**
 - Title/description outside optimal range (but >30/>100)
@@ -275,6 +322,9 @@ To fix issues, edit the source .astro files in src/pages/ directory:
 - Empty `alt=""` on content images (inside links/figures)
 - URL hygiene: uppercase, underscores, or query params on indexable URLs
 - Duplicates, orphaned pages
+- Missing or empty `<html lang>` attribute
+- Local image 1–2 MB
+- Insecure anchor link (`<a href="http://...">`)
 
 **Pass (✅):**
 - Meets all requirements
@@ -306,11 +356,9 @@ Read-only throughout — never `Write` or `Edit` from this skill.
 ## Notes
 
 - **Scope flexibility**: Parse user prompt to determine if testing single page, group, or all pages
-- Always run `bun run build` first to generate _dist folder
 - Read AGENTS.md for page metadata context
-- Test built HTML files in _dist folder, not source .astro files
+- Test built HTML files in `_dist/`, not source `.astro` files
 - Focus on `<head>` and `<body>` sections in built HTML
 - Track line numbers for hierarchy issues when possible
-- Report only - never modify files
-- User decides which issues to fix in source files (src/pages/)
+- User decides which issues to fix in source files (`src/pages/`)
 - For single/group page tests, skip site-wide checks (orphaned pages, duplicate content) unless relevant

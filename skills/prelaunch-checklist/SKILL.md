@@ -1,6 +1,6 @@
 ---
 name: prelaunch-checklist
-description: Pre-launch validation for Hakuto sites. Verifies wrangler config, form wiring, legal pages, and placeholder content; confirms SEO test and code review have been run; reminds the user of manual Cloudflare dashboard steps. Report-only - no fixes applied.
+description: Pre-launch validation for Hakuto sites — verifies wrangler config, form wiring, legal pages, placeholder content scrub; confirms `seo-audit` and `code-review` have been run; reminds the user of manual Cloudflare dashboard steps. Report-only — no fixes applied. Use when user requests "run prelaunch checklist", "is the site ready to ship?", "ready to go live", "pre-launch check", "launch check", or "final check before deploy".
 ---
 
 # Prelaunch Checklist Skill
