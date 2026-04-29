@@ -15,8 +15,10 @@ Adds accessible, validated forms using React state + Zod. Forms work as React is
 
 ## Workflow
 
-1. Install deps: `bun add zod sonner`
-2. Install shadcn: `bunx --bun shadcn@latest add input textarea label button --overwrite`
+> **Bun rule note:** Steps 1–2 invoke `bun add` and `bunx shadcn` — dependency installs, not builds. CLAUDE.md's "Never run build tools" rule targets builds (handled by hooks); package installs are one-time setup operations the skill needs to perform. Always **check first** before running: skip the install if the package is already in `package.json` (Step 1) or if the shadcn primitive already exists in `src/components/ui/` (Step 2). This avoids redundant work and surfaces only the genuinely-needed installs.
+
+1. Install deps: `bun add zod sonner` — first read `package.json`; skip if both are already listed
+2. Install shadcn: `bunx --bun shadcn@latest add input textarea label button --overwrite` — first check `src/components/ui/`; only add the primitives that are missing
 3. Create `src/components/ui/field.tsx` (see `assets/field.tsx` - adapt styling)
 4. Create `worker/form.js` handler (see `assets/form.js` - adapt logic)
 5. Register route in `worker/index.js`
@@ -75,7 +77,7 @@ const [errors, setErrors] = useState<Record<string, string>>({})
 
 ## Additional Field Types
 
-**Select**: `bunx --bun shadcn@latest add select --overwrite`
+**Select**: `bunx --bun shadcn@latest add select --overwrite` (skip if `src/components/ui/select.tsx` already exists)
 ```tsx
 <Select value={values.option} onValueChange={(v) => setValues(s => ({ ...s, option: v }))}>
   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
@@ -83,7 +85,7 @@ const [errors, setErrors] = useState<Record<string, string>>({})
 </Select>
 ```
 
-**Checkbox**: `bunx --bun shadcn@latest add checkbox --overwrite`
+**Checkbox**: `bunx --bun shadcn@latest add checkbox --overwrite` (skip if `src/components/ui/checkbox.tsx` already exists)
 ```tsx
 <Field orientation="horizontal">
   <Checkbox

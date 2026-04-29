@@ -55,6 +55,8 @@ Run every category below that applies to the in-scope files. Each violation cite
 
 If the scope contains any `.astro`, `.ts`, or `.tsx` file, run `bun run check` ONCE at the end. Surface only **new** errors introduced by the in-scope files; do not fix pre-existing ones (per CLAUDE.md "Verification Before Completion"). If `bun` is not on PATH, log a single warning and continue with static checks.
 
+> **Bun rule note:** `bun run check` is a type-check (TypeScript + Astro), not a build. CLAUDE.md's "Never run build tools" rule targets builds (handled by external hooks) — type-checks are explicit verification steps a code-review skill needs to perform. The skill never invokes `bun install`, `bun run build`, or `bun add`.
+
 ---
 
 ## Check Categories

@@ -139,6 +139,8 @@ If "Yes" → add to `passed`.
 If "No — do it after this" → add to `manual_reminders`: "Run `bun update` to refresh `bun.lock` to latest stable packages, then re-run `bun run check` and the build before shipping."
 If "Yes" → add to `passed`.
 
+> **Bun rule note:** the `bun update` / `bun run check` references above are *user reminders* (text added to `manual_reminders` for the user to act on), not commands the skill executes. CLAUDE.md's "Never run build tools" rule governs what the skill does, not what it suggests to the user.
+
 ### 5. Add manual Cloudflare reminders
 
 Always include in the report (these can't be checked from the repo):
