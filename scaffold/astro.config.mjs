@@ -39,12 +39,23 @@ export default defineConfig({
   }),
 
   build: {
+    client: "./dist/client",
     concurrency: 4,
   },
 
   server: { port: 4321, host: "0.0.0.0", allowedHosts: true },
   devToolbar: { enabled: false },
-  adapter: cloudflare({ imageService: "compile", prerenderEnvironment: "node" }),
+  // Gate the Cloudflare adapter on production so dev gets Astro's default
+  // Sharp service. With the adapter present in dev, `imageService: "compile"`
+  // routes /_image to a workerd endpoint that needs Cloudflare runtime
+  // bindings (env.IMAGES) which aren't configured, breaking every <Image>.
+  // The companion `build.client` keeps astro-pagefind happy in prod without
+  // needing the adapter loaded in dev (it derives clientDir from build.outDir
+  // as a fallback). Pagefind is intentionally not active on localhost.
+  adapter:
+    process.env.NODE_ENV === "production"
+      ? cloudflare({ imageService: "compile", prerenderEnvironment: "node" })
+      : undefined,
 
   fonts: [],
 });
