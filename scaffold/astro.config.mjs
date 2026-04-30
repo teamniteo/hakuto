@@ -44,10 +44,7 @@ export default defineConfig({
 
   server: { port: 4321, host: "0.0.0.0", allowedHosts: true },
   devToolbar: { enabled: false },
-  adapter:
-    process.env.NODE_ENV === "production"
-      ? cloudflare({ imageService: "compile", prerenderEnvironment: "node" })
-      : undefined,
+  adapter: cloudflare({ imageService: "compile", prerenderEnvironment: "node" }),
 
   fonts: [],
 });

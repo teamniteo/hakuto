@@ -351,6 +351,7 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
 | Anchor links broken | Ensure target element has matching `id` attribute |
+| Pagefind search 404s in dev (`/pagefind/pagefind.js`) | The `@astrojs/cloudflare` adapter must be enabled **unconditionally** in `astro.config.mjs` — not gated on `process.env.NODE_ENV === "production"`. With the guard, prod build writes `dist/client/pagefind/` but dev middleware serves `dist/pagefind/`, so search returns nothing. Remove the guard. Reject any postbuild `ln -sfn client/pagefind dist/pagefind` workaround — fix the adapter config instead. Pagefind's index is built only by `astro build`, so dev search needs at least one prior `bun run build`. |
 | Sitemap / canonical URLs show `localhost:4321` (or wrong domain) in production | `site` in `astro.config.mjs` was never updated. Set it to the production URL (e.g. `"https://yoursite.com"`) and redeploy — see [Astro `site` config](https://docs.astro.build/en/reference/configuration-reference/#site) |
 
 ### Cloudflare Adapter & Image Service (CRITICAL)
@@ -362,6 +363,10 @@ The Cloudflare adapter's `imageService` option controls how images are processed
 - **`"cloudflare"`** — Uses Cloudflare Image Resizing (runtime, requires Cloudflare plan support).
 - **`"cloudflare-binding"`** — Uses Cloudflare Images binding for transformation.
 - **`prerenderEnvironment: "node"`** (adapter option) — required for builds outside Cloudflare's infrastructure. The default `"workerd"` fails with a 404 during prerendering.
+- **Adapter must be unconditional** — do NOT gate the adapter on `process.env.NODE_ENV === "production"`. `astro-pagefind` (used by `section-docs`) branches on whether an adapter is loaded: with an adapter the index lives in `dist/client/pagefind/`, without one it lives in `dist/pagefind/`. A conditional adapter splits prod and dev between those two paths and breaks dev search. Always:
+  ```js
+  adapter: cloudflare({ imageService: "compile", prerenderEnvironment: "node" })
+  ```
 
 ## Prompt Suggestions (REQUIRED)
 
