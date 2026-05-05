@@ -17,10 +17,10 @@ worker/
    - `main = "worker/index.js"` — entry point for the worker.
 
 2. **Main Entry Point** (`index.js`):
-   - Processes requests starting with `/~`.
+   - Only sees requests matching `run_worker_first` (`/~*`) — Cloudflare serves every other URL straight from `dist/` without entering the worker, so there's no need for an `env.ASSETS.fetch()` fallback here.
    - Routes to the appropriate handler based on path prefix.
-   - Falls back to static assets for unmatched paths.
-   - Includes error handling for all routes.
+   - Returns a plain 404 for `/~*` paths that don't match any route.
+   - Wraps each handler in try/catch for safety.
 
 3. **Route Handlers**:
    - Each route handler lives in its own file (e.g., `plausible.js`).

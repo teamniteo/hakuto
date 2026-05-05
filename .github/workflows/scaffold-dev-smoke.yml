@@ -1,0 +1,37 @@
+name: Scaffold dev smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  dev-smoke:
+    name: bun run dev — worker + static smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('scaffold/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        working-directory: scaffold
+        run: bun i --frozen-lockfile
+
+      - name: Run dev-server smoke tests
+        working-directory: scaffold
+        run: bun test test/dev-smoke.test.ts

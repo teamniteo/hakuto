@@ -364,6 +364,25 @@ This scaffold builds with `output: "static"` — every page is prerendered and C
 - ✅ For runtime or secret values, read them from the `env` argument inside `worker/index.js` (`async fetch(request, env, ctx) { … env.MY_SECRET … }`). The `worker/` folder is the **only** place Cloudflare `[vars]` and `wrangler secret put` values are accessible.
 - Never put secrets in `src/` — anything in the static build is public. Secrets live in `worker/`, full stop.
 
+### `wrangler.toml` is authoritative in dev and production
+
+The rules in `wrangler.toml` apply to **both** `bun run dev` and the deployed Cloudflare Worker — there's no "dev-only" or "prod-only" split. Anything you change there takes effect locally on the next dev-server restart, exactly as it will once deployed.
+
+**`run_worker_first = ["/~*"]` is the key directive.** It's a Cloudflare static-assets rule, not a worker fallback — it tells the Cloudflare runtime which paths the worker handles and which paths the asset server handles, *before* the request reaches your code:
+
+- Paths matching `/~*` → routed to `worker/index.js` (your custom handlers).
+- Everything else → served from `dist/` (the prerendered Astro build) directly by Cloudflare's asset layer.
+
+That's the "best of both worlds" split: the worker only sees paths it owns, and Cloudflare handles every other URL as a plain static asset with its own caching, range requests, etc. **You don't need an `env.ASSETS.fetch(request)` fallback inside the worker** — non-`/~*` paths never enter the worker in the first place.
+
+Other directives that are also live in dev:
+
+- `not_found_handling = "404-page"` — non-worker paths that don't match a static file render the prerendered `404.astro`.
+- `compatibility_date` / `compatibility_flags` — runtime feature flags applied to the worker the same way in dev and prod.
+- `[assets]` directory, custom routes, observability, etc. — all honored.
+
+If a route works in dev but breaks (or vice versa) in production, the cause is almost always something else (env vars, secrets, the adapter's prerender environment), **not** a divergence in how `wrangler.toml` is interpreted.
+
 ### Cloudflare Adapter & Image Service (CRITICAL)
 
 The Cloudflare adapter's `imageService` option controls how images are processed:
