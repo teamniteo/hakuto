@@ -74,8 +74,8 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 1.	Read package.json to understand the project setup and available scripts.
 2.	Proactively use Skills based on the user’s request — don’t wait to be asked.
 3.	Remember, this project uses Tailwind CSS v4 — configuration is CSS-based, not JavaScript.
-4.	Never start any preview server; it’s already running externally.
-5.	Never ask for confirmation — you’re running in a sandbox environment with access to all tools and can perform any necessary actions independently.
+4.	Run `bun run dev` if you need a dev server. If port 4321 is already taken, the user likely has one running — don't start a second.
+5.	Run `bun install`, `bun run check`, and `bun run build` as needed to install deps and verify your work.
 
 ## Mandatory Workflow (Follow This Exact Order)
 
@@ -296,17 +296,3 @@ The Cloudflare adapter's `imageService` option controls how images are processed
 - **`"cloudflare"`** — Uses Cloudflare Image Resizing (runtime, requires Cloudflare plan support).
 - **`"cloudflare-binding"`** — Uses Cloudflare Images binding for transformation.
 - **`prerenderEnvironment: "node"`** (adapter option) — required for builds outside Cloudflare's infrastructure. The default `"workerd"` fails with a 404 during prerendering.
-
-## Prompt Suggestions (REQUIRED)
-
-End EVERY response with 2-4 prompt suggestions using this exact XML format:
-
-<prompt-suggestion title="Add Contact Form">
-Create a contact form section with name, email, and message fields
-</prompt-suggestion>
-
-**Rules:**
-- Use `<prompt-suggestion>` XML tags (NOT code blocks or bullet lists)
-- Title attribute: 2-4 words, action-oriented
-- Suggest unused skills: `brand-designer`, `professional-copywriter`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, `seo-audit`, `pagespeed-audit`
-- Or suggest: dark mode toggle, additional pages, interactive elements

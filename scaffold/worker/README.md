@@ -4,60 +4,40 @@ This directory contains the Cloudflare Worker that runs before serving static as
 
 ## Architecture
 
-The worker uses a modular route-based architecture:
-
 ```
 worker/
-├── index.js       # Main entry point with route configuration
-├── plausible.js   # Plausible Analytics proxy handler
-└── README.md      # This file
+├── index.js   # Entry point with route configuration (no active routes by default)
+└── README.md  # This file
 ```
 
 ## How It Works
 
 1. **Wrangler Configuration** (`wrangler.toml`):
-   - `run_worker_first = ["/~*"]` - Routes all paths starting with `/~` to the worker first
-   - `main = "worker/index.js"` - Entry point for the worker
+   - `run_worker_first = ["/~*"]` — routes all paths starting with `/~` to the worker first.
+   - `main = "worker/index.js"` — entry point for the worker.
 
 2. **Main Entry Point** (`index.js`):
-   - Processes requests starting with `/~`
-   - Routes to appropriate handler based on path prefix
-   - Falls back to static assets for unmatched paths
-   - Includes error handling for all routes
+   - Processes requests starting with `/~`.
+   - Routes to the appropriate handler based on path prefix.
+   - Falls back to static assets for unmatched paths.
+   - Includes error handling for all routes.
 
 3. **Route Handlers**:
-   - Each route handler is in its own file (e.g., `plausible.js`)
-   - Handlers export an async function that receives `(request, ctx)`
-   - Handlers return a `Response` object
+   - Each route handler lives in its own file (e.g., `plausible.js`).
+   - Handlers export an async function that receives `(request, ctx)`.
+   - Handlers return a `Response` object.
 
-## Current Routes
+By default no routes are active — `index.js` ships with an empty `ROUTES` map and commented examples. The site behaves as pure static assets until you wire something up.
 
-### `/~/pla/*` - Plausible Analytics Proxy
-- **Handler**: `plausible.js`
-- **Endpoints**:
-  - `/~/pla/script.js` - Proxied Plausible script (cached 24h)
-  - `/~/pla/event` - Event tracking endpoint (cookies removed for privacy)
-- **Benefits**:
-  - Privacy-enhanced (no cookies sent to Plausible)
-  - Bypasses ad blockers
-  - Better performance (cached scripts)
-
-## Adding New Routes
-
-To add a new route handler:
+## Adding a Route
 
 1. **Create a handler file** (e.g., `worker/api.js`):
 
 ```javascript
-/**
- * Example API Handler
- */
-
 export async function handleApi(request, ctx) {
   const url = new URL(request.url);
-  const pathname = url.pathname;
 
-  if (pathname === '/~/api/hello') {
+  if (url.pathname === '/~/api/hello') {
     return new Response(JSON.stringify({ message: 'Hello!' }), {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -67,68 +47,51 @@ export async function handleApi(request, ctx) {
 }
 ```
 
-2. **Register the route in `index.js`**:
+2. **Register it in `index.js`**:
 
 ```javascript
-import { handlePlausible } from './plausible.js';
-import { handleApi } from './api.js';  // Add import
+import { handleApi } from './api.js';
 
-const ROUTES = [
-  {
-    prefix: '/~/pla',
-    handler: handlePlausible,
-    description: 'Plausible Analytics Proxy'
-  },
-  {
-    prefix: '/~/api',  // Add your route
-    handler: handleApi,
-    description: 'Custom API endpoints'
-  }
-];
+const ROUTES = {
+  '/~/api': { handler: handleApi, description: 'Custom API endpoints' },
+};
 ```
 
 3. **Test locally**:
 
 ```bash
-bun run build
-bunx wrangler pages dev dist
+bun run dev          # Runs Astro and the worker together — 1:1 with production
 ```
+
+`bun run dev` exercises the same Cloudflare adapter and worker entry point that ships in production, so `/~/*` routes hit your handlers in dev exactly as they will once deployed. Don't use `bunx wrangler dev` — it's not the workflow for this scaffold.
 
 ## Environment Variables
 
 The worker has access to:
-- `env.ASSETS` - Static assets from Astro build
-- Any bindings defined in `wrangler.toml`
+
+- `env.ASSETS` — static assets from the Astro build.
+- Any bindings defined in `wrangler.toml`.
 
 ## Deployment
 
-The worker is automatically deployed with the Cloudflare Pages site. No additional deployment steps needed.
+The worker is deployed alongside the site as part of the normal site deploy — no extra steps.
 
 ## Testing
 
-```bash
-# Build the Astro site
-bun run build
+`bun run dev` runs Astro and the worker together — a 1:1 copy of production — so `/~/*` routes can be tested locally without deploying.
 
-# Test worker locally with wrangler
-bunx wrangler pages dev dist
-
-# Visit http://localhost:8788/~/pla/script.js to test
-```
+`bun run build` produces the static output under `dist/` (HTML, JS, assets, sitemap, pagefind index, etc.) without the worker layer. Useful for sanity-checking what actually ships: which pages are emitted, whether an asset made it into the bundle, what filenames pagefind/sitemap end up with. Inspect with `ls -R dist/` or `grep -r foo dist/`. Anything served from `/~/*` is handled by the worker and won't appear here.
 
 ## Best Practices
 
-1. **Modular Handlers**: Keep each route handler in its own file
-2. **Error Handling**: All handlers should include try/catch for safety
-3. **Performance**: Use caching where appropriate
-4. **Security**: Validate all inputs, sanitize outputs
-5. **Documentation**: Comment handler functions with JSDoc
+1. **Modular Handlers**: Keep each route handler in its own file.
+2. **Error Handling**: All handlers should include try/catch for safety.
+3. **Performance**: Use caching where appropriate.
+4. **Security**: Validate all inputs, sanitize outputs.
+5. **Documentation**: Comment handler functions with JSDoc.
 
 ## Debugging
 
-To debug worker issues:
-
-1. Check logs in Cloudflare dashboard
-2. Use `console.log()` in handler code
-3. Test locally with `wrangler pages dev`
-4. Verify routes in `index.js` ROUTES array
+1. Check logs in the Cloudflare dashboard.
+2. Use `console.log()` in handler code (visible in the `bun run dev` terminal).
+3. Verify routes in the `ROUTES` map in `index.js`.

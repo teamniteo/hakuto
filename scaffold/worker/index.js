@@ -1,21 +1,22 @@
 /**
  * Cloudflare Workers Entry Point
  *
- * Handles requests before serving static assets from Astro build
- * Routes are defined with run_worker_first = ["/~*"] in wrangler.toml
+ * Handles requests before serving static assets from Astro build.
+ * Routes are defined with run_worker_first = ["/~*"] in wrangler.toml.
  */
-
-import { handleHey } from './hey.js';
 
 /**
  * Route handlers map
  * Key: route prefix, Value: { handler, description }
+ *
+ * No routes are wired up by default. Uncomment or add entries to enable them:
+ *
+ *   import { handleHey } from './hey.js';
+ *   '/~/hey':   { handler: handleHey,       description: 'Hello World' },
+ *   '/~/pla':   { handler: handlePlausible, description: 'Plausible Analytics Proxy' },
+ *   '/~/form-': { handler: handleForm,      description: 'Form Handler' },
  */
-const ROUTES = {
-  '/~/hey': { handler: handleHey, description: 'Hello World' },
-  // '/~/pla': { handler: handlePlausible, description: 'Plausible Analytics Proxy' },
-  // '/~/form-': { handler: handleForm, description: 'Form Handler' },
-};
+const ROUTES = {};
 
 /**
  * Main worker fetch handler
@@ -27,7 +28,7 @@ export default {
     const route = Object.entries(ROUTES).find(([prefix]) => pathname.startsWith(prefix));
 
     if (route) {
-      const [prefix, { handler, description }] = route;
+      const [, { handler, description }] = route;
       try {
         return await handler(request, ctx);
       } catch (error) {
