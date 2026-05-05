@@ -72,9 +72,9 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 1.	Read package.json to understand the project setup and available scripts.
 2.	Proactively use Skills based on the user's request — don't wait to be asked.
 3.	Remember, this project uses Tailwind CSS v4 — configuration is CSS-based, not JavaScript.
-4.	Assume the user has a dev server running in another terminal (typically via `devenv up` or `bun run dev`). Do NOT start your own — it will collide on port 4321.
+4.	Run `bun run dev` if you need a dev server. If port 4321 is already taken, the user likely has one running in another terminal — don't start a second.
 5.	If `bun` is not on PATH, the user launched Claude outside the devenv shell. Tell them to `cd` into the project so direnv loads, or to run `devenv shell` first. Do NOT fall back to `npm` or `yarn` — this project uses `bun` exclusively.
-6.	`bun run check` (astro type-check) is safe to run when verifying edits. `bun install` and `bun run build` should only run when the user explicitly asks.
+6.	Run `bun install`, `bun run check` (astro type-check), and `bun run build` as needed to install dependencies and verify your work.
 
 ## Mandatory Workflow (Follow This Exact Order)
 
@@ -328,7 +328,7 @@ The scaffold ships with signals that help AI agents discover and interact with t
 | File | What it does | What to update |
 |---|---|---|
 | `public/robots.txt` | Standard crawler permissions | Usually leave as-is. Default allows all crawlers. |
-| `public/_headers` | Cloudflare Pages response headers — advertises sitemap and llms.txt via `Link`, and ships the `Content-Signal` AI preferences ([Cloudflare / IETF draft](https://datatracker.ietf.org/doc/draft-canel-robots-content-signal/)) | Adjust `Content-Signal` defaults if needed (shipped: `ai-train=no, search=yes, ai-input=yes`). Served as an HTTP response header rather than a `robots.txt` directive so Lighthouse doesn't flag it as an "Unknown directive" and drop the SEO sub-score. |
+| `public/_headers` | Cloudflare static-asset response headers — advertises sitemap and llms.txt via `Link`, and ships the `Content-Signal` AI preferences ([Cloudflare / IETF draft](https://datatracker.ietf.org/doc/draft-canel-robots-content-signal/)) | Adjust `Content-Signal` defaults if needed (shipped: `ai-train=no, search=yes, ai-input=yes`). Served as an HTTP response header rather than a `robots.txt` directive so Lighthouse doesn't flag it as an "Unknown directive" and drop the SEO sub-score. |
 | `public/llms.txt` | Plain-text site summary for LLMs ([llmstxt.org](https://llmstxt.org)) | **Must be customized**: replace `Site Name`, description, key pages, and contact with the user's real info |
 | `src/layouts/Layout.astro` — `ENABLE_WEBMCP` | Opt-in [WebMCP](https://webmcp.org) tools (`search-site`, `get-page-content`, `navigate`) for in-page agents | Default `false`. Flip to `true` only if the user explicitly wants to expose tools to AI agents — the spec is early |
 
@@ -351,8 +351,18 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
 | Anchor links broken | Ensure target element has matching `id` attribute |
+| `import.meta.env.MY_VAR` is `undefined` in production | The Cloudflare deploy doesn't plumb env vars into the build. Hardcode the value in source (e.g. `src/config.ts`) for prerendered config, or move the read into `worker/index.js` for runtime/secret values. See "Environment Variables" above |
 | Pagefind search 404s in dev (`/pagefind/pagefind.js`) | **Expected — pagefind is intentionally not active on localhost.** The index is generated only by `astro build` and the prod adapter is gated to `NODE_ENV === "production"` so dev keeps Astro's Sharp image service (otherwise `@astrojs/cloudflare` 13's `imageService: "compile"` routes `/_image` through a workerd endpoint that needs Cloudflare runtime bindings, 404'ing every `<Image>` in dev). Do NOT remove the `NODE_ENV` guard to "fix" dev pagefind — that breaks dev images. Test pagefind on a deploy preview. |
 | Sitemap / canonical URLs show `localhost:4321` (or wrong domain) in production | `site` in `astro.config.mjs` was never updated. Set it to the production URL (e.g. `"https://yoursite.com"`) and redeploy — see [Astro `site` config](https://docs.astro.build/en/reference/configuration-reference/#site) |
+
+### Environment Variables (CRITICAL)
+
+This scaffold builds with `output: "static"` — every page is prerendered and Cloudflare just serves the assets. **Runtime env is only available inside `worker/`.**
+
+- ❌ **Do not use `import.meta.env.*` anywhere under `src/`.** No `.env` files, no CI vars, no Cloudflare Workers secrets, no `[vars]` from `wrangler.toml`, no runtime bindings are plumbed into `import.meta.env` for this scaffold. Reading `import.meta.env.MY_VAR` in a `.astro` page produces `undefined` in production.
+- ✅ For prerendered config (site name, Plausible domain, public URLs, feature flags, etc.), **hardcode the value in source** — inline in the `.astro` component, or centralize it in `src/config.ts` exporting plain constants.
+- ✅ For runtime or secret values, read them from the `env` argument inside `worker/index.js` (`async fetch(request, env, ctx) { … env.MY_SECRET … }`). The `worker/` folder is the **only** place Cloudflare `[vars]` and `wrangler secret put` values are accessible.
+- Never put secrets in `src/` — anything in the static build is public. Secrets live in `worker/`, full stop.
 
 ### Cloudflare Adapter & Image Service (CRITICAL)
 
@@ -375,17 +385,3 @@ The Cloudflare adapter's `imageService` option controls how images are processed
       : undefined,
   ```
   The explicit `build.client` keeps astro-pagefind's prod output at a stable `dist/client/pagefind/` even though the adapter is absent in dev. Pagefind on localhost is not a goal — its index is only generated by `astro build`. Reject any `ln -sfn client/pagefind dist/pagefind` postbuild symlink — it's a stale workaround for a problem we no longer have.
-
-## Prompt Suggestions (REQUIRED)
-
-End EVERY response with 2-4 prompt suggestions using this exact XML format:
-
-<prompt-suggestion title="Add Contact Form">
-Create a contact form section with name, email, and message fields
-</prompt-suggestion>
-
-**Rules:**
-- Use `<prompt-suggestion>` XML tags (NOT code blocks or bullet lists)
-- Title attribute: 2-4 words, action-oriented
-- Suggest unused skills: `brand-designer`, `professional-copywriter`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, `seo-audit`
-- Or suggest: dark mode toggle, additional pages, interactive elements
