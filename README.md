@@ -116,6 +116,7 @@ The Claude Code agent has access to specialized skills for common tasks:
 - **plausible-analytics** — Privacy-friendly analytics
 - **seo-audit** — SEO validation
 - **scaffold-sync** — Pull selective scaffold updates from the installed plugin into existing sites
+- **prelaunch-checklist** — Pre-launch validation (wrangler, forms, legal pages, placeholder scrub, gates)
 
 ## Forms
 

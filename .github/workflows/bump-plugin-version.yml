@@ -1,0 +1,40 @@
+name: Bump plugin version
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '.claude-plugin/plugin.json'
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          set -euo pipefail
+          current=$(jq -r '.version' .claude-plugin/plugin.json)
+          IFS='.' read -r major minor patch <<< "$current"
+          new="${major}.${minor}.$((patch + 1))"
+          tmp=$(mktemp)
+          jq --arg v "$new" '.version = $v' .claude-plugin/plugin.json > "$tmp"
+          mv "$tmp" .claude-plugin/plugin.json
+          echo "version=$new" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .claude-plugin/plugin.json
+          git commit -m "Bump plugin version to ${{ steps.bump.outputs.version }} [skip ci]"
+          git push
