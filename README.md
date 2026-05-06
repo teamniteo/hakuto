@@ -115,6 +115,7 @@ The Claude Code agent has access to specialized skills for common tasks:
 - **section-docs** — Documentation with sidebar nav
 - **plausible-analytics** — Privacy-friendly analytics
 - **seo-audit** — SEO validation
+- **prelaunch-checklist** — Pre-launch validation (wrangler, forms, legal pages, placeholder scrub, gates)
 
 ## Forms
 
