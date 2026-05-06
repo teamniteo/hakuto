@@ -29,6 +29,12 @@ These rules are enforced by CLAUDE.md and apply to every page this skill produce
 
 ---
 
+## Existing Site Check
+
+Before workflows B/C/D/E (any site that already exists), check `.hakuto-sync.json` at the project root. If `last_synced_at` is older than ~3 months — or the file is missing — suggest the user run the `scaffold-sync` skill first so the redesign starts from the current scaffold infra (Cloudflare adapter, image service, trailing-slash, etc.). One-line nudge, not a hard gate — proceed with the user's request regardless of their answer.
+
+---
+
 ## Philosophy: Intelligent Defaults, Infinite Flexibility
 
 Design languages provide starting aesthetics with proven patterns. All elements (colors, fonts, layouts, components) are fully customizable.

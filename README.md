@@ -115,6 +115,7 @@ The Claude Code agent has access to specialized skills for common tasks:
 - **section-docs** — Documentation with sidebar nav
 - **plausible-analytics** — Privacy-friendly analytics
 - **seo-audit** — SEO validation
+- **scaffold-sync** — Pull selective scaffold updates from the installed plugin into existing sites
 
 ## Forms
 
