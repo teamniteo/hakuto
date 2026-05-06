@@ -27,6 +27,12 @@ ls package.json astro.config.mjs CLAUDE.md >/dev/null
 # Initialize git (scaffold ships a .gitignore)
 [ -d .git ] || git init -q -b main
 
+# Record scaffold baseline for future `scaffold-sync` runs (best-effort; skill auto-baselines if missing).
+if SCAFFOLD_SHA=$(git -C "${CLAUDE_PLUGIN_ROOT}" rev-parse HEAD 2>/dev/null); then
+  printf '{"last_synced_sha":"%s","last_synced_at":"%s","last_sync_method":"git","schema_version":1}\n' \
+    "$SCAFFOLD_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .hakuto-sync.json
+fi
+
 echo "Scaffold complete."
 ```
 

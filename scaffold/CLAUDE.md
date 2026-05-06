@@ -62,6 +62,7 @@ You have access to: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, WebFetch, We
 - `plausible-analytics` - Privacy-friendly analytics
 - `seo-audit` - SEO validation
 - `prelaunch-checklist` - Pre-launch validation (wrangler, forms, legal, placeholders, SEO/review status)
+- `scaffold-sync` - Pull selective scaffold updates from the installed plugin into this site
 
 ## Git Workflow
 
