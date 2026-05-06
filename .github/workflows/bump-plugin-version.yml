@@ -1,40 +1,54 @@
 name: Bump plugin version
 
 on:
-  push:
-    branches: [main]
+  pull_request:
     paths-ignore:
       - '.claude-plugin/plugin.json'
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
 
 permissions:
   contents: write
 
+concurrency:
+  group: bump-plugin-version-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
 jobs:
   bump:
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref != 'main'
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Bump patch version
         id: bump
         run: |
           set -euo pipefail
-          current=$(jq -r '.version' .claude-plugin/plugin.json)
-          IFS='.' read -r major minor patch <<< "$current"
+          git fetch origin main:refs/remotes/origin/main
+          main=$(git show origin/main:.claude-plugin/plugin.json | jq -r '.version')
+          IFS='.' read -r major minor patch <<< "$main"
           new="${major}.${minor}.$((patch + 1))"
-          tmp=$(mktemp)
-          jq --arg v "$new" '.version = $v' .claude-plugin/plugin.json > "$tmp"
-          mv "$tmp" .claude-plugin/plugin.json
+          current=$(jq -r '.version' .claude-plugin/plugin.json)
+          if [ "$current" = "$new" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "version=$new" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          NEW_VERSION="$new" perl -0pi -e 's/("version"[[:space:]]*:[[:space:]]*")[^"]+(")/$1$ENV{NEW_VERSION}$2/' .claude-plugin/plugin.json
           echo "version=$new" >> "$GITHUB_OUTPUT"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Commit and push
-        run: |
-          set -euo pipefail
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .claude-plugin/plugin.json
-          git commit -m "Bump plugin version to ${{ steps.bump.outputs.version }} [skip ci]"
-          git push
+      - name: Commit plugin version
+        if: steps.bump.outputs.changed == 'true'
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "chore: Bump plugin version to ${{ steps.bump.outputs.version }}"
+          file_pattern: .claude-plugin/plugin.json
