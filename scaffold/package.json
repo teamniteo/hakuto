@@ -7,6 +7,7 @@
     "dev": "astro dev --open",
     "dev:fresh": "rm -f .astro/data-store.json && astro dev --open",
     "build": "astro build",
+    "preview": "astro preview",
     "lint": "biome lint --write .",
     "check": "astro check",
     "format": "biome format --write ."

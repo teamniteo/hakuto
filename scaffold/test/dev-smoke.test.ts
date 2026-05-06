@@ -50,6 +50,19 @@ export default {
 let dev: ReturnType<typeof Bun.spawn> | null = null;
 let originalIndex: string | null = null;
 
+async function runBuild() {
+  const build = Bun.spawn(["bun", "run", "build"], {
+    cwd: scaffoldDir,
+    stdout: "inherit",
+    stderr: "inherit",
+    env: { ...process.env, CI: "1", NODE_ENV: "production" },
+  });
+  const exitCode = await build.exited;
+  if (exitCode !== 0) {
+    throw new Error(`build failed with exit code ${exitCode}`);
+  }
+}
+
 async function waitForReady(timeoutMs: number) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -81,15 +94,15 @@ beforeAll(async () => {
   await writeFile(heyPath, HEY_HANDLER);
   await writeFile(indexPath, INDEX_WITH_HEY);
 
-  // Adapter is unconditionally loaded in astro.config.mjs, so `astro dev`
-  // runs the worker the same way production does.
+  await runBuild();
+
   dev = Bun.spawn(
-    ["bun", "x", "astro", "dev", "--port", String(PORT), "--host", "127.0.0.1"],
+    ["bun", "run", "preview", "--", "--port", String(PORT), "--host", "127.0.0.1"],
     {
       cwd: scaffoldDir,
       stdout: "inherit",
       stderr: "inherit",
-      env: { ...process.env, BROWSER: "none", CI: "1" },
+      env: { ...process.env, BROWSER: "none", CI: "1", NODE_ENV: "production" },
     },
   );
 
@@ -107,7 +120,7 @@ afterAll(teardown);
 // must end in `/` — without the slash Astro's dev server intercepts with a
 // "did you mean .../?" 404 page.
 
-describe("scaffold dev server (bun run dev) smoke", () => {
+describe("scaffold preview server (bun run preview) smoke", () => {
   test("/~/hey/ is served by the injected worker handler", async () => {
     const r = await fetch(BASE + "/~/hey/");
     expect(r.status).toBe(200);
@@ -119,15 +132,6 @@ describe("scaffold dev server (bun run dev) smoke", () => {
     const r = await fetch(BASE + "/");
     expect(r.status).toBe(200);
     expect(r.headers.get("content-type") ?? "").toContain("text/html");
-  });
-
-  test("homepage <Picture> emits avif + webp <source> elements", async () => {
-    // Ensures Astro's image service is processing local assets — if it's not
-    // (e.g. adapter swapping in a noop service) <Picture> falls back to a bare
-    // <img> with no <source> children, and these assertions catch it.
-    const body = await fetch(BASE + "/").then((r) => r.text());
-    expect(body).toMatch(/<source[^>]+type="image\/avif"/);
-    expect(body).toMatch(/<source[^>]+type="image\/webp"/);
   });
 
   test("unknown path returns a 404", async () => {

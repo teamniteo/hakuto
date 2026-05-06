@@ -10,6 +10,8 @@ import { agentsSummary } from "@nuasite/agent-summary";
 import { astroGrab } from "astro-grab";
 import cloudflare from "@astrojs/cloudflare";
 
+const isDevelopment = process.env.NODE_ENV === "development";
+
 // https://astro.build/config
 export default defineConfig({
   site: "http://localhost:4321",
@@ -45,10 +47,9 @@ export default defineConfig({
 
   server: { port: 4321, host: "0.0.0.0", allowedHosts: true },
   devToolbar: { enabled: false },
-  // The Cloudflare adapter is always loaded so `bun run dev` runs the worker
-  // exactly as production does — wrangler.toml's `run_worker_first` filter
-  // and the worker entry are live in dev too.
-  adapter: cloudflare({ imageService: "compile", prerenderEnvironment: "node" }),
+  adapter: isDevelopment
+    ? undefined
+    : cloudflare({ imageService: "compile", prerenderEnvironment: "node" }),
 
   fonts: [],
 });
