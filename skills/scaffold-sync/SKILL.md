@@ -54,6 +54,14 @@ fi
 
 Record both `CURRENT_SHA` and `CURRENT_METHOD` for the state file.
 
+Also read the current plugin version from `${PLUGIN_ROOT}/.claude-plugin/plugin.json`:
+
+```bash
+CURRENT_PLUGIN_VERSION=$(jq -r '.version // "unknown"' "${PLUGIN_ROOT}/.claude-plugin/plugin.json" 2>/dev/null || echo "unknown")
+```
+
+Record `CURRENT_PLUGIN_VERSION` for the state file and migration report.
+
 ### 3. Read site state
 
 Read `.hakuto-sync.json` at the site root.
@@ -69,7 +77,19 @@ Read `.hakuto-sync.json` at the site root.
 
 - Otherwise → proceed to Step 4.
 
-### 4. Compute candidate file list
+### 4. Collect version migration notes
+
+Before computing file drift, compare the site's `last_synced_plugin_version` with `CURRENT_PLUGIN_VERSION`. If the field is missing, treat it as "unknown" and show all migration notes newer than the site's `last_synced_sha` when possible; otherwise show all active migration notes and mark them "review".
+
+Use the migration registry at the bottom of this skill. Each plugin version entry lists:
+- files that usually need to be applied from scaffold
+- package/dependency changes that require `bun install`
+- code patterns to update manually in customized files
+- verification commands to run after applying
+
+Include these notes in the Step 7 summary before per-file decisions. Do not apply them automatically. The notes are a checklist to help the user decide which scaffold files to accept and which local files need manual edits.
+
+### 5. Compute candidate file list
 
 Walk `$SCAFFOLD` recursively, excluding the same paths used in Step 2's hash plus a few user-state paths:
 
@@ -102,9 +122,9 @@ Classify each path into exactly one bucket (in this order):
 | `upstream-removed (conflict)` | X | absent | Z (Z≠X) | flag — user customized a now-deleted file |
 | `user-added` | absent | absent | C | leave alone, don't list |
 
-If `last_sync_method == "content-hash"` (or A is unavailable for any reason), collapse the truth table to two columns (B, C) and label every non-identical path as `needs-review` for Step 6.
+If `last_sync_method == "content-hash"` (or A is unavailable for any reason), collapse the truth table to two columns (B, C) and label every non-identical path as `needs-review` for Step 8.
 
-### 5. Resolve previous upstream content (git mode only)
+### 6. Resolve previous upstream content (git mode only)
 
 For each path P that needs A, fetch the historical version:
 
@@ -114,7 +134,7 @@ git -C "$PLUGIN_ROOT" show "${last_synced_sha}:scaffold/<P>" 2>/dev/null
 
 A non-zero exit means the file didn't exist in the previous version → A is "absent". Cache results so each path is queried at most once.
 
-### 6. Present summary first (before any per-file decisions)
+### 7. Present summary first (before any per-file decisions)
 
 Output a one-screen overview:
 
@@ -123,6 +143,12 @@ Scaffold sync — drift since SHA xxxxxxx (2026-02-18)
 
 Current upstream: yyyyyyy (3 commits ahead)
 Mode: git (3-way diff available)
+Plugin version: 0.1.2
+
+Migration notes:
+  - 0.1.2: Unpic/WebP image service — apply astro.config.mjs,
+    package.json, bun.lock, CLAUDE.md; update local Picture usage to
+    formats={['webp']} fallbackFormat="webp"; render SVGs with <img>.
 
 📊 Summary:
 ✅ Already in sync: 142 files
@@ -153,7 +179,7 @@ Then ask via `AskUserQuestion`:
 > - **Review only conflicts** (skip safe fast-forwards entirely)
 > - **Cancel** — make no changes, leave `.hakuto-sync.json` untouched
 
-### 7. Per-file decisions
+### 8. Per-file decisions
 
 For each file in the chosen scope, in this order: `upstream-added` → `upstream-only-changed` → `both-changed` → `upstream-removed`.
 
@@ -179,7 +205,7 @@ For `upstream-removed` paths, swap "apply" with "delete locally". Always default
 
 For `CLAUDE.md` specifically — it's almost always appended-to with a `## Project Plan` section — call this out before showing the diff and recommend hunk-level manual review over wholesale replace.
 
-### 8. Apply approved changes
+### 9. Apply approved changes
 
 - **Apply upstream version** → `Write` tool, full file replace.
 - **Add new file** → `Write` tool.
@@ -187,7 +213,7 @@ For `CLAUDE.md` specifically — it's almost always appended-to with a `## Proje
 
 Never run `git add`, `git commit`, `bun install`, `bun run build`, or any other side-effecting command. The user owns version control and dependency management.
 
-### 9. Update state
+### 10. Update state
 
 On a clean run (user did not pick "Cancel"), write `.hakuto-sync.json`:
 
@@ -196,6 +222,7 @@ On a clean run (user did not pick "Cancel"), write `.hakuto-sync.json`:
   "last_synced_sha": "yyyyyyy",
   "last_synced_at": "2026-05-06T14:32:00Z",
   "last_sync_method": "git",
+  "last_synced_plugin_version": "0.1.2",
   "applied_paths": ["astro.config.mjs", "public/_headers"],
   "skipped_paths": ["src/layouts/Layout.astro"],
   "removed_paths": [],
@@ -205,7 +232,7 @@ On a clean run (user did not pick "Cancel"), write `.hakuto-sync.json`:
 
 If the user cancelled, **do not touch the state file** — the next run resumes the same diff window.
 
-### 10. Final report
+### 11. Final report
 
 Print a closing summary:
 
@@ -239,6 +266,9 @@ If any conflicts were skipped, list them with one-line reminders so the user can
   // "git" if the SHA came from `git rev-parse`, "content-hash" if from sha256 of the tree.
   "last_sync_method": "git",
 
+  // Plugin version that provided the scaffold at the most recent successful sync.
+  "last_synced_plugin_version": "0.1.2",
+
   // Paths applied on the last run (relative to site root).
   "applied_paths": [],
 
@@ -254,6 +284,34 @@ If any conflicts were skipped, list them with one-line reminders so the user can
 ```
 
 The file is intended to be **tracked in git** at the site root — visible in diffs, survives re-clones, easy to inspect.
+
+---
+
+## Migration Registry
+
+Use this registry during Step 4. Add one entry every time a plugin version ships a scaffold change that existing sites may need to apply manually.
+
+### 0.1.2 — Unpic/WebP image service
+
+Apply from scaffold when not heavily customized:
+- `astro.config.mjs`
+- `package.json`
+- `bun.lock`
+- `CLAUDE.md`
+- any scaffold page examples that still show `formats={['avif', 'webp']}`
+
+Manual edits for customized sites:
+- add `@unpic/astro`
+- import `imageService` from `@unpic/astro/service`
+- set `image: { service: imageService() }` in `defineConfig`
+- set Cloudflare adapter image service to `imageService: "custom"`
+- change local raster `<Picture>` usage to `formats={['webp']}` and `fallbackFormat="webp"`
+- render imported SVG assets with native `<img src={asset.src} width={asset.width} height={asset.height}>`
+
+After applying:
+- run `bun install` if `package.json` or `bun.lock` changed
+- run `bun run build`
+- verify optimized Astro image assets are real WebP files and no AVIF files are emitted
 
 ---
 
