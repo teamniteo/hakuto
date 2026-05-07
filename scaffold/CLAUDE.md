@@ -160,7 +160,8 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - **Avoid generic fonts** (Inter, Roboto, Arial) - use distinctive fonts like Crimson Pro, Sora, Bitter, Spectral
 
 ### Image Optimization (CRITICAL)
-- **Local images**: Use `<Picture>` from 'astro:assets' with `formats={['avif', 'webp']}` and `widths={[800, 1200, 1920]}`
+- **Local raster images**: Use `<Picture>` from 'astro:assets' with `formats={['webp']}`, `fallbackFormat="webp"`, and `widths={[800, 1200, 1920]}`
+- **Local SVG images**: Use imported asset metadata with a native `<img>` tag so the output file stays SVG
 - **External/placeholder images**: Use `<img>` tags for Unsplash URLs: `https://images.unsplash.com/photo-{PHOTO_ID}?w={WIDTH}&h={HEIGHT}&fit=crop`
 - Import local images in frontmatter: `import heroImage from '@/assets/hero.jpg';`
 - Use `loading="eager"` for above-the-fold, `loading="lazy"` for below-the-fold
@@ -176,8 +177,10 @@ Do NOT create commits or branches - user manages version control. Focus only on 
   ---
   import { Picture } from "astro:assets";
   import photo from "@/assets/photo.jpg";
+  import logo from "@/assets/logo.svg";
   ---
-  <Picture src={photo} formats={['avif', 'webp']} widths={[400, 800]} alt="..." width={400} height={400} />
+  <Picture src={photo} formats={['webp']} fallbackFormat="webp" widths={[400, 800]} alt="..." width={400} height={400} />
+  <img src={logo.src} width={logo.width} height={logo.height} alt="..." />
   ```
 - For truly static files that must keep a stable public URL (e.g. `/favicon.ico`, `/robots.txt`), put them in `public/` and reference as `/filename.ext` — not `/src/assets/...`.
 
@@ -347,14 +350,14 @@ Your goal is to create a beautiful, performant landing page that matches the use
 |-------|----------|
 | TypeScript errors with `class` | Use `className` on React/shadcn components |
 | Styles not applying | Check `@import 'tailwindcss'` is first line in index.css |
-| Images not optimizing | Use `<Picture>` for local assets only, `<img>` for external URLs. Ensure Cloudflare adapter uses `imageService: "compile"` (NOT `"passthrough"`) |
+| Images not optimizing | Use `<Picture>` for local raster assets only, `<img>` for local SVG and external URLs. Ensure Astro uses `image: { service: imageService() }` from `@unpic/astro/service` and Cloudflare adapter uses `imageService: "custom"` |
 | Images 404 in production but work in dev | Raw `/src/assets/...` paths in `src` attributes — import the asset and use `<Picture>`/`<Image>` instead. See "Asset Path Rule" above |
-| Images not loading in dev | The Cloudflare adapter `imageService: "passthrough"` disables image processing entirely (uses noop service), breaking `<Picture>` and `<Image>` in dev. Use `"compile"` instead |
+| Images not loading in dev | The Cloudflare adapter `imageService: "passthrough"` disables image processing entirely (uses noop service), breaking `<Picture>` and `<Image>` in dev. Use Unpic with `"custom"` instead |
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
 | Anchor links broken | Ensure target element has matching `id` attribute |
 | `import.meta.env.MY_VAR` is `undefined` in production | The Cloudflare deploy doesn't plumb env vars into the build. Hardcode the value in source (e.g. `src/config.ts`) for prerendered config, or move the read into `worker/index.js` for runtime/secret values. See "Environment Variables" above |
-| Pagefind search 404s in dev (`/pagefind/pagefind.js`) | **Expected — pagefind is intentionally not active on localhost.** The index is generated only by `astro build` and the prod adapter is gated to `NODE_ENV === "production"` so dev keeps Astro's Sharp image service (otherwise `@astrojs/cloudflare` 13's `imageService: "compile"` routes `/_image` through a workerd endpoint that needs Cloudflare runtime bindings, 404'ing every `<Image>` in dev). Do NOT remove the `NODE_ENV` guard to "fix" dev pagefind — that breaks dev images. Test pagefind on a deploy preview. |
+| Pagefind search 404s in dev (`/pagefind/pagefind.js`) | **Expected — pagefind is intentionally not active on localhost.** The index is generated only by `astro build` and the prod adapter is gated to `NODE_ENV === "production"` so dev keeps Astro's image service out of the Cloudflare workerd endpoint that needs runtime bindings. Do NOT remove the `NODE_ENV` guard to "fix" dev pagefind — that breaks dev images. Test pagefind on a deploy preview. |
 | Sitemap / canonical URLs show `localhost:4321` (or wrong domain) in production | `site` in `astro.config.mjs` was never updated. Set it to the production URL (e.g. `"https://yoursite.com"`) and redeploy — see [Astro `site` config](https://docs.astro.build/en/reference/configuration-reference/#site) |
 
 ### Environment Variables (CRITICAL)
@@ -387,14 +390,24 @@ If a route works in dev but breaks (or vice versa) in production, the cause is a
 
 ### Cloudflare Adapter & Image Service (CRITICAL)
 
+The scaffold uses Unpic as Astro's image service:
+
+```js
+import { imageService } from "@unpic/astro/service";
+
+export default defineConfig({
+  image: { service: imageService() },
+});
+```
+
 The Cloudflare adapter's `imageService` option controls how images are processed:
 
-- **`"compile"`** (REQUIRED) — Uses Sharp for image optimization at build time. Works with `output: "static"` and handles `<Picture>` and `<Image>` components. **Always use this option.**
+- **`"custom"`** (REQUIRED) — Keeps the configured Unpic Astro image service in charge of `<Picture>` and `<Image>` output.
 - **`"passthrough"`** — **DO NOT USE.** Replaces the image service with a noop, breaking all `<Picture>`/`<Image>` components (images won't load in dev or build).
 - **`"cloudflare"`** — Uses Cloudflare Image Resizing (runtime, requires Cloudflare plan support).
 - **`"cloudflare-binding"`** — Uses Cloudflare Images binding for transformation.
 - **`prerenderEnvironment: "node"`** (adapter option) — required for builds outside Cloudflare's infrastructure. The default `"workerd"` fails with a 404 during prerendering.
-- **Adapter must be gated to production** — on `@astrojs/cloudflare` 13+, an unconditional adapter loaded in dev replaces Astro's Sharp image service with a workerd `image-transform-endpoint` that calls `env.IMAGES`/`env.ASSETS` runtime bindings. Those bindings aren't configured outside `wrangler dev`, so every `<Image>` / `<Picture>` 404s on `bun run dev`. (On v12 the adapter used `sharpImageService()` in dev so unconditional was harmless — the v13 release changed that behavior.) Always:
+- **Adapter must be gated to production** — on `@astrojs/cloudflare` 13+, an unconditional adapter loaded in dev replaces Astro's image service with a workerd `image-transform-endpoint` that calls `env.IMAGES`/`env.ASSETS` runtime bindings. Those bindings aren't configured outside `wrangler dev`, so every `<Image>` / `<Picture>` 404s on `bun run dev`. Always:
   ```js
   build: {
     client: "./dist/client",
@@ -402,7 +415,7 @@ The Cloudflare adapter's `imageService` option controls how images are processed
   },
   adapter:
     process.env.NODE_ENV === "production"
-      ? cloudflare({ imageService: "compile", prerenderEnvironment: "node" })
+      ? cloudflare({ imageService: "custom", prerenderEnvironment: "node" })
       : undefined,
   ```
   The explicit `build.client` keeps astro-pagefind's prod output at a stable `dist/client/pagefind/` even though the adapter is absent in dev. Pagefind on localhost is not a goal — its index is only generated by `astro build`. Reject any `ln -sfn client/pagefind dist/pagefind` postbuild symlink — it's a stale workaround for a problem we no longer have.

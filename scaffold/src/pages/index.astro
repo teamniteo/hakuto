@@ -11,7 +11,8 @@ import hakutoLogo from "@/assets/hakuto-logo.png";
       <Picture
         src={hakutoLogo}
         alt="Hakuto Landing Page Builder"
-        formats={['avif', 'webp']}
+        formats={['webp']}
+        fallbackFormat="webp"
         widths={[320, 640, 960]}
         loading="eager"
         class="h-auto w-full"

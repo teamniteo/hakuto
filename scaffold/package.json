@@ -45,6 +45,7 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/vite": "^4.2.4",
+    "@unpic/astro": "^1.0.2",
     "astro": "6.1.5",
     "astro-favicons": "^3.1.6",
     "astro-grab": "^0.1.6",

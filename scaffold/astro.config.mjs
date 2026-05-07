@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig, fontProviders } from "astro/config";
+import { imageService } from "@unpic/astro/service";
 import { defineConfig as viteConfig } from "vite";
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
@@ -17,6 +18,7 @@ export default defineConfig({
   site: "http://localhost:4321",
   output: "static",
   trailingSlash: "always",
+  image: { service: imageService() },
   integrations: [
     react(),
     sitemap(),
@@ -49,7 +51,7 @@ export default defineConfig({
   devToolbar: { enabled: false },
   adapter: isDevelopment
     ? undefined
-    : cloudflare({ imageService: "compile", prerenderEnvironment: "node" }),
+    : cloudflare({ imageService: "custom", prerenderEnvironment: "node" }),
 
   fonts: [],
 });
