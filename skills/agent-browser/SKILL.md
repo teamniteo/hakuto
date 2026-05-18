@@ -16,6 +16,15 @@ agent-browser install   # Downloads Chrome for Testing (first run only)
 
 Alternatives: `npm install -g agent-browser`, `brew install agent-browser`, or `cargo install agent-browser` — each followed by `agent-browser install`. Surface any install failures to the user rather than improvising workarounds.
 
+## Daemon lifecycle
+
+`agent-browser` runs as a background daemon that **persists after the skill exits**, keeping a headless Chrome alive so subsequent commands are instant. By default it never shuts down on its own, so an unused daemon can linger across projects (sometimes surfacing as a blank Chrome window on macOS, since `--headless=new` still spawns a real window in some configurations).
+
+Two ways to keep it tidy:
+
+- **Auto-shutdown after idle** (recommended) — set `AGENT_BROWSER_IDLE_TIMEOUT_MS` in your shell environment, e.g. `export AGENT_BROWSER_IDLE_TIMEOUT_MS=300000` for a 5-minute idle timeout. The daemon exits N ms after the last command.
+- **Manual cleanup** — run `agent-browser close --all` when you're done, or `pkill -f agent-browser` to nuke any orphans.
+
 ## Why refs over selectors
 
 The core pattern is **snapshot → ref → act**. Refs (`@e1`, `@e2`) come from the snapshot's accessibility tree and survive minor DOM mutations between actions; CSS selectors and XPath break easily on re-renders, dynamic class names, or hydration. Re-snapshot whenever the page navigates or the DOM changes meaningfully.
