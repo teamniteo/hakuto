@@ -77,7 +77,7 @@ If the scope contains any `.astro`, `.ts`, or `.tsx` file, run `bun run check` O
 ### C. shadcn / React Component Props
 
 Scan `.astro` and `.tsx` files for shadcn/React component usages (capitalised tag names like `<Button>`, `<Card>`, `<Badge>`, `<Tabs>`, etc.). React components only recognise `className`; using `class` produces a TypeScript error and silently drops the styling at runtime.
-
+- **Critical**: remove unused components, so that we have leaner CSS.
 - **Critical**: `class=` used on a React/shadcn component (must be `className=`).
 - **Warning**: `style={{ … }}` used on a shadcn component (use Tailwind utility classes; for animation delays use `delay-*` or `@theme` tokens).
 - **Pass**: HTML elements (lowercase tags) using `class=` — that is correct.
