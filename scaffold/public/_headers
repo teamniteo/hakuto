@@ -1,3 +1,34 @@
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/pagefind/*
+  Cache-Control: public, max-age=86400
+
+/favicon-*
+  Cache-Control: public, max-age=86400
+
+/favicon.ico
+  Cache-Control: public, max-age=86400
+
+/favicon.svg
+  Cache-Control: public, max-age=86400
+
+/apple-touch-icon*
+  Cache-Control: public, max-age=86400
+
+/android-chrome-*
+  Cache-Control: public, max-age=86400
+
+/mstile-*
+  Cache-Control: public, max-age=86400
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=86400
+
+/browserconfig.xml
+  Cache-Control: public, max-age=86400
+
 /
+
   Link: </sitemap-index.xml>; rel="sitemap", </llms.txt>; rel="describedby"; type="text/plain"
   Content-Signal: ai-train=no, search=yes, ai-input=yes

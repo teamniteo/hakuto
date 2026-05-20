@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization, className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, anchor links, accessibility, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
+description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization, className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, anchor links, accessibility, LCP / critical-render-path performance, deferred marketing pixels, static-asset caching in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
 ---
 
 # Code Review Skill
@@ -153,6 +153,29 @@ Generated sites must scrub the scaffold's placeholder strings before shipping:
 - **Warning**: lorem-ipsum copy (`Lorem ipsum`, `Placeholder`, `TODO`, `[Your headline here]`) present in any page.
 - **Warning**: page `<title>` is the literal string `Astro` or empty.
 
+### L. Performance — Critical Render Path & LCP
+
+PageSpeed's mobile LCP target is ≤2.5s, and on Hakuto sites the LCP element is **usually the hero `<h1>` text**, not an image — the dashboard/hero image typically renders below-the-fold on phone-width viewports. Two source-side patterns cause LCP regressions that this skill can catch statically:
+
+- **Warning** — *Hero H1 LCP blocked by custom heading font (mobile)*. The first `<h1>` in `src/pages/index.astro` (or any landing page) inherits a custom-font CSS variable (e.g. `var(--font-heading)` resolving to a non-system family like Eina01, Crimson Pro, Sora) without a mobile-only system-font override. On 4G-throttled mobile, the H1 waits for the woff2 to download and adds 1–3s of "element render delay" (visible in PSI's LCP breakdown). The recommended fix is a `max-md:font-system` class on the hero H1 plus a `--font-system: system-ui, -apple-system, …` token in `@theme`, so phones paint the H1 in a system font and tablets/desktops keep the brand face.
+  - Detect: page contains an `<h1>` whose computed font resolves through `--font-heading` (or another `--font-*` token that maps to a custom family declared in `experimental.fonts`/`fonts` array), and the same element has no `max-md:font-*` / `md:font-heading`-style override.
+- **Critical** — *Third-party tracking scripts loaded on the critical render path*. Any `<script>` whose `src` (static or constructed inside an inline script) resolves to a known tracking domain — `googletagmanager.com`, `googleadservices.com`, `connect.facebook.net`, `consent.cookiebot.com`, `firstpromoter.com` / `fpr.*`, `clarity.ms`, `static.hotjar.com`, `cdn.amplitude.com`, `js.hs-scripts.com` — must be wrapped in a deferred loader gated on **first user interaction OR `window.load` + small timeout**, not loaded synchronously or with bare `async`/`defer`. Loading marketing pixels before LCP burns the main thread during the critical render and inflates LCP/TBT.
+  - Detect: a static `<script src="https://{tracking-domain}/…">` in `Layout.astro` or any always-included component, OR an inline script that calls `document.createElement('script')` with one of those URLs *not* inside an `addEventListener("load", …)` / `["click","keydown","touchstart","scroll"].forEach(…, { once:true })` / `requestIdleCallback(…)` wrapper. A bare `setTimeout(load, N)` on one pixel while others load inline is still flagged (inconsistent deferral).
+  - Recommended pattern: a single `fire()` closure that initializes all pixels, triggered by the first of (a) any of `click`/`keydown`/`touchstart`/`scroll`, (b) `setTimeout(fire, 500)` chained off the `load` event. See `easyblognetworks/src/components/MarketingPixels.astro` for a reference implementation.
+- **Warning** — *Above-the-fold image missing `fetchpriority="high"`*. A `<Picture>` or `<Image>` in the first section of a page using `loading="eager"` but with no `fetchpriority="high"` prop. The LCP element should be both eagerly loaded and high-priority so the browser fetches it before lower-priority subresources.
+- **Warning** — *`google.si` / localized Google TLD ping note*. If the project includes a Google Ads conversion tag (id like `AW-…`) and the user hasn't opted out of cross-domain remarketing (`allow_google_signals: false`), Google's gtag fires a country-localized `google.{tld}` pixel in addition to `google.com`. Not a source-code defect — just surface this as an informational note when an `AW-` tag is present, pointing to the Google Ads → Conversion settings opt-out.
+
+### M. Static Asset Caching (`public/_headers`)
+
+Cloudflare Workers' Static Assets binding (`[assets]` block in `wrangler.toml`) defaults responses to `cache-control: public, max-age=0, must-revalidate` for every path — including content-hashed `/_astro/*` files that are immutable by construction. Browsers re-validate every CSS/JS/image asset on every visit unless `_headers` overrides this. Cloudflare Pages's older defaults were more permissive; Workers is not, and the skill should treat the bare scaffold `_headers` as incomplete.
+
+- **Critical** — *`/_astro/*` not configured for long-immutable cache*. Project uses `@astrojs/cloudflare` AND `wrangler.toml` has an `[assets]` block AND `public/_headers` does **not** contain a `/_astro/*` rule whose `Cache-Control` includes both `max-age >= 31536000` and `immutable`. Hashed Astro outputs change filename whenever content changes, so caching them for a year is always safe.
+- **Warning** — *Favicon / app-icon / manifest paths uncached or cached too aggressively*. `public/_headers` missing a rule for the favicon family — `/favicon.ico`, `/favicon.svg`, `/favicon-*`, `/apple-touch-icon*`, `/android-chrome-*`, `/mstile-*`, `/manifest.webmanifest`, `/browserconfig.xml` — OR an existing rule sets `max-age > 86400` (>1 day). Favicons get swapped during rebrands; a 1-day cache (`max-age=86400`) lets new icons propagate to returning visitors within a day. Anything longer "would prevent new changes" from appearing.
+- **Warning** — *Pagefind index uncached*. `astro-pagefind` is in `astro.config.mjs` integrations AND `_headers` has no `/pagefind/*` rule. Pagefind regenerates each build; a 1-day cache (`max-age=86400`) is the conventional value.
+- **Pass** — `_headers` has explicit `Cache-Control` rules for `/_astro/*` (immutable+1y) and a `max-age=86400` (1 day) cap on favicons/manifests/`/pagefind/*`. HTML responses can keep Cloudflare's `max-age=0` default — that's appropriate for HTML since the CDN edge cache (`cf-cache-status: HIT`) still serves it without origin round-trips.
+
+> **Verification tip for the user (not for the skill to run):** `curl -I https://{domain}/_astro/{any-file}` on a deployed URL should return the `max-age=31536000, immutable` header. Pingdom's legacy "Add Expires headers" complaint maps to this check — modern `Cache-Control` directives supersede the `Expires` header, and Cloudflare's Brotli (`content-encoding: br`) supersedes Pingdom's gzip check, so both legacy grades are false-positives against Hakuto's stack *once `_headers` is correctly populated*.
+
 ---
 
 ## Output Format
@@ -231,16 +254,22 @@ To fix issues, ask Claude:
 - Editable favicon source under `public/`
 - New `bun run check` error introduced by in-scope files
 - Template placeholders (`SITE_NAME = "Hakuto"`, etc.) still present
+- Third-party tracking script (GTM / FB Pixel / Cookiebot / FirstPromoter / Hotjar / Clarity / Amplitude / HubSpot) loaded outside a deferred init wrapped on `load` + interaction
+- `public/_headers` missing `/_astro/*` rule with `max-age >= 31536000, immutable` on a Cloudflare Workers (`[assets]`) project
 
 **Warning (⚠️)** — should fix but non-blocking:
 - Custom tokens outside `@theme`; CSS variables outside `@layer base`
 - `style={{}}` on shadcn components; `<Picture>` missing `formats`/`widths`
 - `loading` attribute missing or wrong for above/below-the-fold images
+- Above-the-fold image with `loading="eager"` but no `fetchpriority="high"`
+- Hero `<h1>` inherits a custom heading font with no `max-md:font-system`-style mobile override (mobile LCP risk)
 - Generic font (Inter / Roboto / Arial) as primary
 - `imageService` unset; `astro-favicons` still on template defaults
 - Icon-only buttons without `aria-label`
 - Unused imports; pre-existing `bun run check` errors
 - Lorem-ipsum / TODO copy left in pages
+- `_headers` missing cache rules for favicons / manifests / `/pagefind/*`
+- Google Ads (`AW-…`) tag present without `allow_google_signals: false` — informational
 
 **Pass (✅)** — meets the requirement.
 
