@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization, className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, anchor links, accessibility, LCP / critical-render-path performance, deferred marketing pixels, static-asset caching in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
+description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization, className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, anchor links, accessibility, LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
 ---
 
 # Code Review Skill
@@ -174,6 +174,23 @@ Cloudflare Workers' Static Assets binding (`[assets]` block in `wrangler.toml`) 
 
 > **Verification tip for the user (not for the skill to run):** `curl -I https://{domain}/_astro/{any-file}` on a deployed URL should return the `max-age=31536000, immutable` header. Pingdom's legacy "Add Expires headers" complaint maps to this check — modern `Cache-Control` directives supersede the `Expires` header, and Cloudflare's Brotli (`content-encoding: br`) supersedes Pingdom's gzip check, so both legacy grades are false-positives against Hakuto's stack *once `_headers` is correctly populated*.
 
+### N. Security Headers (`public/_headers`)
+
+Security scanners (securityheaders.com, Mozilla Observatory, Sucuri SiteCheck, the Cloudflare audit) consistently flag missing `Content-Security-Policy` and `Permissions-Policy` as findings. Two are blocking, two are usually flagged in the same report — all four belong on a `/*` rule in `public/_headers` so they ship on every page, not just the root.
+
+Hakuto sites are fully static-prerendered with many inline scripts (GTM, Cookiebot, Plausible loader, marketing-pixel wrappers). A **strict nonce-based CSP requires SSR** and isn't compatible with this stack — the realistic policy keeps `'unsafe-inline'` + `https:` for `script-src` / `style-src` and instead locks down the high-impact vectors. That's still a real improvement on "no CSP at all" and gets a passing grade on the common scanners.
+
+- **Critical** — *`Content-Security-Policy` header missing entirely*. `public/_headers` has no `Content-Security-Policy:` line under any rule that matches every path (`/*`). Even a permissive CSP that blocks `frame-ancestors`, `base-uri`, `object-src`, and `form-action` provides meaningful clickjacking and base-tag-injection protection — having no CSP at all leaves these vectors wide open.
+- **Critical** — *CSP present but missing high-impact directives*. A `Content-Security-Policy` line exists but doesn't include **all four** of: `frame-ancestors 'none'` (or `'self'`), `base-uri 'self'`, `object-src 'none'`, `form-action` (with at minimum `'self'`). These four are the directives that pay back even when `script-src`/`style-src` are permissive — skipping them defeats the point of having a CSP on a Hakuto site.
+- **Critical** — *`Permissions-Policy` header missing*. No `Permissions-Policy:` line in `_headers`. The header should at minimum disable features the site doesn't use — `camera=()`, `microphone=()`, `geolocation=()`, `usb=()`, `magnetometer=()`, `accelerometer=()`, `payment=()` (or `=*` if Paddle/Stripe checkout is used), `publickey-credentials-get=()`. Embedded-video features (`autoplay`, `fullscreen`, `picture-in-picture`, `encrypted-media`) should be `*` on sites with Vimeo/YouTube embeds.
+- **Warning** — *`X-Content-Type-Options: nosniff` missing*. Cheap header, eliminates MIME-sniffing-based XSS, flagged by every scanner.
+- **Warning** — *`Referrer-Policy` missing or weaker than `strict-origin-when-cross-origin`*. `no-referrer-when-downgrade` (the browser default) leaks the full URL to cross-origin requests; `strict-origin-when-cross-origin` is the recommended floor.
+- **Warning** — *Security headers placed on a path-specific rule instead of `/*`*. If CSP / Permissions-Policy live under a rule like `/` (root only) or `/blog/*` instead of `/*`, they only ship on pages matching that prefix. Cloudflare Pages's `_headers` merges across matching rules, so the fix is to put security headers in a `/*` block.
+- **Warning** — *CSP omits a known third-party origin used by the site*. If the project's `MarketingPixels.astro` (or equivalent) loads from origins not covered by the CSP — e.g. CSP has `script-src 'self' 'unsafe-inline'` only, but the site loads `https://www.googletagmanager.com`, `https://connect.facebook.net`, `https://consent.cookiebot.com`, `https://beacon-v2.helpscout.net`, `https://cdn.paddle.com`, `https://challenges.cloudflare.com`, etc. — flag the gap. The pragmatic fix is `script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:` (allow any HTTPS script) rather than enumerating every CDN.
+- **Pass** — `_headers` has a `/*` rule containing all four headers: a `Content-Security-Policy` with `frame-ancestors`, `base-uri`, `object-src 'none'`, and `form-action` directives; a `Permissions-Policy` disabling unused features; `X-Content-Type-Options: nosniff`; and `Referrer-Policy: strict-origin-when-cross-origin` (or stricter).
+
+> **Verification tip for the user (not for the skill to run):** `curl -I https://{domain}/` on a deployed URL should show all four headers. Re-running the security scan after deploy should clear the original findings. The scaffold ships sensible defaults — check `scaffold/public/_headers` in the hakuto repo for the canonical reference policy.
+
 ---
 
 ## Output Format
@@ -254,6 +271,8 @@ To fix issues, ask Claude:
 - Template placeholders (`SITE_NAME = "Hakuto"`, etc.) still present
 - Third-party tracking script (GTM / FB Pixel / Cookiebot / FirstPromoter / Hotjar / Clarity / Amplitude / HubSpot) loaded outside a deferred init wrapped on `load` + interaction
 - `public/_headers` missing `/_astro/*` rule with `max-age >= 31536000, immutable` on a Cloudflare Workers (`[assets]`) project
+- `public/_headers` missing `Content-Security-Policy` entirely, or CSP present but missing one of `frame-ancestors` / `base-uri` / `object-src` / `form-action`
+- `public/_headers` missing `Permissions-Policy`
 
 **Warning (⚠️)** — should fix but non-blocking:
 - Custom tokens outside `@theme`; CSS variables outside `@layer base`
@@ -267,6 +286,10 @@ To fix issues, ask Claude:
 - Unused imports; pre-existing `bun run check` errors
 - Lorem-ipsum / TODO copy left in pages
 - `_headers` missing cache rules for favicons / manifests / `/pagefind/*`
+- `_headers` missing `X-Content-Type-Options: nosniff`
+- `_headers` `Referrer-Policy` missing or weaker than `strict-origin-when-cross-origin`
+- Security headers placed on a path-specific rule (e.g. `/`) instead of `/*`
+- CSP omits a known third-party origin actually loaded by the site
 - Google Ads (`AW-…`) tag present without `allow_google_signals: false` — informational
 
 **Pass (✅)** — meets the requirement.
