@@ -74,8 +74,8 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 1.	Read package.json to understand the project setup and available scripts.
 2.	Proactively use Skills based on the user’s request — don’t wait to be asked.
 3.	Remember, this project uses Tailwind CSS v4 — configuration is CSS-based, not JavaScript.
-4.	Run `bun run dev` if you need a dev server. If port 4321 is already taken, the user likely has one running — don't start a second.
-5.	Run `bun install`, `bun run check`, and `bun run build` as needed to install deps and verify your work.
+4.	**Never run `bun run dev`** — the user manages the dev server themselves (it's usually already running on port 4321). If you need to verify changes, ask the user to refresh, or rely on `bun run check` / `bun run build`.
+5.	Run `bun install`, `bun run check`, and `bun run build` as needed to install deps and verify your work — these are fine to invoke directly.
 
 ## Mandatory Workflow (Follow This Exact Order)
 
