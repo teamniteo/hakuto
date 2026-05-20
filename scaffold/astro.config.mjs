@@ -43,7 +43,7 @@ export default defineConfig({
   }),
 
   build: {
-    client: "./dist/client",
+    client: "./client",
     concurrency: 4,
   },
 
