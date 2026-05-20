@@ -1,6 +1,6 @@
 ---
 name: section-docs
-description: Adds technical documentation section with sidebar navigation to existing websites. Creates /docs home page with search, nested category pages, and minimal content-focused design. Use when user requests "add documentation", "add docs", "add API docs", or "add developer docs".
+description: Adds technical documentation section with sidebar navigation to existing websites. Creates /docs home page with search, nested category pages, and minimal content-focused design. Use when user requests "add documentation", "add docs", "add API docs", "add developer docs", "add a help center", or "add a knowledge base". Skip for single one-off help articles that fit inside an existing page, headless doc platforms (Mintlify, GitBook, ReadMe, Docusaurus) where the docs live in a separate codebase, or sites that just need a FAQ section rather than a structured multi-page reference.
 ---
 
 # Documentation Section

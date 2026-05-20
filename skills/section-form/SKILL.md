@@ -15,7 +15,7 @@ Adds accessible, validated forms using React state + Zod. Forms work as React is
 
 ## Workflow
 
-> **Bun rule note:** Steps 1–2 invoke `bun add` and `bunx shadcn` — dependency installs, not builds. CLAUDE.md's "Never run build tools" rule targets builds (handled by hooks); package installs are one-time setup operations the skill needs to perform. Always **check first** before running: skip the install if the package is already in `package.json` (Step 1) or if the shadcn primitive already exists in `src/components/ui/` (Step 2). This avoids redundant work and surfaces only the genuinely-needed installs.
+> **Skip redundant installs.** Steps 1–2 invoke `bun add` and `bunx shadcn`. Always check first: skip the install if the package is already in `package.json` (Step 1) or if the shadcn primitive already exists in `src/components/ui/` (Step 2).
 
 1. Install deps: `bun add zod sonner` — first read `package.json`; skip if both are already listed
 2. Install shadcn: `bunx --bun shadcn@latest add input textarea label button --overwrite` — first check `src/components/ui/`; only add the primitives that are missing

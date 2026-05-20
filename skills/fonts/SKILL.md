@@ -80,7 +80,7 @@ import { Font } from 'astro:assets';
 
 ## Configuration Examples
 
-### Google Fonts
+The canonical Hakuto setup pairs a display face with a body face, both from Google:
 
 ```javascript
 import { defineConfig, fontProviders } from "astro/config";
@@ -106,68 +106,11 @@ export default defineConfig({
 });
 ```
 
-### Fontsource (Open-Source)
+For other providers (Fontsource, Bunny, Fontshare, local files) and provider-specific options, see `references/font-providers.md` — it has full configs and tradeoffs for each.
 
-```javascript
-import { defineConfig, fontProviders } from "astro/config";
+**Local fonts:** store under `src/assets/fonts/`, NOT in `public/` (avoids duplicate files in build).
 
-export default defineConfig({
-  fonts: [
-    {
-      provider: fontProviders.fontsource(),
-      name: "JetBrains Mono",
-      cssVariable: "--font-mono",
-      weights: [400, 700],
-      subsets: ["latin"],
-      fallbacks: ["monospace"]
-    }
-  ]
-});
-```
-
-### Local Fonts
-
-```javascript
-import { defineConfig, fontProviders } from "astro/config";
-
-export default defineConfig({
-  fonts: [{
-    provider: fontProviders.local(),
-    name: "Brand Font",
-    cssVariable: "--font-brand",
-    options: {
-      variants: [
-        {
-          weight: 400,
-          style: "normal",
-          src: ["./src/assets/fonts/BrandFont-Regular.woff2"]
-        },
-        {
-          weight: 700,
-          style: "normal",
-          src: ["./src/assets/fonts/BrandFont-Bold.woff2"]
-        }
-      ]
-    }
-  }]
-});
-```
-
-**Important:** Store local fonts in `src/assets/fonts/`, NOT in `public/` (avoids duplicate files in build).
-
-### Variable Fonts
-
-```javascript
-{
-  provider: fontProviders.google(),
-  name: "Recursive",
-  cssVariable: "--font-recursive",
-  weights: ["300 1000"],  // Variable weight range
-  styles: ["normal"]
-}
-```
-
-`Recursive` (and `Sora`, `Inter Tight`, `Crimson Pro`, `Spectral`) ships as a single variable font file covering the full weight range — one network request instead of 5–9 separate weight files. Pick a distinctive variable font; avoid `Inter` and `Roboto` defaults.
+**Variable fonts:** prefer them when available. `Recursive`, `Sora`, `Inter Tight`, `Crimson Pro`, and `Spectral` each ship as a single file covering the full weight range — one network request instead of 5–9 separate weight files. Declare with a range like `weights: ["300 1000"]`. Avoid `Inter` and `Roboto` defaults regardless of variable support.
 
 ## Integration with Tailwind v4
 
