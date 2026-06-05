@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization, className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, anchor links, accessibility, LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
+description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization, className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, internal links (anchor ids, trailing slashes), accessibility, LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
 ---
 
 # Code Review Skill
@@ -108,12 +108,25 @@ If the project uses `@astrojs/cloudflare`:
 - **Warning**: `imageService` not set at all (relying on adapter default).
 - **Pass**: `imageService: "compile"` + `prerenderEnvironment: "node"`.
 
-### G. Anchor Links
+### G. Internal Links
 
-For every `href="#…"` in `.astro` files:
+**G1. Anchor fragments** — for every `href="#…"` in `.astro` files:
 
 - **Critical**: no element in the same page (or in components imported by the page) carries the matching `id="…"`. CLAUDE.md: "When creating anchor links, ALWAYS create the corresponding id in the target element."
 - **Pass**: matching `id` found.
+
+**G2. Trailing-slash convention** — read `trailingSlash` from `astro.config.mjs` (absent ⇒ Astro default `"ignore"`). Extract every internal *path* link — `href="/…"` and `href={` `` `/…` `` `}` template literals — from `.astro` / `.ts` / `.tsx` files. Before judging, strip any `#fragment` / `?query`, and **ignore**: external links (`http://`, `https://`, protocol-relative `//`, `mailto:`, `tel:`), the bare root `/`, pure fragments (`#…`), and **file** targets whose last path segment contains a dot (`/rss.xml`, `/sitemap-index.xml`, `/.well-known/security.txt`).
+
+A link is *mismatched* when its slash form contradicts the resolved convention:
+
+- `trailingSlash: "always"` → internal link with **no** trailing slash (`href="/product"`).
+- `trailingSlash: "never"` → internal link **with** a trailing slash (`href="/product/"`).
+- `trailingSlash: "ignore"` (the default) **and** the project uses `@astrojs/cloudflare` (or otherwise serves from Cloudflare static assets) → bare links still `301`-redirect to the slash form at the edge, so treat as the `"always"` case.
+
+- **Warning** — *Internal link contradicts the `trailingSlash` convention*. Each mismatch sends the browser through a `301` redirect to the canonical form — an extra round-trip on every navigation, and on crawlers it wastes crawl budget and dilutes link equity. Fix the link to match the convention; don't rely on the redirect. Report each `file:line`; for many repeats in one file you may append "(+N more in this file)".
+- **Pass** — every internal link already matches the configured convention (or `trailingSlash: "ignore"` on a host that doesn't redirect).
+
+> Detect with `Grep`: for the `"always"` / Cloudflare case, `href="/[^"#?]*[^/"#?]"`, then drop matches whose path contains a dot (those are files). For `"never"`, search `href="/[^"#?]*/"`. **Always confirm `trailingSlash` and the adapter in `astro.config.mjs` first** — the same bare link is a finding on an `"always"` site and a non-issue on a true `"never"` site, so the config read decides the direction.
 
 ### H. Accessibility & Semantic HTML
 
@@ -233,6 +246,10 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
 3. astro-favicons still configured with template default name "Hakuto"
    File: astro.config.mjs:42
 
+4. Internal link `/product` missing trailing slash — trailingSlash: "always" → 301 redirect
+   File: src/components/Header.astro:24 (+5 more in this file)
+   Rule: astro.config.mjs → trailingSlash
+
 ---
 
 ## Passed Checks (✅)
@@ -243,6 +260,7 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
 - experimental.fonts configured for JetBrains Mono + Instrument Sans
 - imageService: "compile" + prerenderEnvironment: "node"
 - No favicon sources in public/
+- All internal links match the trailingSlash convention
 - bun run check: clean over in-scope files
 
 ---
@@ -283,6 +301,7 @@ To fix issues, ask Claude:
 - Generic font (Inter / Roboto / Arial) as primary
 - `imageService` unset; `astro-favicons` still on template defaults
 - Icon-only buttons without `aria-label`
+- Internal link contradicting the `trailingSlash` convention (or 301-redirecting on Cloudflare static) — adds a redirect hop
 - Unused imports; pre-existing `bun run check` errors
 - Lorem-ipsum / TODO copy left in pages
 - `_headers` missing cache rules for favicons / manifests / `/pagefind/*`
@@ -297,7 +316,7 @@ To fix issues, ask Claude:
 **Cross-cutting reminders** (apply to every check above):
 - **Report-only** — never edit files; never run `bun install` or `bun run build`. The user runs follow-up prompts to fix.
 - **Cite `file:line`** in every issue so the user can jump straight to it.
-- **Don't false-positive on intentional patterns** — external `<img>` URLs (Unsplash etc.) are fine, only flag bare `<img>` for *imported local* images; HTML elements correctly use `class=`, only flag `class=` on capitalised React/shadcn tags.
+- **Don't false-positive on intentional patterns** — external `<img>` URLs (Unsplash etc.) are fine, only flag bare `<img>` for *imported local* images; HTML elements correctly use `class=`, only flag `class=` on capitalised React/shadcn tags; for trailing-slash, never flag external/`mailto:`/`tel:` links, the root `/`, fragments, or file paths (`.xml`, `.txt`, `/.well-known/*`), and read `trailingSlash` before judging direction.
 - **Stay in sync with CLAUDE.md** — every check ties to a rule there; when rules change, update the corresponding category.
 - **Complements `seo-audit`** — that skill audits built HTML in `_dist/`; this one audits source in `src/`. Run both for full coverage.
 
