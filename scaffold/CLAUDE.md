@@ -160,7 +160,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - **Avoid generic fonts** (Inter, Roboto, Arial) - use distinctive fonts like Crimson Pro, Sora, Bitter, Spectral
 
 ### Image Optimization (CRITICAL)
-- **Local raster images**: Use `<Picture>` from 'astro:assets' with `formats={['webp']}`, `fallbackFormat="webp"`, and `widths={[800, 1200, 1920]}`
+- **Local raster images**: Use `<Picture>` from 'astro:assets' with `formats={['webp']}` and `widths={[800, 1200, 1920]}`. **Do NOT set `fallbackFormat="webp"`** — when no output format matches the source (e.g. webp-only from a `.png`), Astro 6.1.6+ stops emitting the original asset to `dist/` but the image generator still tries to read it, failing the build with `ENOENT: ... dist/_astro/<name>.png`. Omit `fallbackFormat` so the `<img>` fallback keeps the source format (the original gets emitted) — the modern `<source type="image/webp">` is still what browsers actually use.
 - **Local SVG images**: Use imported asset metadata with a native `<img>` tag so the output file stays SVG
 - **External/placeholder images**: Use `<img>` tags for Unsplash URLs: `https://images.unsplash.com/photo-{PHOTO_ID}?w={WIDTH}&h={HEIGHT}&fit=crop`
 - Import local images in frontmatter: `import heroImage from '@/assets/hero.jpg';`
@@ -179,7 +179,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
   import photo from "@/assets/photo.jpg";
   import logo from "@/assets/logo.svg";
   ---
-  <Picture src={photo} formats={['webp']} fallbackFormat="webp" widths={[400, 800]} alt="..." width={400} height={400} />
+  <Picture src={photo} formats={['webp']} widths={[400, 800]} alt="..." width={400} height={400} />
   <img src={logo.src} width={logo.width} height={logo.height} alt="..." />
   ```
 - For truly static files that must keep a stable public URL (e.g. `/favicon.ico`, `/robots.txt`), put them in `public/` and reference as `/filename.ext` — not `/src/assets/...`.
@@ -352,6 +352,7 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | Styles not applying | Check `@import 'tailwindcss'` is first line in index.css |
 | Images not optimizing | Use `<Picture>` for local raster assets only, `<img>` for local SVG and external URLs. Ensure Astro uses `image: { service: imageService() }` from `@unpic/astro/service` and Cloudflare adapter uses `imageService: "custom"` |
 | Images 404 in production but work in dev | Raw `/src/assets/...` paths in `src` attributes — import the asset and use `<Picture>`/`<Image>` instead. See "Asset Path Rule" above |
+| Build fails: `ENOENT ... dist/_astro/<name>.png` during "generating optimized images" | A `<Picture>` outputs only formats that don't include the source format (e.g. `formats={['webp']}` + `fallbackFormat="webp"` from a `.png`). Astro 6.1.6+ then doesn't emit the original to `dist/`. **Drop `fallbackFormat="webp"`** so the fallback keeps the source format. See "Image Optimization" above |
 | Images not loading in dev | The Cloudflare adapter `imageService: "passthrough"` disables image processing entirely (uses noop service), breaking `<Picture>` and `<Image>` in dev. Use Unpic with `"custom"` instead |
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
