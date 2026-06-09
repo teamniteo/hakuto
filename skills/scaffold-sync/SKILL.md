@@ -313,6 +313,26 @@ After applying:
 - run `bun run build`
 - verify optimized Astro image assets are real WebP files and no AVIF files are emitted
 
+### 0.1.10 — Agent annotate dev toolbar
+
+Apply from scaffold when not heavily customized:
+- `astro.config.mjs`
+- `package.json`
+- `bun.lock`
+- `src/layouts/Layout.astro`
+
+Manual edits for customized sites:
+- remove `astro-grab`
+- add `astro-agent-annotate`
+- enable `devToolbar` only in development
+- register `astroAgentAnnotate()` only when the dev toolbar is enabled
+
+After applying:
+- run `bun install` if `package.json` or `bun.lock` changed
+- clear stale Vite/Astro caches with `rm -rf .astro/vite node_modules/.vite` if dev reports missing `virtual:astro:*` modules
+- run `bun run build`
+- run `bun run dev` and verify the toolbar shows `Agent Annotate`
+
 ---
 
 ## Output Format

@@ -8,10 +8,11 @@ import sitemap from "@astrojs/sitemap";
 import favicons from "astro-favicons";
 import pagefind from "astro-pagefind";
 import { agentsSummary } from "@nuasite/agent-summary";
-import { astroGrab } from "astro-grab";
+import astroAgentAnnotate from "astro-agent-annotate";
 import cloudflare from "@astrojs/cloudflare";
 
 const isDevelopment = process.env.NODE_ENV === "development";
+const devToolbar = { enabled: isDevelopment };
 
 // https://astro.build/config
 export default defineConfig({
@@ -24,7 +25,7 @@ export default defineConfig({
     sitemap(),
     agentsSummary(),
     pagefind(),
-    astroGrab(),
+    ...(devToolbar.enabled ? [astroAgentAnnotate()] : []),
     favicons({
       input: "./src/assets/favicon.png",
       name: "Site",
@@ -47,7 +48,7 @@ export default defineConfig({
   },
 
   server: { port: 4321, host: "0.0.0.0", allowedHosts: true },
-  devToolbar: { enabled: false },
+  devToolbar,
   adapter: isDevelopment
     ? undefined
     : cloudflare({ imageService: "custom", prerenderEnvironment: "node" }),
