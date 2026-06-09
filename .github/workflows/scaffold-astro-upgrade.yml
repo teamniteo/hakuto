@@ -1,0 +1,79 @@
+name: Scaffold Astro upgrade
+
+on:
+  schedule:
+    # Every Monday at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  upgrade:
+    name: Upgrade Astro dependencies in scaffold
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('scaffold/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        working-directory: scaffold
+        run: bun i --frozen-lockfile
+
+      - name: Run Astro upgrade
+        working-directory: scaffold
+        run: bun x @astrojs/upgrade
+
+      - name: Refresh lockfile
+        working-directory: scaffold
+        run: bun install
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet -- scaffold/package.json scaffold/bun.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No Astro upgrades detected."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Astro upgrades detected."
+          fi
+
+      - name: Verify build
+        if: steps.changes.outputs.changed == 'true'
+        working-directory: scaffold
+        run: bun run build
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/scaffold-astro-upgrade
+          delete-branch: true
+          commit-message: "chore: upgrade scaffold Astro dependencies"
+          title: "chore: weekly scaffold Astro upgrade"
+          body: |
+            Automated weekly run of `bun x @astrojs/upgrade` in `scaffold/`.
+
+            Astro (and related `@astrojs/*`) packages were updated. The scaffold build passed in CI.
+            Review the dependency changes below and merge if everything looks good.
+          labels: dependencies
+          add-paths: |
+            scaffold/package.json
+            scaffold/bun.lock
