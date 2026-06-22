@@ -13,10 +13,10 @@
     "format": "biome format --write ."
   },
   "dependencies": {
-    "@astrojs/check": "0.9.8",
-    "@astrojs/cloudflare": "13.1.8",
-    "@astrojs/react": "5.0.3",
-    "@astrojs/sitemap": "3.7.2",
+    "@astrojs/check": "0.9.9",
+    "@astrojs/cloudflare": "13.7.0",
+    "@astrojs/react": "5.0.7",
+    "@astrojs/sitemap": "3.7.3",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -46,7 +46,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/vite": "^4.2.4",
     "@unpic/astro": "^1.0.2",
-    "astro": "6.1.5",
+    "astro": "6.4.8",
     "astro-favicons": "^3.1.6",
     "astro-pagefind": "^1.8.6",
     "astro-seo-schema": "^4.0.3",
