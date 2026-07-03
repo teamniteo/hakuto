@@ -1,13 +1,13 @@
 ---
 name: code-review
-description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization, className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, internal links (anchor ids, trailing slashes), accessibility, LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
+description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization, className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, internal links (trailing-slash convention), accessibility (aria-labels, semantic elements), LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
 ---
 
 # Code Review Skill
 
 Audit Hakuto-built sites against the project's own CLAUDE.md rules.
 
-This skill is the **source-side** counterpart to `seo-audit` (which audits the built `_dist/` HTML). Together they cover both: this one catches issues in `src/`, `astro.config.mjs`, and `src/index.css` before build; `seo-audit` catches what the build produces.
+This skill is the **source-side** counterpart to `seo-audit` (which audits the built `_dist/` HTML): it catches issues in `src/`, `astro.config.mjs`, and `src/index.css` before build; `seo-audit` catches what the build produces.
 
 **Flexible Scope:** parses the user request to choose what to review:
 - **Single file**: "Review src/pages/index.astro" or "Audit Header.astro"
@@ -87,7 +87,6 @@ For each `.astro` file:
 - **Critical**: a local image is `import`-ed (e.g. `import hero from '@/assets/…'`) and rendered with a bare `<img>` tag. CLAUDE.md mandates `<Picture>` from `astro:assets` with `formats={['avif','webp']}` and `widths={[800, 1200, 1920]}` for local images.
 - **Warning**: `<Picture>` / `<Image>` missing `formats` or `widths`.
 - **Warning**: an above-the-fold image (in the first section of a page) without `loading="eager"`, or a below-the-fold image without `loading="lazy"`.
-- **Critical**: any `<img>` / `<Picture>` / `<Image>` missing the `alt` attribute (accessibility + SEO).
 - **Pass (do NOT flag)**: bare `<img>` whose `src` is an external URL such as `https://images.unsplash.com/…` — CLAUDE.md explicitly allows this for placeholder/external imagery.
 
 ### E. Fonts
@@ -108,14 +107,9 @@ If the project uses `@astrojs/cloudflare`:
 - **Warning**: `imageService` not set at all (relying on adapter default).
 - **Pass**: `imageService: "compile"` + `prerenderEnvironment: "node"`.
 
-### G. Internal Links
+### G. Internal Links — Trailing-slash convention
 
-**G1. Anchor fragments** — for every `href="#…"` in `.astro` files:
-
-- **Critical**: no element in the same page (or in components imported by the page) carries the matching `id="…"`. CLAUDE.md: "When creating anchor links, ALWAYS create the corresponding id in the target element."
-- **Pass**: matching `id` found.
-
-**G2. Trailing-slash convention** — read `trailingSlash` from `astro.config.mjs` (absent ⇒ Astro default `"ignore"`). Extract every internal *path* link — `href="/…"` and `href={` `` `/…` `` `}` template literals — from `.astro` / `.ts` / `.tsx` files. Before judging, strip any `#fragment` / `?query`, and **ignore**: external links (`http://`, `https://`, protocol-relative `//`, `mailto:`, `tel:`), the bare root `/`, pure fragments (`#…`), and **file** targets whose last path segment contains a dot (`/rss.xml`, `/sitemap-index.xml`, `/.well-known/security.txt`).
+Read `trailingSlash` from `astro.config.mjs` (absent ⇒ Astro default `"ignore"`). Extract every internal *path* link — `href="/…"` and `href={` `` `/…` `` `}` template literals — from `.astro` / `.ts` / `.tsx` files. Before judging, strip any `#fragment` / `?query`, and **ignore**: external links (`http://`, `https://`, protocol-relative `//`, `mailto:`, `tel:`), the bare root `/`, pure fragments (`#…`), and **file** targets whose last path segment contains a dot (`/rss.xml`, `/sitemap-index.xml`, `/.well-known/security.txt`).
 
 A link is *mismatched* when its slash form contradicts the resolved convention:
 
@@ -132,12 +126,9 @@ A link is *mismatched* when its slash form contradicts the resolved convention:
 
 Per `.astro` page:
 
-- **Critical**: 0 or >1 `<h1>` elements on the page (after composition — count includes `<h1>` inside imported components when statically obvious).
-- **Critical**: heading hierarchy skips a level (e.g. `<h1>` → `<h3>`).
-- **Critical**: any image element lacks `alt`.
 - **Warning**: icon-only `<button>` / `<a>` (lucide-react `<Icon>` as the only child) without `aria-label`.
 - **Warning**: `<button>` styled to look like a link when an `<a>` is semantically correct (or vice versa).
-- **Pass**: heading order correct, all images labelled, interactive elements named.
+- **Pass**: interactive elements named, correct element chosen for the semantics.
 
 ### I. Favicon Source Location
 
@@ -229,9 +220,9 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
    File: src/components/Hero.astro:42
    Rule: CLAUDE.md → React/shadcn Components
 
-3. Anchor href="#features" has no matching id in target page
-   File: src/components/Header.astro:18
-   Rule: CLAUDE.md → Quality Standards (anchor links)
+3. Cloudflare adapter imageService: "passthrough" — breaks <Picture>/<Image>
+   File: astro.config.mjs:19
+   Rule: CLAUDE.md → Cloudflare Adapter & Image Service
 
 ---
 
@@ -255,7 +246,6 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
 ## Passed Checks (✅)
 
 - @import 'tailwindcss' is first line in src/index.css
-- All .astro pages have exactly one <h1>
 - No `class=` misuse on shadcn components in scope
 - experimental.fonts configured for JetBrains Mono + Instrument Sans
 - imageService: "compile" + prerenderEnvironment: "node"
@@ -279,11 +269,9 @@ To fix issues, ask Claude:
 - `@import 'tailwindcss'` not first; `tailwind.config.*` still present
 - `.tsx`/`.jsx` in `src/pages/` or `src/layouts/`
 - `class=` on a React/shadcn component
-- Bare `<img>` for an imported local image; missing `alt`
+- Bare `<img>` for an imported local image
 - `@font-face` / `@import` for fonts in CSS; custom fonts without `experimental.fonts`
 - Cloudflare `imageService: "passthrough"` or missing `prerenderEnvironment: "node"`
-- Anchor `href="#x"` with no matching `id`
-- 0 or >1 `<h1>` on a page; broken heading hierarchy
 - Editable favicon source under `public/`
 - New `bun run check` error introduced by in-scope files
 - Template placeholders (`SITE_NAME = "Hakuto"`, etc.) still present
@@ -318,7 +306,7 @@ To fix issues, ask Claude:
 - **Cite `file:line`** in every issue so the user can jump straight to it.
 - **Don't false-positive on intentional patterns** — external `<img>` URLs (Unsplash etc.) are fine, only flag bare `<img>` for *imported local* images; HTML elements correctly use `class=`, only flag `class=` on capitalised React/shadcn tags; for trailing-slash, never flag external/`mailto:`/`tel:` links, the root `/`, fragments, or file paths (`.xml`, `.txt`, `/.well-known/*`), and read `trailingSlash` before judging direction.
 - **Stay in sync with CLAUDE.md** — every check ties to a rule there; when rules change, update the corresponding category.
-- **Complements `seo-audit`** — that skill audits built HTML in `_dist/`; this one audits source in `src/`. Run both for full coverage.
+- **Complements `seo-audit`, no overlap** — that skill audits built HTML in `_dist/` and solely owns the rendered-DOM checks (image `alt`, `<h1>` count/hierarchy, anchor-target ids); this one audits source/config in `src/` and never re-reports those. Run both for full coverage without duplicate findings.
 
 ---
 
