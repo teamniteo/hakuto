@@ -60,7 +60,9 @@ warnings = []
 passed = []
 titles = {}           # title → files using it
 descriptions = {}     # description → files using it
+h1s = {}              # H1 text → files using it
 links = {}           # page → pages it links to
+noindex_pages = []    # page URLs carrying <meta name="robots" content="noindex">
 ```
 
 ### 5. Test Each File
@@ -95,6 +97,10 @@ To check self-reference: derive expected URL from file path (e.g. `_dist/about/i
 - Missing any → warning for each missing tag
 - All present → pass
 
+**Robots Meta:** `<meta name="robots" content="...">` in `<head>`
+- Contains `noindex` → record this page URL in `noindex_pages[]` (used in Step 6 to confirm it's excluded from the sitemap). Not itself an issue — intentional noindex is fine.
+- Contains `nofollow` on an indexable content page → warning: "Page-level nofollow on [url] (blocks link equity flow)"
+
 #### HTML Document
 
 **Lang Attribute:** `<html lang="...">` on the root element. Screen readers and translation tools rely on this to pronounce content correctly and offer the right translation.
@@ -109,6 +115,9 @@ To check self-reference: derive expected URL from file path (e.g. `_dist/about/i
 - >1 H1s → critical: "Multiple H1s (found X)"
 - Exactly 1 → pass
 
+**H1 Text (cross-page):** record the H1's text content in `h1s{}`. Templated pages (per-check, per-doc, per-city listings) commonly render the *same* H1 across dozens of URLs — Google reads that as thin/duplicate content even when each page's body differs. Distinct-per-page-count H1s can still be site-wide duplicates. Evaluated in Step 7.
+- Normalize whitespace before recording (collapse runs of spaces/newlines, trim).
+
 **Hierarchy:** Check H1→H2→H3→H4→H5→H6 sequence
 - If any skip (e.g., H1→H3) → critical: "Broken hierarchy at line X: H1→H3 (skipped H2)"
 - No skips → pass
@@ -119,9 +128,15 @@ Find `<script type="application/ld+json">`. JSON-LD unlocks rich results in Goog
 - Not found → warning: "No schema markup"
 - Found, invalid JSON → critical: "Invalid JSON-LD: [error]"
 - Found, valid JSON:
-  - Organization/LocalBusiness: check name, url → pass if present
-  - Article: check headline, datePublished, author → pass if present
+  - Organization/LocalBusiness: check name, url → pass if present. Also expect `logo` and `sameAs` (social profiles) → warning if either missing: "Organization schema missing [logo/sameAs]".
+  - Article/BlogPosting: check headline, author, `datePublished` → present = pass. Additionally require:
+    - `dateModified` → warning if missing: "Article schema missing dateModified (freshness signal)". Populate from git commit history, not hand-maintained.
+    - `publisher` (Organization ref) and `image` → warning for each missing.
+  - **Product / SoftwareApplication** pages (pricing, app-download, product landing): expect a `Product`/`SoftwareApplication` node, ideally with `offers` and `aggregateRating` → warning if the page is clearly a product page but carries no such schema.
   - Other types → pass
+
+**Breadcrumbs:** if the page renders a visible breadcrumb trail (e.g. `<nav aria-label="Breadcrumb">`, or an ordered list of ancestor links near the top), expect a matching `BreadcrumbList` in JSON-LD.
+- Visible breadcrumb present but no `BreadcrumbList` schema → warning: "Visible breadcrumb has no BreadcrumbList schema on [url]".
 
 #### Image Alt Text
 
@@ -129,9 +144,14 @@ Extract all `<img>` tags in `<body>`:
 - Missing `alt` attribute → critical: "Image missing alt: [src]"
 - Empty `alt=""` on a decorative image (no surrounding link/caption) → pass (intentional)
 - Empty `alt=""` on a content image (inside `<a>`, `<figure>`, or with no other text in link) → warning: "Empty alt on content image: [src]"
+- **Low-quality alt** — non-empty but clearly not human-written: ends in an image extension (`.png`/`.jpg`/`.jpeg`/`.gif`/`.webp`/`.svg`), is a bare slug/filename (`screenshot-2024-11`, `image_01`, `IMG_2043`), or just repeats the file's basename → warning: "Filename-style alt on [src]: '[alt]' — rewrite as a description". These pass a naive presence check but carry no SEO value.
 - Non-empty descriptive alt → pass
 
 Ignore `<img>` inside `<picture>` only when the `<picture>` itself has an `<img>` child with alt (don't double-count).
+
+**Image dimensions (CLS):** every rendered `<img>` in `<body>` should carry both `width` and `height` attributes (Astro's `<Picture>`/`<Image>` emit these automatically; raw `<img>` tags often don't). Missing dimensions force the browser to reflow once the image loads, hurting Cumulative Layout Shift.
+- `<img>` missing `width` or `height` → warning: "Image missing width/height (causes layout shift): [src]"
+- Both present → pass
 
 #### Image Asset Health
 
@@ -179,15 +199,24 @@ Strip query strings (`?utm_source=...`) before resolving. Ignore `mailto:`, `tel
 
 Use `Read` for each file's contents and `Glob` to confirm presence in `_dist/`.
 
-**Sitemap:** read `_dist/sitemap.xml` (or `_dist/sitemap-index.xml` if present)
+**Sitemap:** read `_dist/sitemap.xml` (or `_dist/sitemap-index.xml` if present; follow the index to its child sitemaps)
 - Missing → critical
 - Present, list all URLs → pass
 - Check if all pages in sitemap → warning if any missing
+- **noindex leak** — any URL in `noindex_pages[]` (from Step 5) that also appears in the sitemap → critical: "Sitemap lists noindex page [url] (contradictory signal — remove from sitemap)".
+- **`<lastmod>` freshness** — every `<url>` should carry a `<lastmod>`. Missing on some/all → warning: "Sitemap missing <lastmod> on N URLs (weakens freshness/crawl signals)". Derive lastmod from git commit history so it stays accurate without hand-maintenance.
+- **Placeholder lastmod** — all URLs share one identical `<lastmod>` (e.g. the build date) → warning: "All sitemap <lastmod> values identical — likely build-time stamp, not real content dates".
 
 **Robots.txt:** read `_dist/robots.txt`
 - Missing → critical
-- Present, has "Sitemap:" → pass
-- Present, no "Sitemap:" → warning
+- Present, no "Sitemap:" line → warning
+- Present, has "Sitemap:" → confirm each `Sitemap:` URL actually resolves to a file in `_dist/` (e.g. `Sitemap: https://site/sitemap-index.xml` → `_dist/sitemap-index.xml` exists). A dead/misspelled sitemap reference wastes crawl budget and is invisible to a naive "has Sitemap:" check.
+  - `Sitemap:` URL with no matching file in `_dist/` → critical: "robots.txt points to missing sitemap: [url]".
+  - Multiple `Sitemap:` lines where the real sitemap is an index → warning: "Multiple/redundant Sitemap: lines — list only the sitemap index".
+  - All `Sitemap:` lines resolve → pass.
+
+**Duplicate index (`/index.html`):** static hosts serve a directory's `index.html` at *both* `/` and `/index.html`, creating a duplicate-content pair unless one 301-redirects.
+- For each `_dist/**/index.html`, flag if the site has no `_redirects` (or host config) rule sending `/index.html → /` (and nested `/<dir>/index.html → /<dir>/`) → warning: "`/index.html` reachable as a duplicate of `/` — add a 301 in `public/_redirects`". Report-only; the fix lives in `public/_redirects`.
 
 **llms.txt:** read `_dist/llms.txt`. Hints to LLM crawlers (ChatGPT, Perplexity, Claude) which content is canonical and how to summarize the site — without it, these tools fall back to generic crawling.
 - Missing → warning
@@ -220,6 +249,7 @@ Use `Read` for each file's contents and `Glob` to confirm presence in `_dist/`.
 **Duplicate Content:**
 - If titles{title} has >1 file → warning: "Duplicate title in: [files]"
 - If descriptions{desc} has >1 file → warning: "Duplicate description in: [files]"
+- If h1s{text} has >1 file → warning: "Duplicate H1 '[text]' across N pages: [files]". Templated routes (per-check, per-doc, per-listing) are the usual culprit — qualify each H1 with its distinguishing attribute (platform, category, location) in the source template.
 
 ---
 
@@ -245,6 +275,8 @@ See `references/example-report.md` for the full template — match its shape and
 - Broken favicon reference (link points to file not present in `_dist`)
 - Broken internal link (anchor href targets a file or in-page id that doesn't exist)
 - Local image > 2 MB
+- robots.txt `Sitemap:` line points to a sitemap file not present in `_dist/`
+- Sitemap lists a `noindex` page (contradictory index signal)
 
 **Warning (⚠️):**
 - Title/description outside optimal range (but >30/>100)
@@ -253,10 +285,15 @@ See `references/example-report.md` for the full template — match its shape and
 - Relative canonical URL
 - Empty `alt=""` on content images (inside links/figures)
 - URL hygiene: uppercase, underscores, or query params on indexable URLs
-- Duplicates, orphaned pages
+- Duplicates (title, description, or cross-page H1 text), orphaned pages
 - Missing or empty `<html lang>` attribute
 - Local image 1–2 MB
 - Insecure anchor link (`<a href="http://...">`)
+- Filename-style/low-quality `alt` text; `<img>` missing `width`/`height` (CLS)
+- Sitemap missing `<lastmod>`, or all `<lastmod>` values identical (build-time stamp)
+- Article/BlogPosting schema missing `dateModified`/`publisher`/`image`; Organization missing `logo`/`sameAs`; visible breadcrumb with no `BreadcrumbList`; product page with no `Product`/`SoftwareApplication` schema
+- `/index.html` reachable as a duplicate of `/` with no 301
+- Page-level `nofollow` on an indexable content page
 
 **Pass (✅):**
 - Meets all requirements
@@ -284,6 +321,18 @@ See `references/example-report.md` for the full template — match its shape and
 Read-only throughout — never `Write` or `Edit` from this skill.
 
 ---
+
+## Out of Static Scope (needs a live crawl)
+
+This skill audits built HTML in `_dist/`. Some technical-SEO issues only exist at the network/host layer and **cannot** be found here — a live crawl (Screaming Frog / Ahrefs / an external audit) is still the right tool for them. Call these out to the user at the end of a whole-site run so a clean report isn't mistaken for "nothing left to check":
+
+- Redirect **status codes** and chains (301 vs 302, 307→308 trailing-slash upgrades, redirect loops).
+- `www`→apex (or apex→`www`) canonicalization and HTTPS-upgrade redirects — Cloudflare/host layer.
+- HTTP response headers (`X-Robots-Tag`, `Link: rel=canonical`, caching, HSTS).
+- Live 404s from **inbound** external links not present in the site's own `_dist/` graph (pull these from Google Search Console).
+- Server response time / real Core Web Vitals under load (use the `pagespeed-audit` skill for field data).
+
+Report these as an "Out of static scope — verify with a live crawl / GSC" footer, not as passes.
 
 ## Notes
 
