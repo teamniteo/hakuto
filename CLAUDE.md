@@ -15,13 +15,7 @@ Avoid generic AI-generated aesthetics:
 - Predictable layouts and component patterns
 - Cookie-cutter design that lacks context-specific character
 
-**Actionable creativity rules:**
-- Typography: Rotate through distinctive fonts (Crimson Pro, Instrument Sans, Bitter, Spectral, DM Sans, Sora, Archivo)
-- Type pairing: High contrast = interesting. Pair display + monospace, serif + geometric sans, or pick one distinctive font and use it decisively across the whole site. Don't pair two fonts from the same family of sans-serifs.
-- Type contrast: Push weight contrast hard (300 body vs 800–900 display) and size contrast harder still (≥3× jumps between H1 and body). Timid scales read as generic.
-- Colors: Use TheColorAPI-generated palettes; vary hues; 60/30/10 ratio for dominant/accent/highlight
-- Layouts: Alternate between 12-col grids, asymmetric layouts, bento boxes, masonry patterns
-- Themes: Deliberately vary between light/dark/colored backgrounds across projects
+**Design decisions:** When building or restyling pages, the `website-builder` skill governs design — it runs the design interview, sets the design dials, and carries the craft references (layout patterns, type-pairing rules, OKLCH palette generation). Invoke it rather than improvising; for one-off tweaks made outside the skill, honor the site's `site-specification.md`.
 </frontend_aesthetics>
 
 <use_parallel_tool_calls>
@@ -126,7 +120,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 ### Step 6: Apply Styles Consistently
 - Use Tailwind classes that reference styles from index.css
 - Apply design patterns from website-builder SKILL
-- Optional: Create `src/pages/branding.astro` as a visual style guide if helpful for demonstrating brand styles
+- New-site builds create `src/pages/branding.astro` during the website-builder style preview — keep it afterward as the living style guide (excluded from nav)
 
 ### Step 7: Compose Final Pages
 - Import and use components in pages

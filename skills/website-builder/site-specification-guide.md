@@ -6,139 +6,86 @@
 
 ## Purpose
 
-Maintains consistency across sessions. Documents starting design + customizations = current site aesthetic.
+Maintains consistency across sessions. Documents the chosen design direction (dials, palette, fonts, patterns) + customizations = the site's current aesthetic. The spec is the consistency contract: every later page and session builds to it, not to defaults.
 
-**Focus:** Keep specification concise - only Configuration and Design Evolution sections.
+**Structure:** exactly three sections — Configuration, Design Direction, Design Evolution.
 
 ---
 
 ## Timing
 
-**Create:** After first page
-**Read:** Before each subsequent page
-**Update:** After design changes or customizations
+**Create:** at style-preview approval (Workflow A step 6), before the full build
+**Read:** before every subsequent page or design change
+**Update:** after design changes, dial changes, or customizations
 
-If spec missing when building second+ page: Infer from existing files, then create.
+**Missing spec on an existing site:** infer from built pages (palette from `index.css`, fonts from `astro.config.mjs`, dials from the layouts actually used), then write it.
+
+**Pre-dial specs** (sites built before the direction/dial system): the old format lacks the Design Direction section. Infer dial values from the built pages, migrate the spec to the current template, and continue.
 
 ---
 
 ## Structure
 
-Site specification contains only TWO sections:
-
 ### 1. Configuration
-Essential project metadata:
-- Site Type (SaaS/General/E-commerce/Portfolio/etc.)
-- Design Language Starting Point (Technology/Modern/Minimalist/etc.)
-- Target Audience (who the site is for)
-- Primary Goal (conversion/credibility/leads/signups/etc.)
+Site Type (SaaS/General) · Target Audience · Primary Goal
 
-### 2. Design Evolution
-Tracks aesthetic changes over time:
-- **Starting aesthetic**: Initial design language description
-- **User customizations**: List of deviations from starting design (or "None yet")
-- **Current style**: Concise description of actual aesthetic in use (colors, typography, visual patterns)
+### 2. Design Direction
+The approved direction from the style preview:
+- **Direction**: name + one-line concept
+- **Base Language**: which principles file it draws from
+- **Dials**: VARIANCE / MOTION / DENSITY values
+- **Palette** (60/30/10): the generated hexes with roles + the wheel scheme used
+- **Fonts**: display + body with weights, wired via Astro Fonts API
+- **Signature patterns** and **motion recipes** in use (names from `design-craft.md`)
 
-**That's it.** No other sections needed.
-
----
-
-## Design Evolution Pattern
-
-Design languages provide defaults. Users customize. Spec tracks both.
-
-**Flow:**
-1. Initial: Design language → starting aesthetic
-2. User requests changes → apply modifications
-3. Spec documents: Starting point + customizations
-4. Future pages: Apply **Current** aesthetic (not original defaults)
-
-**Example:** Started Minimalist monochrome → User wants warm tones → Update to warm palette → New pages use warm colors, not monochrome.
+### 3. Design Evolution
+- **User customizations**: dated list of deviations and dial changes (or "None yet")
+- **Current style**: concise prose description of the actual aesthetic in use
 
 ---
 
-## Creating Spec
+## Example
 
-1. After building first page, gather:
-   - Site type, design language selected
-   - Target audience, primary goal
-   - Any customizations made during build
-
-2. Fill template:
-   ```markdown
-   # Site Specification
-
-   ## Configuration
-   - **Site Type**: SaaS
-   - **Design Language (Starting Point)**: Technology
-   - **Target Audience**: Small pharma and biotech companies
-   - **Primary Goal**: Trial signups and demo bookings
-
-   ## Design Evolution
-   - **Starting aesthetic**: Technology design language (Classic Terminal palette)
-   - **User customizations**: None yet - using default Technology design
-   - **Current style**: Dark terminal-inspired aesthetic with GitHub dark colors (#0D1117 background, #58A6FF bright blue accent, #39D353 terminal green accent). Professional B2B SaaS look with technical credibility.
-   ```
-
-3. Keep it concise - aim for 15-25 lines total
-
----
-
-## Reading Spec
-
-Extract:
-- Design Language (starting point)
-- User Customizations (overrides)
-- Current Style (actual aesthetic to apply)
-
-**Apply Current style, not starting defaults.**
-
----
-
-## Updating Spec
-
-**After user requests design changes:**
-1. Update "User customizations" section
-2. Update "Current style" to reflect new aesthetic
-3. Regenerate affected pages using new style
-
-**Example update:**
 ```markdown
+# Site Specification
+
+## Configuration
+- **Site Type**: SaaS
+- **Target Audience**: Small pharma and biotech companies
+- **Primary Goal**: Trial signups and demo bookings
+
+## Design Direction
+- **Direction**: "Ledger" — precision-instrument feel for a data-heavy product
+- **Base Language**: Technology
+- **Dials**: VARIANCE 6 · MOTION 4 · DENSITY 5
+- **Palette** (60/30/10): dominant #101418 · secondary #2A3440 · accent #FF6B35 — triadic
+- **Fonts**: Sora 700–800 (display) / Instrument Sans 400 (body) — via Astro Fonts API
+- **Signature patterns**: Asymmetric Split hero, Bento feature grid
+- **Motion recipes**: Orchestrated Entrance, Scroll Reveal
+
 ## Design Evolution
-- **Starting aesthetic**: Technology design language (Classic Terminal palette)
-- **User customizations**: Changed accent from blue (#58A6FF) to purple (#C792EA), increased border radius from 4px to 8px for softer look
-- **Current style**: Dark terminal-inspired aesthetic with purple accent (#C792EA), softer rounded corners. GitHub dark base (#0D1117) with purple highlights and terminal green (#39D353) for success states.
+- **User customizations**: 2026-07-30: accent #FF6B35 → #C792EA; MOTION 4 → 3 ("calmer")
+- **Current style**: Dark, precise, near-black surfaces with purple accent, sharp
+  4px radii, monospace labels, restrained motion (single hero stagger only).
 ```
 
----
-
-## Common Workflows
-
-**First page:** Build → Create spec → Inform user
-
-**Additional page:** Read spec → Apply Current style → Build page
-
-**User customizes:** Read spec → Apply changes → Update spec (customizations + current style) → Regenerate pages
-
-**User returns later:** Read spec (especially Current Style) → Match actual site
+Aim for 25–40 lines total.
 
 ---
 
 ## Rules
 
-1. **Only 2 sections**: Configuration + Design Evolution
-2. **Apply Current style**, not design language defaults
-3. **Keep concise**: Aim for 15-25 lines total
+1. **Three sections only** — Configuration, Design Direction, Design Evolution
+2. **Always build to Current**, not the original direction
+3. **Every dial, palette, or font change gets recorded** — these are what later sessions rely on
 4. **Update after design changes**, not after every page
-5. **Document customizations** so they persist across sessions
+5. Dial changes regenerate affected mechanics site-wide (spacing tokens, motion recipes) — never leave pages contradicting the recorded values
 
 ---
 
-## Key Pattern
+## Common Workflows
 
-Spec enables multi-session consistency:
-1. **Starting**: Design language selected
-2. **Evolution**: Customizations applied over time
-3. **Current**: Actual site aesthetic to use
-
-Always build to Current, not Starting.
+**New site:** preview approved → create spec → full build → inform user
+**Additional page:** read spec → build to Current with the recorded dials → update if patterns changed
+**Customization:** read spec → apply (literal directly; vibe-level as dial change) → update Evolution + Current → regenerate affected pages
+**User returns later:** read spec, especially Current Style and Dials → match the actual site
