@@ -48,7 +48,8 @@ Hakuto is a Claude Code plugin bundling skills, a subagent, and an Astro scaffol
 1. **Install the plugin** — one time, global
 2. **`/hakuto:init`** — drops an Astro + Cloudflare starter into an empty directory
 3. **Describe your site** — "Build me a landing page for a coffee roaster" and `website-builder` takes over
-4. **Ship it** — `bun run build && wrangler deploy` pushes to Cloudflare Workers
+4. **Approve the design** — a short interview, then 2–3 distinct directions and a `branding.astro` style preview built from real tokens; iterate there before any pages are written
+5. **Ship it** — `bun run build && wrangler deploy` pushes to Cloudflare Workers
 
 ## Stack
 
@@ -56,7 +57,7 @@ Hakuto is a Claude Code plugin bundling skills, a subagent, and an Astro scaffol
 |-------|-----------|
 | Framework | [Astro](https://astro.build) 6.x |
 | Styling | [Tailwind CSS](https://tailwindcss.com) v4 |
-| Components | [shadcn/ui](https://ui.shadcn.com) (48 components) |
+| Components | [shadcn/ui](https://ui.shadcn.com) (43 components) |
 | Hosting | [Cloudflare Workers](https://workers.cloudflare.com) |
 | Runtime | [Bun](https://bun.sh) |
 
@@ -70,7 +71,7 @@ Hakuto is a Claude Code plugin bundling skills, a subagent, and an Astro scaffol
 └── marketplace.json    # Single-plugin marketplace
 commands/
 └── init.md             # /hakuto:init scaffolder
-skills/                 # 9 site-building skills
+skills/                 # 15 site-building skills
 agents/                 # Astro file editor subagent
 scaffold/               # Astro project copied by /hakuto:init
 ```
@@ -89,15 +90,20 @@ src/
 
 CLAUDE.md            # Agent spec for your site
 AGENTS.md            # Auto-generated page index
-site-specification.md # Design decisions & style guide
 worker/              # Cloudflare Worker entry
+wrangler.toml        # Worker name, assets, custom domain
 ```
+
+`website-builder` adds two more as it builds: `site-specification.md` (design
+decisions — direction, dials, palette, fonts) and `src/pages/branding.astro`
+(the living style guide, kept out of nav).
 
 ## Available Scripts
 
 ```sh
 bun run dev       # Start dev server
-bun run build     # Production build
+bun run build     # Production build → dist/client/
+bun run preview   # Build, then serve via wrangler dev (Workers runtime)
 bun run check     # TypeScript checks
 bun run lint      # Lint with Biome
 bun run format    # Format with Biome
@@ -107,16 +113,21 @@ bun run format    # Format with Biome
 
 The Claude Code agent has access to specialized skills for common tasks:
 
-- **website-builder** — Core page creation workflow
-- **brand-designer** — Generate custom color palettes
+- **agent-browser** — Drive a browser for testing and screenshots
+- **brand-designer** — Generate custom color palettes (OKLCH color-wheel math)
+- **code-review** — Audit source against the project's CLAUDE.md rules
+- **fonts** — Web fonts via Astro's Fonts API
+- **pagespeed-audit** — Live Lighthouse / Core Web Vitals audit of deployed pages
+- **plausible-analytics** — Privacy-friendly analytics
+- **prelaunch-checklist** — Pre-launch validation (wrangler, forms, legal pages, placeholder scrub, gates)
 - **professional-copywriter** — Conversion-optimized copy
-- **section-form** — Contact forms and signups
+- **scaffold-sync** — Pull selective scaffold updates from the installed plugin into existing sites
 - **section-blog** — Multi-page blog system
 - **section-docs** — Documentation with sidebar nav
-- **plausible-analytics** — Privacy-friendly analytics
-- **seo-audit** — SEO validation
-- **scaffold-sync** — Pull selective scaffold updates from the installed plugin into existing sites
-- **prelaunch-checklist** — Pre-launch validation (wrangler, forms, legal pages, placeholder scrub, gates)
+- **section-form** — Contact forms and signups
+- **seo-audit** — Static SEO audit of the built HTML
+- **skill-creator** — Author and evaluate new skills
+- **website-builder** — Design interview, style preview, and page creation
 
 ## Forms
 
