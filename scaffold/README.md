@@ -21,10 +21,10 @@ This scaffold ships with a [devenv](https://devenv.sh) config (`devenv.nix`, `de
 
 ```sh
 bun run build        # → dist/client/
-bun run deploy       # → Cloudflare Workers (wrangler deploy -c wrangler.toml)
+wrangler deploy      # → Cloudflare Workers
 ```
 
-> **Deploy with `-c wrangler.toml`** (the `deploy` script does this for you). Astro's Cloudflare adapter writes a redirected config at `.wrangler/deploy/config.json` that a bare `wrangler deploy` would pick up — but for this static-assets + custom-worker setup that generated config omits `main`, so it both fails wrangler's `run_worker_first` check and would skip deploying `worker/index.js`. `wrangler.toml` is the authoritative config.
+> Astro's Cloudflare adapter writes a redirected config at `dist/client/wrangler.json` and `.wrangler/deploy/config.json` during build — for this static-assets + custom-worker setup that generated config omits `main`, so a bare `wrangler deploy` picking it up would fail wrangler's `run_worker_first` check and skip deploying `worker/index.js`. The `build` script removes both generated files so `wrangler deploy` always falls back to the authoritative root `wrangler.toml`.
 
 ### Preview the built site
 

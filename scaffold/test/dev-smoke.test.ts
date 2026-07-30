@@ -81,9 +81,10 @@ beforeAll(async () => {
   await writeFile(heyPath, HEY_HANDLER);
   await writeFile(indexPath, INDEX_WITH_HEY);
 
-  // `bun run preview` now builds before starting wrangler dev.
+  // `bun run preview` already builds and passes --local --ip 127.0.0.1; only
+  // override the port here so the test never collides with `bun run dev`.
   dev = Bun.spawn(
-    ["bun", "run", "preview", "--", "--port", String(PORT), "--ip", "127.0.0.1"],
+    ["bun", "run", "preview", "--", "--port", String(PORT)],
     {
       cwd: scaffoldDir,
       stdout: "inherit",

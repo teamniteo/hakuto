@@ -48,7 +48,7 @@ Hakuto is a Claude Code plugin bundling skills, a subagent, and an Astro scaffol
 1. **Install the plugin** — one time, global
 2. **`/hakuto:init`** — drops an Astro + Cloudflare starter into an empty directory
 3. **Describe your site** — "Build me a landing page for a coffee roaster" and `website-builder` takes over
-4. **Ship it** — `bun run deploy` pushes to Cloudflare Workers
+4. **Ship it** — `bun run build && wrangler deploy` pushes to Cloudflare Workers
 
 ## Stack
 
