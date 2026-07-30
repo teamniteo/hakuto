@@ -20,18 +20,19 @@ This scaffold ships with a [devenv](https://devenv.sh) config (`devenv.nix`, `de
 ## Build & deploy
 
 ```sh
-bun run build        # → dist/
+bun run build        # → dist/client/
 wrangler deploy      # → Cloudflare Workers
 ```
+
+> Astro's Cloudflare adapter writes a redirected config at `dist/client/wrangler.json` and `.wrangler/deploy/config.json` during build — for this static-assets + custom-worker setup that generated config omits `main`, so a bare `wrangler deploy` picking it up would fail wrangler's `run_worker_first` check and skip deploying `worker/index.js`. The `build` script removes both generated files so `wrangler deploy` always falls back to the authoritative root `wrangler.toml`.
 
 ### Preview the built site
 
 ```sh
-bun run build
 bun run preview
 ```
 
-`bun run dev` starts Astro's development server with live reload and dev-only behavior. `bun run preview` serves the production build from `dist/`, so use it for review before deploying.
+`bun run dev` starts Astro's development server with live reload and dev-only behavior. `bun run preview` builds the site and then serves it from `dist/client/` through `wrangler dev` — the same Cloudflare Workers runtime, `worker/index.js`, and `_headers`/`run_worker_first` rules as production — so use it for review before deploying.
 
 Edit `wrangler.toml` to set the Worker name and custom domain:
 
@@ -39,7 +40,7 @@ Edit `wrangler.toml` to set the Worker name and custom domain:
 name = "my-site"
 
 [assets]
-directory = "./dist"
+directory = "./dist/client"
 
 [[routes]]
 pattern = "example.com"

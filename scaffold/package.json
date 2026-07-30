@@ -6,11 +6,11 @@
   "scripts": {
     "dev": "astro dev --open",
     "dev:fresh": "rm -f .astro/data-store.json && astro dev --open",
-    "build": "astro build",
-    "preview": "astro preview",
+    "build": "astro build && rm -f dist/client/wrangler.json .wrangler/deploy/config.json",
     "lint": "biome lint --write .",
     "check": "astro check",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "preview": "astro build && rm -f dist/client/wrangler.json .wrangler/deploy/config.json && wrangler dev --local --ip 127.0.0.1 --log-level error"
   },
   "dependencies": {
     "@astrojs/check": "0.9.9",
