@@ -28,14 +28,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Bump patch version
+      - name: Bump minor version
         id: bump
         run: |
           set -euo pipefail
           git fetch origin main:refs/remotes/origin/main
           main=$(git show origin/main:.claude-plugin/plugin.json | jq -r '.version')
-          IFS='.' read -r major minor patch <<< "$main"
-          new="${major}.${minor}.$((patch + 1))"
+          IFS='.' read -r major minor _ <<< "$main"
+          new="${major}.$((minor + 1)).0"
           current=$(jq -r '.version' .claude-plugin/plugin.json)
           if [ "$current" = "$new" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
