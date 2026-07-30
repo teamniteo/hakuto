@@ -50,19 +50,6 @@ export default {
 let dev: ReturnType<typeof Bun.spawn> | null = null;
 let originalIndex: string | null = null;
 
-async function runBuild() {
-  const build = Bun.spawn(["bun", "run", "build"], {
-    cwd: scaffoldDir,
-    stdout: "inherit",
-    stderr: "inherit",
-    env: { ...process.env, CI: "1", NODE_ENV: "production" },
-  });
-  const exitCode = await build.exited;
-  if (exitCode !== 0) {
-    throw new Error(`build failed with exit code ${exitCode}`);
-  }
-}
-
 async function waitForReady(timeoutMs: number) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -94,8 +81,7 @@ beforeAll(async () => {
   await writeFile(heyPath, HEY_HANDLER);
   await writeFile(indexPath, INDEX_WITH_HEY);
 
-  await runBuild();
-
+  // `bun run preview` now builds before starting wrangler dev.
   dev = Bun.spawn(
     ["bun", "run", "preview", "--", "--port", String(PORT), "--ip", "127.0.0.1"],
     {

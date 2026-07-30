@@ -29,11 +29,10 @@ bun run deploy       # → Cloudflare Workers (wrangler deploy -c wrangler.toml)
 ### Preview the built site
 
 ```sh
-bun run build
 bun run preview
 ```
 
-`bun run dev` starts Astro's development server with live reload and dev-only behavior. `bun run preview` serves the built site from `dist/client/` through `wrangler dev` — the same Cloudflare Workers runtime, `worker/index.js`, and `_headers`/`run_worker_first` rules as production — so use it for review before deploying.
+`bun run dev` starts Astro's development server with live reload and dev-only behavior. `bun run preview` builds the site and then serves it from `dist/client/` through `wrangler dev` — the same Cloudflare Workers runtime, `worker/index.js`, and `_headers`/`run_worker_first` rules as production — so use it for review before deploying.
 
 Edit `wrangler.toml` to set the Worker name and custom domain:
 

@@ -72,7 +72,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 4.	Run `bun run dev` if you need a dev server. If port 4321 is already taken, the user likely has one running in another terminal — don't start a second.
 5.	If `bun` is not on PATH, the user launched Claude outside the devenv shell. Tell them to `cd` into the project so direnv loads, or to run `devenv shell` first. Do NOT fall back to `npm` or `yarn` — this project uses `bun` exclusively.
 6.	Run `bun install`, `bun run check` (astro type-check), and `bun run build` as needed to install dependencies and verify your work.
-7.	For review, run `bun run build && bun run preview` so reviewers inspect the built Astro output.
+7.	For review, run `bun run preview` (it builds first) so reviewers inspect the built Astro output.
 
 ## Mandatory Workflow (Follow This Exact Order)
 
