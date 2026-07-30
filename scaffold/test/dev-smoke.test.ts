@@ -97,7 +97,7 @@ beforeAll(async () => {
   await runBuild();
 
   dev = Bun.spawn(
-    ["bun", "run", "preview", "--", "--port", String(PORT), "--host", "127.0.0.1"],
+    ["bun", "run", "preview", "--", "--port", String(PORT), "--ip", "127.0.0.1"],
     {
       cwd: scaffoldDir,
       stdout: "inherit",
@@ -135,10 +135,10 @@ describe("scaffold preview server (bun run preview) smoke", () => {
   });
 
   test("unknown path returns a 404", async () => {
-    // In production wrangler's run_worker_first restricts the worker to /~/*
-    // and not_found_handling = "404-page" serves the prerendered 404.astro
-    // (text/html). In dev the worker entry currently sees every unmatched
-    // path, so this just asserts the status — not which layer rendered it.
+    // wrangler's run_worker_first restricts the worker to /~/* and
+    // not_found_handling = "404-page" serves the prerendered 404.astro
+    // (text/html). This unmatched path never reaches the worker; the asset
+    // layer handles it, so we assert the 404 status here.
     const r = await fetch(BASE + "/no-such-page-xyz/");
     expect(r.status).toBe(404);
   });

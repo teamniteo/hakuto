@@ -7,7 +7,8 @@
     "dev": "astro dev --open",
     "dev:fresh": "rm -f .astro/data-store.json && astro dev --open",
     "build": "astro build",
-    "preview": "astro preview",
+    "preview": "wrangler dev -c wrangler.toml",
+    "deploy": "wrangler deploy -c wrangler.toml",
     "lint": "biome lint --write .",
     "check": "astro check",
     "format": "biome format --write ."

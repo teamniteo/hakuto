@@ -11,7 +11,7 @@ enabled = false
 mode = "smart"
 
 [assets]
-directory = "./dist"
+directory = "./dist/client"
 not_found_handling = "404-page"
 html_handling = "force-trailing-slash"
 run_worker_first = ["/~*"]
