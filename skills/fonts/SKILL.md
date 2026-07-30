@@ -43,6 +43,8 @@ How to restart depends on how the server was started — pick the one that match
 
 Don't proceed to Step 3 until the server has restarted — the next step depends on the new config being live.
 
+When invoked from website-builder's style-preview loop, always end by telling the user to restart their dev server before reviewing the preview — and encourage locking fonts early in the iteration, since every font swap repeats this restart cycle while palette/layout tweaks don't.
+
 ### Step 3: Add Font declarations to .astro files (ONLY AFTER RESTART)
 
 Now you can use the `<Font />` component and CSS variables:
