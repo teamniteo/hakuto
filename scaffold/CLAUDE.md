@@ -333,20 +333,22 @@ Layout supports JSON-LD schema via `schema` prop (uses `astro-seo-schema` + `sch
 ```astro
 ---
 import Layout from "@/layouts/Layout.astro";
-import type { WebSite, Organization } from "schema-dts";
+import type { WebSite, WithContext } from "schema-dts";
 
-const websiteSchema = {
+const websiteSchema: WithContext<WebSite> = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "My Site",
   url: Astro.url.origin,
-} satisfies WebSite;
+};
 ---
 
 <Layout title="Home" schema={websiteSchema}>
   <!-- content -->
 </Layout>
 ```
+
+**Annotate with `WithContext<T>`, not `satisfies T`.** A bare schema-dts type (`WebSite`, `WebPage`, …) does not include the `@context` property, so `satisfies WebSite` fails with `Object literal may only specify known properties, and '"@context"' does not exist in type 'WebSiteLeaf'`. It also doesn't produce the `WithContext<Thing>` that `Layout`'s `schema` prop expects. `WithContext<T>` adds `@context` and is the correct type for a top-level JSON-LD object.
 
 **Common schema types**: WebSite, Organization, LocalBusiness, Product, Article, FAQPage, BreadcrumbList
 
