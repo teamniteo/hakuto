@@ -91,18 +91,25 @@ For each `.astro` file:
 
 #### D1. Right-Sizing — `width` and `sizes`
 
-The single highest-impact image check, and the one a naive prop-presence review misses. The scaffold configures `@unpic/astro/service` as Astro's image service (`astro.config.mjs` → `image: { service: imageService() }`), and **unpic ignores the `widths` prop** — `width` is what determines the file Astro emits. A `<Picture widths={[400, 800, 1200]}>` with no `width` *looks* right-sized and is not: Astro emits the intrinsic-resolution original, and `sizes` defaults to `100vw` so the browser picks the largest candidate at every viewport. Real-world impact: [site-paretosecurity#28](https://github.com/teamniteo/site-paretosecurity/pull/28) found 98 images (291 instances) served at up to 5000px wide into slots as small as 200px.
+A prop-presence review misses most of what goes wrong here, because the failure modes look like correct markup. Two rules from Astro's sharp service (`node_modules/astro/dist/assets/services/service.js`) drive everything below:
+
+- `getSrcSet` returns `[]` unless `widths` **or** `densities` is present. So `width` + `sizes` with no `widths` emits a **single candidate** and an inert `sizes`.
+- `getTargetDimensions` derives the missing dimension from the intrinsic aspect ratio. When both `width` and `height` are given and they disagree with that ratio, sharp resizes with `fit: cover` — a silent crop.
 
 - **Critical** — *local `<Picture>` / `<Image>` with no explicit `width` prop*. Ships the full-resolution asset to every visitor and tanks LCP. Rule: `CLAUDE.md → Image Optimization → Right-Sizing`. Report the file:line and, where you can read it off the surrounding markup, the container width the image should have been sized to.
-  - Detect: `<Picture` / `<Image` tags in `.astro` files whose props include `src={<imported local asset>}` but no `width=`. Presence of `widths={[…]}` does **not** satisfy this — call that out in the message so the fix isn't "add more widths".
+  - Detect: `<Picture` / `<Image` tags in `.astro` files whose props include `src={<imported local asset>}` but no `width=`. A `widths` array does not substitute — with no `width`, `getTargetDimensions` falls back to the intrinsic size, so the `<img>` fallback still ships full-resolution.
+- **Critical** — *`sizes` present but no `widths` / `densities`*. The tag ships one candidate and the `sizes` does nothing, so the right-sizing is only apparent. Expected form: `width={W} widths={[W, W * 2]} sizes="…"`.
 - **Warning** — *`width` present but no `sizes`, or an explicit `sizes="100vw"` on a slot that isn't full-bleed*. Without a measured `sizes`, the browser assumes the image spans the viewport and downloads the largest srcset candidate regardless of the slot. Expected form: `sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"`.
   - Full-bleed images (`w-screen`, a hero whose wrapper has no `max-w-*`) legitimately use `100vw` — pass those.
+- **Warning** — *both `width` and `height` on an image whose box is CSS-controlled* (`w-full`, `h-*`, `aspect-*`, `object-cover`). If the pair's ratio differs from the source's, sharp crops the file and CSS then crops it again. Phrase as "drop `height` unless the crop is intended" — this skill can't read the asset's intrinsic size, so don't assert the ratio is wrong.
+  - Pass: square `width`/`height` on a round avatar (`rounded-full`, `size-*`) — the crop is the point.
 - **Warning (advisory)** — *`width` looks like an intrinsic asset size, not a display size*. Heuristic: `width` ≥ 1600 on an image inside a card/tile/grid container (`grid`, `md:grid-cols-*`, `max-w-sm|md|lg|xl`, `w-*` on the wrapper), or a value that matches a common capture dimension (1920, 2560, 3024, 5120). This skill cannot compute layout — phrase the finding as "verify `width={N}` against the rendered slot" rather than asserting it's wrong.
-- **Warning** — *markdown-content images not centrally right-sized*. The project has a blog or docs content collection (`src/content/**` with `.md`/`.mdx`) but `astro.config.mjs` `markdown.rehypePlugins` contains no plugin that sets `width`/`sizes` on content `<img>` elements. Article columns are ~710–766px while pipeline images render at intrinsic resolution (1024–2220px). The fix is one rehype plugin (`width = 768`, `sizes = "(min-width: 768px) 768px, 100vw"`), not per-post annotation.
-- **Pass (do NOT flag)** — `class="img-uncap"` on a right-sized image. This is the sanctioned escape hatch, not a hack: unpic turns `width`/`height` into inline `max-width`/`max-height` caps, so slots that grow wider than the measured width need the cap lifted while `srcset`/`sizes` keep delivering the right file. Flag it only if it appears on an image that has no `width` at all (it does nothing there).
-- **Pass** — every local `<Picture>`/`<Image>` declares `width`, plus `sizes` unless full-bleed.
+- **Warning** — *markdown-content images not centrally right-sized*. The project has a blog or docs content collection (`src/content/**` with `.md`/`.mdx`) but `astro.config.mjs` `markdown.rehypePlugins` contains no plugin that sets `width`/`widths`/`sizes` on content `<img>` elements. Article columns are ~710–766px while pipeline images render at intrinsic resolution (1024–2220px). The fix is one rehype plugin (`width = 768`, `widths = [384, 768, 1536]`, `sizes = "(min-width: 768px) 768px, 100vw"`), not per-post annotation.
+  - If such a plugin exists but sets `width` without `widths`, flag it: every in-article image loses its srcset entirely.
+- **Warning** — *`max-width: none !important` utilities on images*. Sharp emits no inline cap to override, and the `!important` defeats Tailwind preflight's `img { max-width: 100% }` plus any `max-w-*` on the element. A slot that should fill its container wants `w-full`.
+- **Pass** — every local `<Picture>`/`<Image>` declares `width` and `widths`, plus `sizes` unless full-bleed.
 
-> Note for the reviewer: `widths={[W, W * 2]}` is still worth keeping — it supplies the 2x retina candidate — it just isn't what constrains the emitted file. Don't report a missing `widths` as an issue on its own; that framing is what let the paretosecurity regression through review.
+> Note for the reviewer: `width` controls the *file*; it does not make the element fill its container. Don't recommend removing `w-full` from a right-sized image — without it the element renders at the `width` prop, which is usually a visible shrink.
 
 ### E. Fonts
 
@@ -117,10 +124,15 @@ Generic system fonts (Inter, Roboto, Arial) are the visual fingerprint of "AI sl
 
 If the project uses `@astrojs/cloudflare`:
 
-- **Critical**: `imageService: "passthrough"` — disables the image service entirely and breaks `<Picture>`/`<Image>` in dev and build.
-- **Critical**: missing `prerenderEnvironment: "node"` — the default `"workerd"` fails prerendering with a 404 outside Cloudflare's infra.
-- **Warning**: `imageService` not set at all (relying on adapter default).
-- **Pass**: `imageService: "compile"` + `prerenderEnvironment: "node"`.
+The scaffold relies on Astro's built-in **sharp** service, so the only job here is checking the adapter doesn't replace it. Ground truth is `node_modules/@astrojs/cloudflare/dist/utils/image-config.js` → `setImageConfig()`.
+
+- **Critical**: `imageService: "passthrough"` — swaps in a noop service and breaks `<Picture>`/`<Image>` in dev and build.
+- **Critical**: `imageService: "compile"` — **despite the name, this does not keep sharp.** On adapter v13 `case "compile"` returns `WORKERD_IMAGE_SERVICE` unconditionally; on v14 it returns `hasUserImageService(config) ? config.service : WORKERD_IMAGE_SERVICE`, and `hasUserImageService()` explicitly excludes the sharp entrypoint. Either way sharp is replaced and builds outside Cloudflare's runtime break.
+- **Critical**: missing `prerenderEnvironment: "node"` — the default `"workerd"` fails prerendering with a 404 outside Cloudflare's infra, and sharp needs to run in Node.
+- **Warning**: `imageService` not set at all — the adapter defaults to `"cloudflare-binding"`, which needs an Images binding.
+- **Warning**: an `image: { service: … }` key in `astro.config.mjs` pointing at a third-party service. The scaffold expects the key to be **absent** so Astro's sharp default applies.
+- **Warning**: adapter not gated to production. An unconditional adapter in dev routes `/_image` through a workerd endpoint needing runtime bindings, 404-ing every image on `bun run dev`.
+- **Pass**: no `image.service` key + `imageService: "custom"` + `prerenderEnvironment: "node"`, adapter gated to production.
 
 ### G. Internal Links — Trailing-slash convention
 
@@ -240,8 +252,12 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
    Rule: CLAUDE.md → Cloudflare Adapter & Image Service
 
 4. <Picture> has no `width` — emits the full-resolution asset into a ~350px card
-   (`widths={[400,800,1200]}` does not constrain output; unpic ignores it)
    File: src/pages/blog/index.astro:147
+   Rule: CLAUDE.md → Image Optimization → Right-Sizing
+
+5. <Image width={472} sizes="..."> has no `widths` — getSrcSet returns [], so one
+   candidate ships and `sizes` is inert. Add widths={[472, 944]}
+   File: src/pages/cloud/monitoring.astro:67
    Rule: CLAUDE.md → Image Optimization → Right-Sizing
 
 ---
@@ -269,7 +285,7 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
 - @import 'tailwindcss' is first line in src/index.css
 - No `class=` misuse on shadcn components in scope
 - experimental.fonts configured for JetBrains Mono + Instrument Sans
-- imageService: "compile" + prerenderEnvironment: "node"
+- imageService: "custom" + prerenderEnvironment: "node" (sharp survives the adapter)
 - No favicon sources in public/
 - All internal links match the trailingSlash convention
 - Every local <Picture>/<Image> declares an explicit display `width`
@@ -293,9 +309,10 @@ To fix issues, ask Claude:
 - `.tsx`/`.jsx` in `src/pages/` or `src/layouts/`
 - `class=` on a React/shadcn component
 - Bare `<img>` for an imported local image
-- Local `<Picture>` / `<Image>` with no explicit `width` — emits the intrinsic-resolution file (`widths` does not constrain it under unpic)
+- Local `<Picture>` / `<Image>` with no explicit `width` — emits the intrinsic-resolution file
+- `sizes` present but no `widths` / `densities` — `getSrcSet` returns `[]`, so a single candidate ships and `sizes` does nothing
 - `@font-face` / `@import` for fonts in CSS; custom fonts without `experimental.fonts`
-- Cloudflare `imageService: "passthrough"` or missing `prerenderEnvironment: "node"`
+- Cloudflare `imageService: "passthrough"` or `"compile"` (both replace sharp), or missing `prerenderEnvironment: "node"`
 - Editable favicon source under `public/`
 - New `bun run check` error introduced by in-scope files
 - Template placeholders (`SITE_NAME = "Hakuto"`, etc.) still present
@@ -309,6 +326,8 @@ To fix issues, ask Claude:
 - `style={{}}` on shadcn components; `<Picture>` missing `formats`
 - Right-sized `width` but no `sizes`, or `sizes="100vw"` on a non-full-bleed slot
 - `width` that looks like an intrinsic asset size (≥1600 inside a card/grid slot) — advisory, verify against the rendered slot
+- Both `width` and `height` on an image whose box is CSS-controlled — sharp crops with `fit: cover`, then `object-cover` crops again
+- `max-width: none !important` image utilities — a workaround for an image service the scaffold no longer uses; use `w-full` instead
 - Blog/docs content collection with no rehype plugin right-sizing markdown `<img>`
 - `loading` attribute missing or wrong for above/below-the-fold images
 - Above-the-fold image with `loading="eager"` but no `fetchpriority="high"`

@@ -1,13 +1,13 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import type { WebPage } from "schema-dts";
+import type { WebPage, WithContext } from "schema-dts";
 
-const schema = {
+const schema: WithContext<WebPage> = {
 	"@context": "https://schema.org",
 	"@type": "WebPage",
 	name: "Page Not Found",
 	description: "The page you're looking for doesn't exist.",
-} satisfies WebPage;
+};
 ---
 
 <Layout

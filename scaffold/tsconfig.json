@@ -11,7 +11,7 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "types": ["node"],
+    "types": ["node", "bun"],
     "paths": {
       "@/*": ["./src/*"]
     },
