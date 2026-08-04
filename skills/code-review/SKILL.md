@@ -91,16 +91,14 @@ For each `.astro` file:
 
 #### D1. Right-Sizing — `width` and `sizes`
 
-The single highest-impact image check, and the one a naive prop-presence review misses. The scaffold uses **Astro's built-in sharp service**, whose behaviour is defined in `node_modules/astro/dist/assets/services/service.js`. Two of its rules drive everything below:
+A prop-presence review misses most of what goes wrong here, because the failure modes look like correct markup. Two rules from Astro's sharp service (`node_modules/astro/dist/assets/services/service.js`) drive everything below:
 
 - `getSrcSet` returns `[]` unless `widths` **or** `densities` is present. So `width` + `sizes` with no `widths` emits a **single candidate** and an inert `sizes`.
 - `getTargetDimensions` derives the missing dimension from the intrinsic aspect ratio. When both `width` and `height` are given and they disagree with that ratio, sharp resizes with `fit: cover` — a silent crop.
 
-Real-world impact: [site-paretosecurity#28](https://github.com/teamniteo/site-paretosecurity/pull/28) found 98 images (291 instances) served at up to 5000px wide into slots as small as 200px.
-
 - **Critical** — *local `<Picture>` / `<Image>` with no explicit `width` prop*. Ships the full-resolution asset to every visitor and tanks LCP. Rule: `CLAUDE.md → Image Optimization → Right-Sizing`. Report the file:line and, where you can read it off the surrounding markup, the container width the image should have been sized to.
-  - Detect: `<Picture` / `<Image` tags in `.astro` files whose props include `src={<imported local asset>}` but no `width=`.
-- **Critical** — *`sizes` present but no `widths` / `densities`*. The tag ships one candidate and the `sizes` attribute does nothing, so the review-visible "right-sizing" is fictional. Expected form: `width={W} widths={[W, W * 2]} sizes="…"`. This is the easiest failure to miss by eye because the markup *looks* complete.
+  - Detect: `<Picture` / `<Image` tags in `.astro` files whose props include `src={<imported local asset>}` but no `width=`. A `widths` array does not substitute — with no `width`, `getTargetDimensions` falls back to the intrinsic size, so the `<img>` fallback still ships full-resolution.
+- **Critical** — *`sizes` present but no `widths` / `densities`*. The tag ships one candidate and the `sizes` does nothing, so the right-sizing is only apparent. Expected form: `width={W} widths={[W, W * 2]} sizes="…"`.
 - **Warning** — *`width` present but no `sizes`, or an explicit `sizes="100vw"` on a slot that isn't full-bleed*. Without a measured `sizes`, the browser assumes the image spans the viewport and downloads the largest srcset candidate regardless of the slot. Expected form: `sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"`.
   - Full-bleed images (`w-screen`, a hero whose wrapper has no `max-w-*`) legitimately use `100vw` — pass those.
 - **Warning** — *both `width` and `height` on an image whose box is CSS-controlled* (`w-full`, `h-*`, `aspect-*`, `object-cover`). If the pair's ratio differs from the source's, sharp crops the file and CSS then crops it again. Phrase as "drop `height` unless the crop is intended" — this skill can't read the asset's intrinsic size, so don't assert the ratio is wrong.
@@ -108,7 +106,7 @@ Real-world impact: [site-paretosecurity#28](https://github.com/teamniteo/site-pa
 - **Warning (advisory)** — *`width` looks like an intrinsic asset size, not a display size*. Heuristic: `width` ≥ 1600 on an image inside a card/tile/grid container (`grid`, `md:grid-cols-*`, `max-w-sm|md|lg|xl`, `w-*` on the wrapper), or a value that matches a common capture dimension (1920, 2560, 3024, 5120). This skill cannot compute layout — phrase the finding as "verify `width={N}` against the rendered slot" rather than asserting it's wrong.
 - **Warning** — *markdown-content images not centrally right-sized*. The project has a blog or docs content collection (`src/content/**` with `.md`/`.mdx`) but `astro.config.mjs` `markdown.rehypePlugins` contains no plugin that sets `width`/`widths`/`sizes` on content `<img>` elements. Article columns are ~710–766px while pipeline images render at intrinsic resolution (1024–2220px). The fix is one rehype plugin (`width = 768`, `widths = [384, 768, 1536]`, `sizes = "(min-width: 768px) 768px, 100vw"`), not per-post annotation.
   - If such a plugin exists but sets `width` without `widths`, flag it: every in-article image loses its srcset entirely.
-- **Warning** — *`max-width: none !important` utilities on images* (e.g. a `.img-uncap`-style class). These were a workaround for a third-party image service the scaffold no longer uses. Under sharp there is no inline cap to lift, and the `!important` also defeats Tailwind preflight's `img { max-width: 100% }` plus any `max-w-*` on the same element. The right fix for a slot that should fill its container is `w-full`.
+- **Warning** — *`max-width: none !important` utilities on images*. Sharp emits no inline cap to override, and the `!important` defeats Tailwind preflight's `img { max-width: 100% }` plus any `max-w-*` on the element. A slot that should fill its container wants `w-full`.
 - **Pass** — every local `<Picture>`/`<Image>` declares `width` and `widths`, plus `sizes` unless full-bleed.
 
 > Note for the reviewer: `width` controls the *file*; it does not make the element fill its container. Don't recommend removing `w-full` from a right-sized image — without it the element renders at the `width` prop, which is usually a visible shrink.

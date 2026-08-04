@@ -300,10 +300,8 @@ Apply from scaffold when not heavily customized:
 - `CLAUDE.md`
 - any scaffold page examples that still show `formats={['avif', 'webp']}`
 
-> ⚠️ **Superseded by 0.4.0 — do not apply this entry to new sites.** The Unpic
-> service was removed; see "0.4.0 — Drop Unpic, return to Astro's sharp service"
-> below. The only parts of this entry that still stand are `formats={['webp']}`
-> and rendering imported SVGs with a native `<img>`.
+> ⚠️ **Superseded by 0.4.0** — Unpic was removed. Only `formats={['webp']}` and
+> the native-`<img>` SVG rule still stand.
 
 Manual edits for customized sites:
 - set Cloudflare adapter image service to `imageService: "custom"`
@@ -317,13 +315,10 @@ After applying:
 
 ### 0.4.0 — Drop Unpic, return to Astro's sharp service
 
-Unpic diverged from Astro's documented image API in ways that silently corrupted
-output. Verified on a production site before removal: it **ignored the `widths`
-prop** (generating its own 12-step ladder), turned `width`/`height` into inline
-`max-width`/`max-height`/`width:100%` styles that overrode Tailwind classes, and
-emitted `style="[object Object]"` plus stray `url=`/`format=` attributes on every
-content-collection image — 41 images across 15 pages on that site, 4 of which
-rendered at 2×2px. Removing it cut the built asset footprint from 173 MB to 47 MB.
+Unpic ignored the `widths` prop, turned `width`/`height` into inline styles that
+overrode Tailwind classes, and emitted `style="[object Object]"` on content-collection
+images. Sites carrying it should expect broken markup and oversized ladders until
+this migration is applied.
 
 Apply from scaffold when not heavily customized:
 - `astro.config.mjs`
