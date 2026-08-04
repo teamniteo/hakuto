@@ -86,6 +86,10 @@ For each `.astro` file:
 
 - **Critical**: a local image is `import`-ed (e.g. `import hero from '@/assets/…'`) and rendered with a bare `<img>` tag. CLAUDE.md mandates `<Picture>` / `<Image>` from `astro:assets` for local raster images. **Exception**: local `.svg` imports rendered as `<img src={logo.src}>` are correct (CLAUDE.md → Image Optimization keeps SVGs out of the raster pipeline).
 - **Warning**: `<Picture>` missing `formats={['webp']}`.
+- **`fallbackFormat` — check the SOURCE file's extension, never flag it blanket.** Astro's `specialFormatsFallback` is `['gif','svg','jpg','jpeg']`; anything else defaults to a PNG fallback. Resolve the import to its real extension before judging:
+  - **Critical**: a `.webp` source with **no** `fallbackFormat="webp"` — the `<img>` fallback is silently transcoded to PNG, often megabytes larger than the source.
+  - **Critical**: a `.png` source **with** `fallbackFormat="webp"` — no output format matches the source, so the build fails with `ENOENT … dist/_astro/<name>.png`.
+  - **Pass**: `.jpg`/`.jpeg`/`.gif`/`.svg` sources with no `fallbackFormat` — they already fall back to themselves.
 - **Warning**: an above-the-fold image (in the first section of a page) without `loading="eager"`, or a below-the-fold image without `loading="lazy"`.
 - **Pass (do NOT flag)**: bare `<img>` whose `src` is an external URL such as `https://images.unsplash.com/…` — CLAUDE.md explicitly allows this for placeholder/external imagery.
 
@@ -314,6 +318,7 @@ To fix issues, ask Claude:
 - `@font-face` / `@import` for fonts in CSS; custom fonts without `experimental.fonts`
 - Cloudflare `imageService: "passthrough"` or `"compile"` (both replace sharp), or missing `prerenderEnvironment: "node"`
 - Editable favicon source under `public/`
+- `.webp` source without `fallbackFormat="webp"` (ships a PNG fallback), or `.png` source with it (build-breaking `ENOENT`)
 - New `bun run check` error introduced by in-scope files
 - Template placeholders (`SITE_NAME = "Hakuto"`, etc.) still present
 - Third-party tracking script (GTM / FB Pixel / Cookiebot / FirstPromoter / Hotjar / Clarity / Amplitude / HubSpot) loaded outside a deferred init wrapped on `load` + interaction
