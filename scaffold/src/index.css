@@ -260,3 +260,14 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Right-sized images: the unpic image service turns the `width`/`height` props
+   into inline max-width/max-height caps sized at the measured display width.
+   Slots that grow wider than that measurement (feature screenshots, bento
+   tiles, heroes, card covers) must keep filling their container like they did
+   before the width prop was added — srcset/sizes still deliver the right-sized
+   file, this only lifts the CSS ceiling. See CLAUDE.md → Right-Sizing. */
+.img-uncap {
+  max-width: none !important;
+  max-height: none !important;
+}
