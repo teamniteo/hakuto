@@ -300,8 +300,8 @@ Apply from scaffold when not heavily customized:
 - `CLAUDE.md`
 - any scaffold page examples that still show `formats={['avif', 'webp']}`
 
-> ⚠️ **Superseded by 0.3.1 — do not apply this entry to new sites.** The Unpic
-> service was removed; see "0.3.1 — Drop Unpic, return to Astro's sharp service"
+> ⚠️ **Superseded by 0.4.0 — do not apply this entry to new sites.** The Unpic
+> service was removed; see "0.4.0 — Drop Unpic, return to Astro's sharp service"
 > below. The only parts of this entry that still stand are `formats={['webp']}`
 > and rendering imported SVGs with a native `<img>`.
 
@@ -315,7 +315,7 @@ After applying:
 - run `bun run build`
 - verify optimized Astro image assets are real WebP files and no AVIF files are emitted
 
-### 0.3.1 — Drop Unpic, return to Astro's sharp service
+### 0.4.0 — Drop Unpic, return to Astro's sharp service
 
 Unpic diverged from Astro's documented image API in ways that silently corrupted
 output. Verified on a production site before removal: it **ignored the `widths`
