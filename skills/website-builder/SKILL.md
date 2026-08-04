@@ -24,8 +24,9 @@ These rules are enforced by CLAUDE.md and apply to every page this skill produce
 - **Tailwind CSS v4** — config lives in `src/index.css` via `@theme {}`, not `tailwind.config.mjs` (delete that file if present).
 - **`className` (not `class`) on React/shadcn components** — `<Button className="...">` is correct; `<Button class="...">` is a TypeScript error. Native HTML in `.astro` keeps `class`.
 - **Astro Fonts API for custom fonts** — `experimental.fonts` (5.x) or top-level `fonts` (6+) in `astro.config.mjs`. Never use `@import` or `@font-face` for custom fonts. ALWAYS invoke the `fonts` skill when custom fonts are involved.
-- **Cloudflare adapter `imageService: "compile"`** (NOT `"passthrough"`). Passthrough installs a noop image service that breaks `<Picture>`/`<Image>` in dev and build.
-- **`<Picture>` for local images, `<img>` for external URLs** — local assets go through `astro:assets` for AVIF/WebP/responsive widths. Unsplash and other external URLs use plain `<img>`.
+- **Cloudflare adapter `imageService: "custom"`** (NOT `"compile"` or `"passthrough"`), with no `image.service` key in `astro.config.mjs` so Astro's sharp default applies. `"passthrough"` installs a noop service; `"compile"` — despite the name — replaces sharp with the workerd image service. `"custom"` is the only value that passes the config through untouched.
+- **`<Picture>` for local images, `<img>` for external URLs** — local assets go through `astro:assets` for WebP/responsive widths. Unsplash and other external URLs use plain `<img>`.
+- **Right-size every local image** — `width={W} widths={[W, W * 2]} sizes="…"`, all three. A `sizes` without `widths` emits no `srcset` at all, so the tag ships one candidate and looks right-sized without being it. Pass `width` alone (no `height`) unless a crop is intended — sharp resizes with `fit: cover`, so a mismatched pair silently crops.
 
 ---
 

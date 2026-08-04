@@ -300,18 +300,62 @@ Apply from scaffold when not heavily customized:
 - `CLAUDE.md`
 - any scaffold page examples that still show `formats={['avif', 'webp']}`
 
+> ⚠️ **Superseded by 0.3.1 — do not apply this entry to new sites.** The Unpic
+> service was removed; see "0.3.1 — Drop Unpic, return to Astro's sharp service"
+> below. The only parts of this entry that still stand are `formats={['webp']}`
+> and rendering imported SVGs with a native `<img>`.
+
 Manual edits for customized sites:
-- add `@unpic/astro`
-- import `imageService` from `@unpic/astro/service`
-- set `image: { service: imageService() }` in `defineConfig`
 - set Cloudflare adapter image service to `imageService: "custom"`
-- change local raster `<Picture>` usage to `formats={['webp']}` and `fallbackFormat="webp"`
+- change local raster `<Picture>` usage to `formats={['webp']}` (do **not** add `fallbackFormat="webp"` — it breaks the build with `ENOENT … dist/_astro/<name>.png`)
 - render imported SVG assets with native `<img src={asset.src} width={asset.width} height={asset.height}>`
 
 After applying:
 - run `bun install` if `package.json` or `bun.lock` changed
 - run `bun run build`
 - verify optimized Astro image assets are real WebP files and no AVIF files are emitted
+
+### 0.3.1 — Drop Unpic, return to Astro's sharp service
+
+Unpic diverged from Astro's documented image API in ways that silently corrupted
+output. Verified on a production site before removal: it **ignored the `widths`
+prop** (generating its own 12-step ladder), turned `width`/`height` into inline
+`max-width`/`max-height`/`width:100%` styles that overrode Tailwind classes, and
+emitted `style="[object Object]"` plus stray `url=`/`format=` attributes on every
+content-collection image — 41 images across 15 pages on that site, 4 of which
+rendered at 2×2px. Removing it cut the built asset footprint from 173 MB to 47 MB.
+
+Apply from scaffold when not heavily customized:
+- `astro.config.mjs`
+- `package.json`
+- `bun.lock`
+- `CLAUDE.md`
+- `src/index.css`
+
+Manual edits for customized sites:
+- remove `@unpic/astro` from `package.json`, then `bun install`
+- remove the `import { imageService } from "@unpic/astro/service"` line
+- **delete the `image: { service: … }` key entirely** — Astro's schema default is
+  already `astro/assets/services/sharp`
+- keep `imageService: "custom"` on the Cloudflare adapter. Do **not** switch to
+  `"compile"`: on adapter v13 that returns the workerd service unconditionally,
+  and on v14 `hasUserImageService()` explicitly excludes sharp, so sharp is
+  replaced either way
+- delete any `.img-uncap` (or other `max-width: none !important`) image utility
+  from `src/index.css` **and every class list that uses it**
+- add `w-full` to images that were relying on unpic's inline `width:100%` to fill
+  their container — otherwise they shrink to their `width` prop
+- add `widths={[W, W * 2]}` to every `<Image>`/`<Picture>` that has a `sizes` but
+  no `widths`; without it Astro emits no `srcset` at all and `sizes` is inert
+- drop `height` where it disagrees with the source's aspect ratio and CSS already
+  crops (`object-cover`) — sharp resizes with `fit: cover`, so a mismatch crops
+- if a rehype plugin right-sizes markdown images, give it a `widths` ladder too
+
+After applying:
+- run `bun run build`, then grep `dist/` for `style="[object Object]"`, `url=` and
+  `format=` on `<img>` — all three should be gone
+- watch for images that visually shrank (the missing `w-full` case) and for any
+  `<img>`/`<source>` that now ships a single candidate (the missing `widths` case)
 
 ### 0.1.10 — Agent annotate dev toolbar
 

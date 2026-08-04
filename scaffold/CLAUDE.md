@@ -166,18 +166,17 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 
 **Every `<Picture>` / `<Image>` MUST declare an explicit `width`, and it must be the image's real CSS display width — not the asset's intrinsic size.** Omitting it ships the full-resolution original to every visitor: a 5000px screenshot into a 200px card is a multi-megabyte download for a thumbnail, and it wrecks LCP.
 
-- **`width` is what controls the emitted file. `widths` does NOT.** The scaffold uses `@unpic/astro/service` (see "Cloudflare Adapter & Image Service"), and **unpic ignores the `widths` prop**. Setting `widths={[400, 800, 1200]}` with no `width` looks like right-sizing but does nothing — Astro emits the intrinsic-resolution file. Keep `widths={[W, W * 2]}` for the 2x retina candidate, but never rely on it alone.
-- **Measure the slot, don't guess.** Read the width from the container's Tailwind classes / grid at the largest breakpoint (`w-80` → 320, a 3-column `max-w-7xl` grid → ~350, a `max-w-4xl` article → ~768). `height` is optional — Astro derives it from the aspect ratio — set it only when cropping to a fixed ratio (`object-cover` tiles).
+- **Measure the slot, don't guess.** Read the width from the container's Tailwind classes / grid at the largest breakpoint (`w-80` → 320, a 3-column `max-w-7xl` grid → ~350, a `max-w-4xl` article → ~768).
+- **`sizes` without `widths` does nothing.** Astro's `getSrcSet` returns `[]` unless `widths` (or `densities`) is set, so the tag ships a **single candidate** and the `sizes` attribute is inert. Always pair them: `width={W} widths={[W, W * 2]} sizes="…"`. Never pass both `widths` and `densities` — that throws `IncompatibleDescriptorOptions`.
 - **`sizes` is mandatory unless the image is genuinely full-bleed.** Astro's default is `100vw`, which tells the browser to pick the largest srcset candidate at every viewport, undoing the point of the srcset. Write the measured form:
   ```astro
   sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"
   ```
-- **Escape hatch — `.img-uncap`.** unpic turns `width`/`height` into inline `max-width`/`max-height` caps on the element. Slots that *grow* wider than the measured width (bento tiles, feature screenshots, card covers with `object-cover`) will visually shrink once you add `width`. Add the `.img-uncap` utility (defined in `src/index.css`) to lift the cap — `srcset`/`sizes` still deliver the right-sized file, only the CSS ceiling is removed:
-  ```astro
-  <Image src={tile} width={472} height={320} sizes="(min-width: 1024px) 472px, 100vw"
-         class="img-uncap h-80 w-full object-cover" alt="…" loading="lazy" />
-  ```
-- **Markdown/content images (blog, docs) — cap centrally, not per-post.** Pipeline-processed images in markdown render at intrinsic resolution (1024–2220px) with `sizes: 100vw` into a ~710–766px article column. Fix it once in a rehype plugin that sets `width = 768` and `sizes = "(min-width: 768px) 768px, 100vw"` on content `<img>` elements that don't already declare them, rather than annotating every post.
+- **`widths` above the source's intrinsic width are clamped, never upscaled.** `getSrcSet` filters them out and substitutes the intrinsic width. So a 2x candidate only exists if the *source asset* is big enough — check for an `@2x` master before assuming retina works. A silently clamped ladder looks fine in code and ships a soft image.
+- **`width` + `height` that disagree with the source's aspect ratio cause a crop.** sharp resizes with `fit: cover` by default, so a mismatched pair silently crops the image — and if the slot also has `object-cover`, it gets cropped twice. **Pass `width` alone** and let Astro derive the height from the intrinsic ratio; add `height` only when the crop is the intent (e.g. a round avatar whose box is exactly `W × H`).
+- **Let CSS size the box, not the `width` prop.** The `width` prop controls the *file*; it does not make the element fill its container. If a slot is meant to grow with its container, give the element `w-full` (or `w-full h-full object-cover` for a fixed-height tile) and let `sizes` describe the real widths. Do not reach for `max-width: none !important` utilities — that was a workaround for a third-party image service the scaffold no longer uses.
+- **Markdown/content images (blog, docs) — cap centrally, not per-post.** Pipeline-processed images in markdown render at intrinsic resolution (1024–2220px) with `sizes: 100vw` into a ~710–766px article column. Fix it once in a rehype plugin that sets `width = 768`, `widths = [384, 768, 1536]` and `sizes = "(min-width: 768px) 768px, 100vw"` on content `<img>` elements that don't already declare them, rather than annotating every post.
+  > These are real `getImage()` transform options, not HTML attributes: `@astrojs/markdown-remark` runs **user rehype plugins before its own `rehypeImages`**, which folds `node.properties` into the `__ASTRO_IMAGE_` payload that `getImage()` later consumes. That ordering is also why omitting `widths` here silently strips the srcset from every in-article image.
 
 #### Asset Path Rule (CRITICAL)
 
@@ -192,7 +191,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
   import photo from "@/assets/photo.jpg";
   import logo from "@/assets/logo.svg";
   ---
-  <Picture src={photo} formats={['webp']} width={400} height={400} widths={[400, 800]} sizes="(min-width: 640px) 400px, 100vw" alt="..." />
+  <Picture src={photo} formats={['webp']} width={400} widths={[400, 800]} sizes="(min-width: 640px) 400px, 100vw" alt="..." />
   <img src={logo.src} width={logo.width} height={logo.height} alt="..." />
   ```
 - For truly static files that must keep a stable public URL (e.g. `/favicon.ico`, `/robots.txt`), put them in `public/` and reference as `/filename.ext` — not `/src/assets/...`.
@@ -375,12 +374,15 @@ Your goal is to create a beautiful, performant landing page that matches the use
 |-------|----------|
 | TypeScript errors with `class` | Use `className` on React/shadcn components |
 | Styles not applying | Check `@import 'tailwindcss'` is first line in index.css |
-| Images not optimizing | Use `<Picture>` for local raster assets only, `<img>` for local SVG and external URLs. Ensure Astro uses `image: { service: imageService() }` from `@unpic/astro/service` and Cloudflare adapter uses `imageService: "custom"` |
+| Images not optimizing | Use `<Picture>` for local raster assets only, `<img>` for local SVG and external URLs. Leave `image.service` unset (Astro defaults to sharp) and ensure the Cloudflare adapter uses `imageService: "custom"` — `"compile"` and `"passthrough"` both replace sharp. See "Cloudflare Adapter & Image Service" |
 | Images 404 in production but work in dev | Raw `/src/assets/...` paths in `src` attributes — import the asset and use `<Picture>`/`<Image>` instead. See "Asset Path Rule" above |
 | Build fails: `ENOENT ... dist/_astro/<name>.png` during "generating optimized images" | A `<Picture>` outputs only formats that don't include the source format (e.g. `formats={['webp']}` + `fallbackFormat="webp"` from a `.png`). Astro 6.1.6+ then doesn't emit the original to `dist/`. **Drop `fallbackFormat="webp"`** so the fallback keeps the source format. See "Image Optimization" above |
 | Images not loading in dev | The Cloudflare adapter `imageService: "passthrough"` disables image processing entirely (uses noop service), breaking `<Picture>` and `<Image>` in dev. Use Unpic with `"custom"` instead |
-| Images served far larger than they're displayed (huge downloads, poor LCP) | The `<Picture>`/`<Image>` has no explicit `width`, so Astro emits the intrinsic-resolution file. **`widths` alone does nothing — unpic ignores it.** Set `width` to the measured display width and add a matching `sizes`. See "Right-Sizing" above |
-| Image visually shrank after adding `width` | unpic turns `width`/`height` into inline `max-width`/`max-height` caps. If the slot grows wider than the measured width, add `class="img-uncap"` to lift the cap — `srcset`/`sizes` keep delivering the right-sized file. See "Right-Sizing" above |
+| Images served far larger than they're displayed (huge downloads, poor LCP) | The `<Picture>`/`<Image>` has no explicit `width`, so Astro emits the intrinsic-resolution file. Set `width` to the measured display width, add `widths={[W, W * 2]}` and a matching `sizes`. See "Right-Sizing" above |
+| Only one image file emitted; `sizes` seems ignored | The tag has `width` + `sizes` but no `widths`/`densities`. Astro's `getSrcSet` returns `[]` without one of them, so no `srcset` is written and `sizes` is inert. Add `widths={[W, W * 2]}` |
+| Image looks cropped / content cut off at the edges | `width` and `height` disagree with the source's aspect ratio, so sharp resized with `fit: cover`. Drop `height` and let Astro derive it; keep both only when the crop is intended |
+| 2x candidate looks soft, or srcset tops out below what you asked for | `widths` above the source's intrinsic width are clamped (never upscaled). The source asset is too small — point at an `@2x` master |
+| Image visually shrank after adding `width` | The `width` prop sizes the *file*, not the element. If the slot should fill its container, add `w-full` (or `w-full h-full object-cover` for a fixed-height tile). Do not add a `max-width: none !important` utility |
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
 | Anchor links broken | Ensure target element has matching `id` attribute |
@@ -418,19 +420,12 @@ If a route works in dev but breaks (or vice versa) in production, the cause is a
 
 ### Cloudflare Adapter & Image Service (CRITICAL)
 
-The scaffold uses Unpic as Astro's image service:
+The scaffold uses **Astro's built-in sharp image service**. There is deliberately **no `image.service` key** in `astro.config.mjs` — Astro's schema default is already `astro/assets/services/sharp`, so setting it explicitly buys nothing.
 
-```js
-import { imageService } from "@unpic/astro/service";
+The Cloudflare adapter's `imageService` option then decides whether that survives:
 
-export default defineConfig({
-  image: { service: imageService() },
-});
-```
-
-The Cloudflare adapter's `imageService` option controls how images are processed:
-
-- **`"custom"`** (REQUIRED) — Keeps the configured Unpic Astro image service in charge of `<Picture>` and `<Image>` output.
+- **`"custom"`** (REQUIRED) — `setImageConfig()` returns your `image` config untouched. **This is the only value under which sharp survives.**
+- **`"compile"`** — ⚠️ **Do not use.** Despite the name, it does not compile with sharp. On adapter **v13** `case "compile"` returns `WORKERD_IMAGE_SERVICE` *unconditionally*; on **v14** it returns `hasUserImageService(config) ? config.service : WORKERD_IMAGE_SERVICE`, and `hasUserImageService()` **explicitly excludes the sharp entrypoint**. Either way sharp is swapped out. Verify in `node_modules/@astrojs/cloudflare/dist/utils/image-config.js` before changing this.
 - **`"passthrough"`** — **DO NOT USE.** Replaces the image service with a noop, breaking all `<Picture>`/`<Image>` components (images won't load in dev or build).
 - **`"cloudflare"`** — Uses Cloudflare Image Resizing (runtime, requires Cloudflare plan support).
 - **`"cloudflare-binding"`** — Uses Cloudflare Images binding for transformation.

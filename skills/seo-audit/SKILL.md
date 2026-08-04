@@ -1,6 +1,6 @@
 ---
 name: seo-audit
-description: Static SEO audit for Astro `_dist/` HTML — meta tags, headings, canonicals, schema, sitemap, robots.txt, alt text, mixed content, internal links, image sizes, favicons. Can scope to a single page, group of pages, or whole site. Report-only — no fixes applied. Use when user requests "run SEO test", "SEO audit", "check meta tags", "validate canonicals", "audit indexability", or "check site for SEO issues".
+description: Static SEO audit for Astro `_dist/` HTML — meta tags, headings, canonicals, schema, sitemap, robots.txt, alt text, mixed content, internal links, image right-sizing (measured pixel dimensions vs the slot `sizes` declares, inert `sizes` with no srcset, aspect-ratio drift), favicons. Can scope to a single page, group of pages, or whole site. Report-only — no fixes applied. Use when user requests "run SEO test", "SEO audit", "check meta tags", "validate canonicals", "audit indexability", or "check site for SEO issues".
 ---
 
 # SEO Audit
@@ -163,6 +163,25 @@ For each `<img src="...">` and `<source srcset="...">` referencing a **local** p
 
 Skip external images (Unsplash, CDN URLs) — they're outside our control. Skip SVG files (typically tiny). Astro's build fails on broken `<Picture>`/`<Image>` imports, so existence is already guaranteed at this stage.
 
+#### Image Right-Sizing — emitted pixels vs declared slot
+
+File size in MB is only a proxy. The sharper signal is **actual pixel dimensions against the slot the markup claims**, which catches a well-compressed 5000px logo dropped into a 200px card. This check runs on the built HTML, so it verifies what actually shipped rather than what the source props intended.
+
+For each `<img>` / `<source>` with a local `src`/`srcset`:
+
+1. Parse `srcset` into (file, descriptor) pairs; include the plain `src` as a candidate.
+2. Read each candidate's **real pixel width** (`sharp(file).metadata()`, or `sips -g pixelWidth -g pixelHeight` on macOS).
+3. Derive the largest slot width the tag advertises from `sizes` — take the largest `px` value, resolving `Nvw` and `calc(100vw - Npx)` against a 1920px viewport. Fall back to the `width` attribute when there's no `sizes`.
+
+Report:
+
+- Largest candidate **> 2× the largest declared slot** → critical: "Oversized: [file] is Npx for an Mpx slot (N/M×)". This is the "5000px into a 200px slot" case.
+- Tag has a `sizes` attribute but **only one candidate** → warning: "`sizes` is inert on [src] — no `srcset` emitted". Astro's `getSrcSet` returns `[]` unless `widths`/`densities` is set, so the markup looks right-sized but ships a single file.
+- A candidate's **aspect ratio differs from the fallback's by > 1%** → warning: "Aspect drift on [file]: WxH (AR a) vs fallback AR b". Usually a `width`+`height` pair that disagrees with the source ratio, making sharp crop with `fit: cover`. Allow rounding noise — a 1px difference on a short image is not a finding.
+- Malformed attributes on any `<img>` — a literal `style="[object Object]"`, or stray `url=`/`format=` attributes → critical. These indicate a non-native image service is mangling output.
+
+Skip SVG entirely here: it's vector, so pixel width says nothing about delivery weight, and measuring it produces false positives on every logo.
+
 #### URL Hygiene
 
 Per page URL (from sitemap.xml or file path):
@@ -275,6 +294,8 @@ See `references/example-report.md` for the full template — match its shape and
 - Broken favicon reference (link points to file not present in `_dist`)
 - Broken internal link (anchor href targets a file or in-page id that doesn't exist)
 - Local image > 2 MB
+- Emitted image more than 2× the largest slot its `sizes` declares
+- Malformed image markup: `style="[object Object]"`, or stray `url=`/`format=` attributes
 - robots.txt `Sitemap:` line points to a sitemap file not present in `_dist/`
 - Sitemap lists a `noindex` page (contradictory index signal)
 
@@ -288,6 +309,8 @@ See `references/example-report.md` for the full template — match its shape and
 - Duplicates (title, description, or cross-page H1 text), orphaned pages
 - Missing or empty `<html lang>` attribute
 - Local image 1–2 MB
+- `sizes` attribute present but only one candidate emitted (no `srcset`)
+- Aspect-ratio drift > 1% between a srcset candidate and the fallback
 - Insecure anchor link (`<a href="http://...">`)
 - Filename-style/low-quality `alt` text; `<img>` missing `width`/`height` (CLS)
 - Sitemap missing `<lastmod>`, or all `<lastmod>` values identical (build-time stamp)
