@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization, className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, internal links (trailing-slash convention), accessibility (aria-labels, semantic elements), LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
+description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization (right-sizing via `width`/`sizes`, oversized images), className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, internal links (trailing-slash convention), accessibility (aria-labels, semantic elements), LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
 ---
 
 # Code Review Skill
@@ -84,10 +84,25 @@ Scan `.astro` and `.tsx` files for shadcn/React component usages (capitalised ta
 
 For each `.astro` file:
 
-- **Critical**: a local image is `import`-ed (e.g. `import hero from '@/assets/…'`) and rendered with a bare `<img>` tag. CLAUDE.md mandates `<Picture>` from `astro:assets` with `formats={['avif','webp']}` and `widths={[800, 1200, 1920]}` for local images.
-- **Warning**: `<Picture>` / `<Image>` missing `formats` or `widths`.
+- **Critical**: a local image is `import`-ed (e.g. `import hero from '@/assets/…'`) and rendered with a bare `<img>` tag. CLAUDE.md mandates `<Picture>` / `<Image>` from `astro:assets` for local raster images. **Exception**: local `.svg` imports rendered as `<img src={logo.src}>` are correct (CLAUDE.md → Image Optimization keeps SVGs out of the raster pipeline).
+- **Warning**: `<Picture>` missing `formats={['webp']}`.
 - **Warning**: an above-the-fold image (in the first section of a page) without `loading="eager"`, or a below-the-fold image without `loading="lazy"`.
 - **Pass (do NOT flag)**: bare `<img>` whose `src` is an external URL such as `https://images.unsplash.com/…` — CLAUDE.md explicitly allows this for placeholder/external imagery.
+
+#### D1. Right-Sizing — `width` and `sizes`
+
+The single highest-impact image check, and the one a naive prop-presence review misses. The scaffold configures `@unpic/astro/service` as Astro's image service (`astro.config.mjs` → `image: { service: imageService() }`), and **unpic ignores the `widths` prop** — `width` is what determines the file Astro emits. A `<Picture widths={[400, 800, 1200]}>` with no `width` *looks* right-sized and is not: Astro emits the intrinsic-resolution original, and `sizes` defaults to `100vw` so the browser picks the largest candidate at every viewport. Real-world impact: [site-paretosecurity#28](https://github.com/teamniteo/site-paretosecurity/pull/28) found 98 images (291 instances) served at up to 5000px wide into slots as small as 200px.
+
+- **Critical** — *local `<Picture>` / `<Image>` with no explicit `width` prop*. Ships the full-resolution asset to every visitor and tanks LCP. Rule: `CLAUDE.md → Image Optimization → Right-Sizing`. Report the file:line and, where you can read it off the surrounding markup, the container width the image should have been sized to.
+  - Detect: `<Picture` / `<Image` tags in `.astro` files whose props include `src={<imported local asset>}` but no `width=`. Presence of `widths={[…]}` does **not** satisfy this — call that out in the message so the fix isn't "add more widths".
+- **Warning** — *`width` present but no `sizes`, or an explicit `sizes="100vw"` on a slot that isn't full-bleed*. Without a measured `sizes`, the browser assumes the image spans the viewport and downloads the largest srcset candidate regardless of the slot. Expected form: `sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"`.
+  - Full-bleed images (`w-screen`, a hero whose wrapper has no `max-w-*`) legitimately use `100vw` — pass those.
+- **Warning (advisory)** — *`width` looks like an intrinsic asset size, not a display size*. Heuristic: `width` ≥ 1600 on an image inside a card/tile/grid container (`grid`, `md:grid-cols-*`, `max-w-sm|md|lg|xl`, `w-*` on the wrapper), or a value that matches a common capture dimension (1920, 2560, 3024, 5120). This skill cannot compute layout — phrase the finding as "verify `width={N}` against the rendered slot" rather than asserting it's wrong.
+- **Warning** — *markdown-content images not centrally right-sized*. The project has a blog or docs content collection (`src/content/**` with `.md`/`.mdx`) but `astro.config.mjs` `markdown.rehypePlugins` contains no plugin that sets `width`/`sizes` on content `<img>` elements. Article columns are ~710–766px while pipeline images render at intrinsic resolution (1024–2220px). The fix is one rehype plugin (`width = 768`, `sizes = "(min-width: 768px) 768px, 100vw"`), not per-post annotation.
+- **Pass (do NOT flag)** — `class="img-uncap"` on a right-sized image. This is the sanctioned escape hatch, not a hack: unpic turns `width`/`height` into inline `max-width`/`max-height` caps, so slots that grow wider than the measured width need the cap lifted while `srcset`/`sizes` keep delivering the right file. Flag it only if it appears on an image that has no `width` at all (it does nothing there).
+- **Pass** — every local `<Picture>`/`<Image>` declares `width`, plus `sizes` unless full-bleed.
+
+> Note for the reviewer: `widths={[W, W * 2]}` is still worth keeping — it supplies the 2x retina candidate — it just isn't what constrains the emitted file. Don't report a missing `widths` as an issue on its own; that framing is what let the paretosecurity regression through review.
 
 ### E. Fonts
 
@@ -224,11 +239,17 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
    File: astro.config.mjs:19
    Rule: CLAUDE.md → Cloudflare Adapter & Image Service
 
+4. <Picture> has no `width` — emits the full-resolution asset into a ~350px card
+   (`widths={[400,800,1200]}` does not constrain output; unpic ignores it)
+   File: src/pages/blog/index.astro:147
+   Rule: CLAUDE.md → Image Optimization → Right-Sizing
+
 ---
 
 ## Warnings (⚠️)
 
-1. <Picture> missing `widths` array (responsive sizes)
+1. <Picture width={464}> has no `sizes` — browser assumes 100vw and picks the
+   largest candidate at every viewport
    File: src/components/Hero.astro:88
 
 2. Primary font family is "Inter" — flagged by Hakuto aesthetic guidelines
@@ -251,6 +272,7 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
 - imageService: "compile" + prerenderEnvironment: "node"
 - No favicon sources in public/
 - All internal links match the trailingSlash convention
+- Every local <Picture>/<Image> declares an explicit display `width`
 - bun run check: clean over in-scope files
 
 ---
@@ -258,6 +280,7 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
 To fix issues, ask Claude:
 - "Fix all critical code review issues"
 - "Convert hero <img> to <Picture> in src/pages/index.astro"
+- "Right-size the images in src/pages/blog/ — measure each slot and add width + sizes"
 - "Add aria-label to icon-only buttons in Header.astro"
 ```
 
@@ -270,6 +293,7 @@ To fix issues, ask Claude:
 - `.tsx`/`.jsx` in `src/pages/` or `src/layouts/`
 - `class=` on a React/shadcn component
 - Bare `<img>` for an imported local image
+- Local `<Picture>` / `<Image>` with no explicit `width` — emits the intrinsic-resolution file (`widths` does not constrain it under unpic)
 - `@font-face` / `@import` for fonts in CSS; custom fonts without `experimental.fonts`
 - Cloudflare `imageService: "passthrough"` or missing `prerenderEnvironment: "node"`
 - Editable favicon source under `public/`
@@ -282,7 +306,10 @@ To fix issues, ask Claude:
 
 **Warning (⚠️)** — should fix but non-blocking:
 - Custom tokens outside `@theme`; CSS variables outside `@layer base`
-- `style={{}}` on shadcn components; `<Picture>` missing `formats`/`widths`
+- `style={{}}` on shadcn components; `<Picture>` missing `formats`
+- Right-sized `width` but no `sizes`, or `sizes="100vw"` on a non-full-bleed slot
+- `width` that looks like an intrinsic asset size (≥1600 inside a card/grid slot) — advisory, verify against the rendered slot
+- Blog/docs content collection with no rehype plugin right-sizing markdown `<img>`
 - `loading` attribute missing or wrong for above/below-the-fold images
 - Above-the-fold image with `loading="eager"` but no `fetchpriority="high"`
 - Hero `<h1>` inherits a custom heading font with no `max-md:font-system`-style mobile override (mobile LCP risk)

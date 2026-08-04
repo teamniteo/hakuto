@@ -156,11 +156,28 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - **Avoid generic fonts** (Inter, Roboto, Arial) - use distinctive fonts like Crimson Pro, Sora, Bitter, Spectral
 
 ### Image Optimization (CRITICAL)
-- **Local raster images**: Use `<Picture>` from 'astro:assets' with `formats={['webp']}` and `widths={[800, 1200, 1920]}`. **Do NOT set `fallbackFormat="webp"`** — when no output format matches the source (e.g. webp-only from a `.png`), Astro 6.1.6+ stops emitting the original asset to `dist/` but the image generator still tries to read it, failing the build with `ENOENT: ... dist/_astro/<name>.png`. Omit `fallbackFormat` so the `<img>` fallback keeps the source format (the original gets emitted) — the modern `<source type="image/webp">` is still what browsers actually use.
+- **Local raster images**: Use `<Picture>` from 'astro:assets' with `formats={['webp']}`. **Do NOT set `fallbackFormat="webp"`** — when no output format matches the source (e.g. webp-only from a `.png`), Astro 6.1.6+ stops emitting the original asset to `dist/` but the image generator still tries to read it, failing the build with `ENOENT: ... dist/_astro/<name>.png`. Omit `fallbackFormat` so the `<img>` fallback keeps the source format (the original gets emitted) — the modern `<source type="image/webp">` is still what browsers actually use.
 - **Local SVG images**: Use imported asset metadata with a native `<img>` tag so the output file stays SVG
 - **External/placeholder images**: Use `<img>` tags for Unsplash URLs: `https://images.unsplash.com/photo-{PHOTO_ID}?w={WIDTH}&h={HEIGHT}&fit=crop`
 - Import local images in frontmatter: `import heroImage from '@/assets/hero.jpg';`
 - Use `loading="eager"` for above-the-fold, `loading="lazy"` for below-the-fold
+
+#### Right-Sizing: `width` and `sizes` (CRITICAL)
+
+**Every `<Picture>` / `<Image>` MUST declare an explicit `width`, and it must be the image's real CSS display width — not the asset's intrinsic size.** Omitting it ships the full-resolution original to every visitor: a 5000px screenshot into a 200px card is a multi-megabyte download for a thumbnail, and it wrecks LCP.
+
+- **`width` is what controls the emitted file. `widths` does NOT.** The scaffold uses `@unpic/astro/service` (see "Cloudflare Adapter & Image Service"), and **unpic ignores the `widths` prop**. Setting `widths={[400, 800, 1200]}` with no `width` looks like right-sizing but does nothing — Astro emits the intrinsic-resolution file. Keep `widths={[W, W * 2]}` for the 2x retina candidate, but never rely on it alone.
+- **Measure the slot, don't guess.** Read the width from the container's Tailwind classes / grid at the largest breakpoint (`w-80` → 320, a 3-column `max-w-7xl` grid → ~350, a `max-w-4xl` article → ~768). `height` is optional — Astro derives it from the aspect ratio — set it only when cropping to a fixed ratio (`object-cover` tiles).
+- **`sizes` is mandatory unless the image is genuinely full-bleed.** Astro's default is `100vw`, which tells the browser to pick the largest srcset candidate at every viewport, undoing the point of the srcset. Write the measured form:
+  ```astro
+  sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"
+  ```
+- **Escape hatch — `.img-uncap`.** unpic turns `width`/`height` into inline `max-width`/`max-height` caps on the element. Slots that *grow* wider than the measured width (bento tiles, feature screenshots, card covers with `object-cover`) will visually shrink once you add `width`. Add the `.img-uncap` utility (defined in `src/index.css`) to lift the cap — `srcset`/`sizes` still deliver the right-sized file, only the CSS ceiling is removed:
+  ```astro
+  <Image src={tile} width={472} height={320} sizes="(min-width: 1024px) 472px, 100vw"
+         class="img-uncap h-80 w-full object-cover" alt="…" loading="lazy" />
+  ```
+- **Markdown/content images (blog, docs) — cap centrally, not per-post.** Pipeline-processed images in markdown render at intrinsic resolution (1024–2220px) with `sizes: 100vw` into a ~710–766px article column. Fix it once in a rehype plugin that sets `width = 768` and `sizes = "(min-width: 768px) 768px, 100vw"` on content `<img>` elements that don't already declare them, rather than annotating every post.
 
 #### Asset Path Rule (CRITICAL)
 
@@ -175,7 +192,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
   import photo from "@/assets/photo.jpg";
   import logo from "@/assets/logo.svg";
   ---
-  <Picture src={photo} formats={['webp']} widths={[400, 800]} alt="..." width={400} height={400} />
+  <Picture src={photo} formats={['webp']} width={400} height={400} widths={[400, 800]} sizes="(min-width: 640px) 400px, 100vw" alt="..." />
   <img src={logo.src} width={logo.width} height={logo.height} alt="..." />
   ```
 - For truly static files that must keep a stable public URL (e.g. `/favicon.ico`, `/robots.txt`), put them in `public/` and reference as `/filename.ext` — not `/src/assets/...`.
@@ -362,6 +379,8 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | Images 404 in production but work in dev | Raw `/src/assets/...` paths in `src` attributes — import the asset and use `<Picture>`/`<Image>` instead. See "Asset Path Rule" above |
 | Build fails: `ENOENT ... dist/_astro/<name>.png` during "generating optimized images" | A `<Picture>` outputs only formats that don't include the source format (e.g. `formats={['webp']}` + `fallbackFormat="webp"` from a `.png`). Astro 6.1.6+ then doesn't emit the original to `dist/`. **Drop `fallbackFormat="webp"`** so the fallback keeps the source format. See "Image Optimization" above |
 | Images not loading in dev | The Cloudflare adapter `imageService: "passthrough"` disables image processing entirely (uses noop service), breaking `<Picture>` and `<Image>` in dev. Use Unpic with `"custom"` instead |
+| Images served far larger than they're displayed (huge downloads, poor LCP) | The `<Picture>`/`<Image>` has no explicit `width`, so Astro emits the intrinsic-resolution file. **`widths` alone does nothing — unpic ignores it.** Set `width` to the measured display width and add a matching `sizes`. See "Right-Sizing" above |
+| Image visually shrank after adding `width` | unpic turns `width`/`height` into inline `max-width`/`max-height` caps. If the slot grows wider than the measured width, add `class="img-uncap"` to lift the cap — `srcset`/`sizes` keep delivering the right-sized file. See "Right-Sizing" above |
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
 | Anchor links broken | Ensure target element has matching `id` attribute |
