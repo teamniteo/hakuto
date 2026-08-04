@@ -1,8 +1,8 @@
 name = 'hakuto-site'
 main="worker/index.js"
-compatibility_date = "2026-05-05"
-compatibility_flags = [ "nodejs_compat" ]
+compatibility_date = "2026-06-24"
 preview_urls = true
+workers_dev = true
 
 [observability.logs]
 enabled = false
