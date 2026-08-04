@@ -411,7 +411,7 @@ That's the "best of both worlds" split: the worker only sees paths it owns, and 
 Other directives that are also live in dev:
 
 - `not_found_handling = "404-page"` — non-worker paths that don't match a static file render the prerendered `404.astro`.
-- `compatibility_date` / `compatibility_flags` — runtime feature flags applied to the worker the same way in dev and prod.
+- `compatibility_date`, `preview_urls`, and `workers_dev` — runtime and preview behavior applied to the worker the same way in dev and prod.
 - `[assets]` directory, custom routes, observability, etc. — all honored.
 
 If a route works in dev but breaks (or vice versa) in production, the cause is almost always something else (env vars, secrets, the adapter's prerender environment), **not** a divergence in how `wrangler.toml` is interpreted.
