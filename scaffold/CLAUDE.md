@@ -156,7 +156,22 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 - **Avoid generic fonts** (Inter, Roboto, Arial) - use distinctive fonts like Crimson Pro, Sora, Bitter, Spectral
 
 ### Image Optimization (CRITICAL)
-- **Local raster images**: Use `<Picture>` from 'astro:assets' with `formats={['webp']}`. **Do NOT set `fallbackFormat="webp"`** — when no output format matches the source (e.g. webp-only from a `.png`), Astro 6.1.6+ stops emitting the original asset to `dist/` but the image generator still tries to read it, failing the build with `ENOENT: ... dist/_astro/<name>.png`. Omit `fallbackFormat` so the `<img>` fallback keeps the source format (the original gets emitted) — the modern `<source type="image/webp">` is still what browsers actually use.
+- **Local raster images**: Use `<Picture>` from 'astro:assets' with `formats={['webp']}`. The modern `<source type="image/webp">` is what browsers actually use; the `<img>` is only the fallback.
+- **`fallbackFormat` depends on the SOURCE file's extension — there is no blanket rule.** In `node_modules/astro/components/Picture.astro`:
+  ```js
+  let resultFallbackFormat = fallbackFormat ?? defaultFallbackFormat; // 'png'
+  if (!fallbackFormat && isESMImportedImage(clonedSrc) &&
+      specialFormatsFallback.includes(clonedSrc.format)) {            // ['gif','svg','jpg','jpeg']
+    resultFallbackFormat = clonedSrc.format;
+  }
+  ```
+  Only `gif`/`svg`/`jpg`/`jpeg` fall back to themselves. Everything else defaults to **PNG**:
+  - **`.webp` / `.avif` source → SET `fallbackFormat="webp"`.** Neither is on that list, so omitting it transcodes the `<img>` fallback to PNG — for photographic content routinely several megabytes, larger than the source it replaced. **This is the only case where getting it wrong is a real bug.**
+  - **`.jpg` / `.jpeg` / `.gif` / `.svg` source → omit it.** They already fall back to themselves.
+  - **`.png` source → optional; setting `"webp"` is usually the better default.** Omitted, the fallback is PNG (correct, but you ship a second full ladder alongside the webp one). Set to `"webp"`, the fallback reuses the webp files. Measured on a 2400px PNG at `widths={[300, 600]}`: **4 files / 109 kB** omitted vs **2 files / 27 kB** set. The tradeoff is losing the non-webp fallback, which no supported browser needs.
+  - **Source format not known statically** (a content-collection `featuredImage`, a `.map()` over mixed assets): compute it rather than hardcoding — `fallbackFormat={img.format === "webp" ? "webp" : undefined}`. Keep the helper in `src/lib/image-fallback.ts`.
+
+  > **Historical note.** Earlier revisions of this file said `fallbackFormat="webp"` on a `.png` source fails the build with `ENOENT … dist/_astro/<name>.png`. **That no longer reproduces** — verified on `astro@6.4.8` and `astro@7.1.3` with a webp-only `<Picture>`, with and without `widths`, and with a second raw `<img>` on the same asset. Astro deletes an unreferenced original in `dist/assets/build/generate.js`, but only when `globalThis.astroAsset.referencedImages` lacks the path, and the `unlink` sits inside `try {} catch {}`. If you do hit this error you are on an older Astro — upgrade rather than changing the prop.
 - **Local SVG images**: Use imported asset metadata with a native `<img>` tag so the output file stays SVG
 - **External/placeholder images**: Use `<img>` tags for Unsplash URLs: `https://images.unsplash.com/photo-{PHOTO_ID}?w={WIDTH}&h={HEIGHT}&fit=crop`
 - Import local images in frontmatter: `import heroImage from '@/assets/hero.jpg';`
@@ -172,7 +187,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
   ```astro
   sizes="(min-width: 1024px) 350px, (min-width: 640px) 50vw, 100vw"
   ```
-- **`widths` above the source's intrinsic width are clamped, never upscaled.** `getSrcSet` filters them out and substitutes the intrinsic width. So a 2x candidate only exists if the *source asset* is big enough — check for an `@2x` master before assuming retina works. A silently clamped ladder looks fine in code and ships a soft image.
+- **Nothing is ever upscaled — neither `widths` nor `width`.** `getSrcSet` filters `widths` above the source's intrinsic width and substitutes the intrinsic width; independently, all three `resize()` branches in `astro/dist/assets/services/sharp.js` pass `withoutEnlargement: true`, so an oversized `width` caps at the source too. Consequence: a 2x candidate only exists if the *source asset* is big enough — check for an `@2x` master before assuming retina works. A silently clamped ladder looks fine in code and ships a soft image, and the fix is a bigger source, never a bigger number.
 - **`width` + `height` that disagree with the source's aspect ratio cause a crop.** sharp resizes with `fit: cover` by default, so a mismatched pair silently crops the image — and if the slot also has `object-cover`, it gets cropped twice. **Pass `width` alone** and let Astro derive the height from the intrinsic ratio; add `height` only when the crop is the intent (e.g. a round avatar whose box is exactly `W × H`).
 - **Let CSS size the box, not the `width` prop.** The `width` prop controls the *file*; it does not make the element fill its container. If a slot is meant to grow with its container, give the element `w-full` (or `w-full h-full object-cover` for a fixed-height tile) and let `sizes` describe the real widths. Do not reach for `max-width: none !important` utilities — that was a workaround for a third-party image service the scaffold no longer uses.
 - **Markdown/content images (blog, docs) — cap centrally, not per-post.** Pipeline-processed images in markdown render at intrinsic resolution (1024–2220px) with `sizes: 100vw` into a ~710–766px article column. Fix it once in a rehype plugin that sets `width = 768`, `widths = [384, 768, 1536]` and `sizes = "(min-width: 768px) 768px, 100vw"` on content `<img>` elements that don't already declare them, rather than annotating every post.
@@ -378,7 +393,8 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | Styles not applying | Check `@import 'tailwindcss'` is first line in index.css |
 | Images not optimizing | Use `<Picture>` for local raster assets only, `<img>` for local SVG and external URLs. Leave `image.service` unset (Astro defaults to sharp) and ensure the Cloudflare adapter uses `imageService: "custom"` — `"compile"` and `"passthrough"` both replace sharp. See "Cloudflare Adapter & Image Service" |
 | Images 404 in production but work in dev | Raw `/src/assets/...` paths in `src` attributes — import the asset and use `<Picture>`/`<Image>` instead. See "Asset Path Rule" above |
-| Build fails: `ENOENT ... dist/_astro/<name>.png` during "generating optimized images" | A `<Picture>` outputs only formats that don't include the source format (e.g. `formats={['webp']}` + `fallbackFormat="webp"` from a `.png`). Astro 6.1.6+ then doesn't emit the original to `dist/`. **Drop `fallbackFormat="webp"`** so the fallback keeps the source format. See "Image Optimization" above |
+| A `.webp` / `.avif` source ships a huge PNG `<img>` fallback (big PNGs in `dist/_astro/` next to the webp variants) | Neither format is in Astro's `specialFormatsFallback` (`gif`/`svg`/`jpg`/`jpeg`), so omitting `fallbackFormat` transcodes the fallback to PNG. **Set `fallbackFormat="webp"`** on those sources. See "Image Optimization" above |
+| Build fails: `ENOENT ... dist/_astro/<name>.png` during "generating optimized images" | You are on an Astro older than 6.4. Current versions guard this via `referencedImages` in `dist/assets/build/generate.js` — **upgrade Astro**; do not "fix" it by changing `fallbackFormat`. See the historical note under "Image Optimization" |
 | Images not loading in dev | The Cloudflare adapter `imageService: "passthrough"` disables image processing entirely (uses noop service), breaking `<Picture>` and `<Image>` in dev. Use `"custom"` instead |
 | Images served far larger than they're displayed (huge downloads, poor LCP) | The `<Picture>`/`<Image>` has no explicit `width`, so Astro emits the intrinsic-resolution file. Set `width` to the measured display width, add `widths={[W, W * 2]}` and a matching `sizes`. See "Right-Sizing" above |
 | Only one image file emitted; `sizes` seems ignored | The tag has `width` + `sizes` but no `widths`/`densities`. Astro's `getSrcSet` returns `[]` without one of them, so no `srcset` is written and `sizes` is inert. Add `widths={[W, W * 2]}` |
