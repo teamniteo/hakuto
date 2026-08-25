@@ -1,6 +1,6 @@
 ---
 name: fonts
-description: Configure web fonts via Astro's Fonts API (top-level `fonts` in Astro 6+, `experimental.fonts` in 5.x). Use whenever custom fonts come up — user mentions Google Fonts, Fontsource, local fonts, typography changes, font loading or performance, or asks to "add fonts", "change typography", "use custom fonts", "improve font loading", "optimize fonts". The Fonts API replaces `@import` and `@font-face` in CSS.
+description: Configure web fonts via Astro's Fonts API (top-level `fonts` in Astro 6+, `experimental.fonts` in 5.x). Use whenever custom fonts come up — user mentions Google Fonts, Fontsource, local fonts, typography changes, font loading or performance, or asks to "add fonts", "change typography", "use custom fonts", "improve font loading", "optimize fonts". The Fonts API replaces `@import` and `@font-face` in CSS. Not for changing font size, weight or tracking on an already-configured family — those are Tailwind utilities in `src/index.css`, and loading this skill for them wastes a round-trip.
 ---
 
 # Fonts (Astro Fonts API)

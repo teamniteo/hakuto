@@ -1,6 +1,6 @@
 ---
 name: hakuto-review
-description: Hakuto-specific source audit for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization (right-sizing via `width`/`sizes`, oversized images), className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, internal links (trailing-slash convention), accessibility (aria-labels, semantic elements), LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "Hakuto review", "review my site source", "audit the site source", "check site code quality", or "lint the site".
+description: Source-level audit for Hakuto sites (Astro + Tailwind v4 + shadcn/ui) — grades `src/` and config against the project CLAUDE.md rules: images, component and Tailwind v4 correctness, Cloudflare adapter, internal links, accessibility, render-path performance, and `public/_headers`, where it owns both the caching and the CSP/security-header policy. Reviews one file, the recent diff, or all of `src/`; report-only. Use for "Hakuto review", "review my site source", "check site code quality", "lint the site", "check my security headers". Not for built-HTML SEO (`seo-audit`) or live Lighthouse scores (`pagespeed-audit`).
 ---
 
 # Hakuto Review Skill

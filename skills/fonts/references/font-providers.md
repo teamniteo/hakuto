@@ -1,6 +1,18 @@
 # Font Provider Reference
 
-Detailed configuration options for each font provider.
+Detailed configuration options for each font provider. Jump to the provider you need rather than reading straight through — the providers are independent of each other.
+
+## Contents
+
+- [Google Fonts](#google-fonts)
+- [Fontsource](#fontsource)
+- [Bunny Fonts](#bunny-fonts)
+- [Adobe Fonts](#adobe-fonts)
+- [Fontshare](#fontshare)
+- [Local Fonts](#local-fonts)
+- [Google Icons](#google-icons)
+- [Advanced Configuration](#advanced-configuration)
+- [Custom Provider](#custom-provider)
 
 ## Google Fonts
 
