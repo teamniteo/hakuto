@@ -66,20 +66,58 @@ Record `CURRENT_PLUGIN_VERSION` for the state file and migration report.
 
 Read `.hakuto-sync.json` at the site root.
 
-- **Missing** → **auto-baseline silently.** Write `.hakuto-sync.json` with the current SHA, print one line:
-  > Baseline initialized at SHA `xxxxxxx` — no diff shown this run. Run `scaffold-sync` again later to see future drift.
-
-  Then exit. (This handles legacy sites scaffolded before this skill existed.)
-
 - **Present and `last_synced_sha == CURRENT_SHA`** → print "Already in sync." and exit.
 
 - **Present, methods mismatch** (e.g. previous run used `git`, this run is `content-hash`, or vice versa) → print a one-line warning ("upstream history unavailable, falling back to 2-way diff") and continue with the degraded flow in Step 5.
 
-- Otherwise → proceed to Step 4.
+- **Present with a `last_synced_plugin_version`** → proceed to Step 4.
+
+- **Missing, or present without a `last_synced_plugin_version`** → run the baseline probe in
+  Step 3a. **Do not assume the site is current**, and do not exit.
+
+### 3a. Baseline probe — never assume a site is current
+
+A missing `.hakuto-sync.json` means this skill has not run here before. It does **not** mean
+the site matches the current scaffold. Most Hakuto sites predate the skill, and some are
+several releases behind while carrying live defects.
+
+Baselining such a site at the current SHA is the worst available outcome: it records the site
+as up to date, so this run *and every future run* report no drift, and whatever the site was
+missing stays missing and becomes permanently invisible. A site that is three releases behind
+looks identical to one that is current.
+
+Determine the baseline from evidence instead. Walk `references/migrations.md` newest-first and
+evaluate each entry's **Detect:** markers against the site:
+
+- All markers present → that migration has been applied. The newest such version is the
+  probed baseline.
+- Any marker absent → that migration is outstanding. Record it.
+
+Then:
+
+1. Write `.hakuto-sync.json` with the **probed** version — never `CURRENT_PLUGIN_VERSION` —
+   and set `"baseline_method": "probe"` so a later run knows the value was inferred rather
+   than recorded at sync time.
+2. Print what was found, naming every outstanding migration:
+   > Baseline probed at `0.4.0` (no `.hakuto-sync.json` found).
+   > Outstanding: **0.7.0** — SEO/agent-surface fixes (three live defects).
+3. **Continue to Step 4.** The point of the run is to show the user that drift, not to file it
+   away silently.
+
+If no entry's markers are satisfied, baseline at the oldest registry version and say so. An
+over-cautious baseline surfaces migrations that may already be applied, which the user can
+dismiss in one line. An over-confident one hides migrations that are not applied, and nobody
+will ever see them again.
+
+**The probe is a floor, never an override.** It can only return a version that *has* a
+registry entry, so a site legitimately recorded at `0.5.0` will probe to `0.4.0` simply
+because no `0.5.0` entry exists. That is not a disagreement and must not downgrade anything:
+run the probe only when there is no recorded `last_synced_plugin_version`, and when both
+exist, the recorded value wins.
 
 ### 4. Collect version migration notes
 
-Before computing file drift, compare the site's `last_synced_plugin_version` with `CURRENT_PLUGIN_VERSION`. If the field is missing, treat it as "unknown" and show all migration notes newer than the site's `last_synced_sha` when possible; otherwise show all active migration notes and mark them "review".
+Before computing file drift, compare the site's `last_synced_plugin_version` with `CURRENT_PLUGIN_VERSION`. If the field was absent, Step 3a has already probed one — use that value and carry its "probed, not recorded" caveat into the summary, so the user knows which entries are inferred rather than known.
 
 Use the migration registry in `references/migrations.md` — read only the entries newer than the site's `last_synced_plugin_version`. Each plugin version entry lists:
 - files that usually need to be applied from scaffold
@@ -231,7 +269,12 @@ On a clean run (user did not pick "Cancel"), write `.hakuto-sync.json`:
 }
 ```
 
-If the user cancelled, **do not touch the state file** — the next run resumes the same diff window.
+Note the absence of `baseline_method`: if Step 3a probed a baseline, this write replaces the
+inferred version with one that was actually recorded, so the marker is deliberately dropped.
+Carrying it forward would label a known value as a guess.
+
+If the user cancelled, **do not touch the state file** — the next run resumes the same diff
+window, and a probed baseline keeps its `baseline_method` marker until a sync completes.
 
 ### 11. Final report
 
@@ -269,6 +312,11 @@ If any conflicts were skipped, list them with one-line reminders so the user can
 
   // Plugin version that provided the scaffold at the most recent successful sync.
   "last_synced_plugin_version": "0.1.2",
+
+  // Present only while the version above was *inferred* by the Step 3a probe rather than
+  // recorded at sync time. Step 10 drops it: after a successful sync the version is known,
+  // not guessed, and leaving it would misreport a recorded value as an inferred one.
+  "baseline_method": "probe",
 
   // Paths applied on the last run (relative to site root).
   "applied_paths": [],
