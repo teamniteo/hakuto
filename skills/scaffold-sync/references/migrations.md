@@ -17,6 +17,11 @@ Entries are listed oldest first.
 
 ### 0.1.2 — Unpic/WebP image service
 
+**Detect:** superseded by 0.4.0, which removed Unpic. Only reachable if 0.4.0's markers fail.
+```sh
+grep -q '"@unpic/astro"' package.json          # present ⇒ site is at 0.1.2, not 0.4.0
+```
+
 Apply from scaffold when not heavily customized:
 - `astro.config.mjs`
 - `package.json`
@@ -39,6 +44,12 @@ After applying:
 
 
 ### 0.1.10 — Agent annotate dev toolbar
+
+**Detect:**
+```sh
+grep -q '"astro-agent-annotate"' package.json &&
+  ! grep -q '"astro-grab"' package.json
+```
 
 Apply from scaffold when not heavily customized:
 - `astro.config.mjs`
@@ -67,6 +78,12 @@ Unpic ignored the `widths` prop, turned `width`/`height` into inline styles that
 overrode Tailwind classes, and emitted `style="[object Object]"` on content-collection
 images. Sites carrying it should expect broken markup and oversized ladders until
 this migration is applied.
+
+**Detect:**
+```sh
+! grep -q '"@unpic/astro"' package.json &&
+  grep -q 'imageService: *"custom"' astro.config.mjs
+```
 
 Apply from scaffold when not heavily customized:
 - `astro.config.mjs`
@@ -105,6 +122,14 @@ After applying:
 
 Every site built before 0.7.0 carries all three. They are silent — no build error, no
 deploy error — so nothing surfaces them except an audit.
+
+**Detect:** all four must hold — each corresponds to one of the defects.
+```sh
+test -f worker/problem.js &&                    # typed worker errors
+  test -f src/pages/robots.txt.ts &&            # Sitemap line from context.site
+  ! grep -q '"astro-seo-schema"' package.json &&  # JSON-LD not entity-escaped
+  ! grep -qE '^/$' public/_headers              # no rule scoped to the bare `/`
+```
 
 Apply from scaffold when not heavily customized:
 - `public/_headers`
