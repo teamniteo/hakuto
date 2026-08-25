@@ -27,7 +27,18 @@ Accept: hex codes, color names, descriptions, or logo analysis (identify 1-3 dom
    - **Split-complementary**: 180° ± 30°
 3. Derive the neutral ramp from the dominant hue at very low chroma (C ≈ 0.005–0.02) so neutrals harmonize instead of reading as generic gray.
 4. Adjust L per role — backgrounds near the extremes (L ≥ 0.97 light / L ≤ 0.22 dark), text at the opposite end, accents in the vivid middle (L 0.55–0.75, C 0.15–0.25).
-5. **Verify WCAG contrast** (4.5:1 body text, 3:1 large text) for every text/background pair; nudge L until it passes.
+5. **Verify WCAG contrast** (4.5:1 body text, 3:1 large text ≥18.66px or ≥14px bold) for every text/background pair; nudge L until it passes.
+6. **Check the stock Tailwind neutrals the site will actually use, not only the generated tokens.** Contrast failures overwhelmingly come from off-palette utilities reached for during page authoring — `text-slate-400` is 2.56:1 on white and fails at every size, and `text-sky-600` is 4.10:1, which passes only as large text. Both look fine in a mockup and both ship as body copy. For each neutral and accent utility the design intends for text, compute its ratio and record the verdict in `site-specification.md`:
+
+   ```
+   contrast vs #ffffff
+     text-slate-400  #94a3b8   2.56:1   ✗ fails AA at every size — decorative/icons only
+     text-slate-500  #64748b   4.76:1   ✓ passes, marginally
+     text-slate-600  #475569   7.58:1   ✓
+     text-sky-600    #0284c7   4.10:1   ✗ large text only (≥18.66px)
+   ```
+
+   Any token that clears only the large-text bar must be labelled **large-text-only** in the spec, so a later "small eyebrow label" doesn't quietly reuse it at 12px.
 
 Do the math inline or via a short Bun script (`bun -e` with culori, or manual conversion) — either is fine; what matters is the OKLCH space and the checked output. Emit final values as hex or `oklch()` strings for the `@theme` block.
 
@@ -101,4 +112,4 @@ If approved:
 
 ## Success Criteria
 
-✅ Colors applied, design maintained, 4.5:1 contrast, user approved, site-specification.md updated
+✅ Colors applied, design maintained, 4.5:1 contrast (including the stock utilities used for text), large-text-only tokens labelled, user approved, site-specification.md updated

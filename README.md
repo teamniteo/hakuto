@@ -115,8 +115,8 @@ The Claude Code agent has access to specialized skills for common tasks:
 
 - **agent-browser** — Drive a browser for testing and screenshots
 - **brand-designer** — Generate custom color palettes (OKLCH color-wheel math)
-- **code-review** — Audit source against the project's CLAUDE.md rules
 - **fonts** — Web fonts via Astro's Fonts API
+- **hakuto-review** — Audit source against the project's CLAUDE.md rules
 - **pagespeed-audit** — Live Lighthouse / Core Web Vitals audit of deployed pages
 - **plausible-analytics** — Privacy-friendly analytics
 - **prelaunch-checklist** — Pre-launch validation (wrangler, forms, legal pages, placeholder scrub, gates)

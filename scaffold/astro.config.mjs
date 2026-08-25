@@ -46,6 +46,12 @@ export default defineConfig({
 
   build: {
     concurrency: 4,
+    // Keep this at "auto" (Astro's default: inline only stylesheets under ~4 kB).
+    // Forcing "always" puts the whole compiled Tailwind bundle in a <style> block
+    // in every document — byte-identical CSS re-transferred on every navigation,
+    // and render delay dominates LCP because nothing paints until it is parsed.
+    // A bundle over ~15 kB belongs behind the immutable /_astro/* cache instead.
+    inlineStylesheets: "auto",
   },
 
   server: { port: 4321, host: "0.0.0.0", allowedHosts: true },

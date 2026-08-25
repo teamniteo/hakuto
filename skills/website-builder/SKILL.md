@@ -1,6 +1,6 @@
 ---
 name: website-builder
-description: Core orchestrator for generating production-ready Astro websites through conversational design. Use when user requests "build a SaaS site", "make me a landing page", "create a website", "I need a portfolio site", "create a company website", "build a marketing site", or wants to add or modify pages ("add a features page", "build the pricing page", "create about page", "add contact"). Runs the design interview, proposes design directions, builds a style preview for approval, then the full site. Coordinates with `professional-copywriter`, `brand-designer`, `fonts`, `section-form`, `section-blog`, `section-docs`, `plausible-analytics`, and the audit skills.
+description: Core orchestrator for generating production-ready Astro websites through conversational design — runs the design interview, proposes directions, builds a style preview for approval, then the full site, delegating to the copy, brand, font and section skills as it goes. Use for "build a SaaS site", "make me a landing page", "create a website", "I need a portfolio site", "build a marketing site", and for adding or reworking pages ("add a features page", "build the pricing page", "create about"). Not for single-property tweaks on an existing page — copy-only edits go to `professional-copywriter`, palette-only changes to `brand-designer`, and adding a blog, docs or form section to the matching `section-*` skill.
 ---
 
 # Website Builder
@@ -106,11 +106,17 @@ Print the full briefs in the chat message, then a single-select AskUserQuestion 
 **Step 6 — Lock spec, build the site.**
 1. Write `site-specification.md` (template below) recording direction, dials, palette, fonts.
 2. **Rewrite `public/llms.txt` from the spec, in the same breath** — site name, one-line description, overview, and contact. The scaffold ships a raw template and it is served **live** at `/llms.txt`: left untouched it publishes "Site Name", `hello@example.com`, and a link to `/docs/` that 404s on a site with no docs section. As soon as the spec exists, the real values exist — write them. Key Pages must list only routes that actually build.
+   **Cover route *families*, not just the marketing pages.** An `llms.txt` that lists five top-level pages on a site with a blog, docs and a templated hub omits exactly the body of content an agent wants. For every route family the site builds, add a category-level entry with a count — `- [Blog](/blog/) — 37 posts on …`, `- [Docs](/docs/) — 30 pages covering …` — rather than enumerating URLs. Every route in the main nav needs an entry too.
+   **Write the `## When to use this` section** — the scaffold ships it as a prompt, and it is
+   the single thing agent-readiness scanners look for to decide whether a site tells agents
+   when to reach for it. Name the concrete jobs this site is the right answer for, and at
+   least one adjacent job it is *not*. Generic marketing copy does not read as guidance and
+   scores as absent.
 3. Load `references/design-craft.md` + `references/site-types/[type].md`, then follow CLAUDE.md's Mandatory Workflow steps 3–7. Site-type files define content *jobs*; section composition and order come from the direction, dials, and craft patterns.
 4. Content per Content Strategy below — pass the copywriter the direction name and tone.
 5. Set `site` in `astro.config.mjs` to the production URL if the user provided a domain (drives sitemap/canonicals/JSON-LD); otherwise leave the scaffold default and note it must be updated before deploy.
 6. Keep `branding.astro` as the living style guide — exclude it from nav.
-7. Re-check `public/llms.txt` against the pages that actually got built — routes and contact only — before declaring done.
+7. Re-check `public/llms.txt` against the pages that actually got built — routes and contact only — before declaring done. Confirm every route family with 5+ pages has a category entry, and that no listed route 404s.
 8. Run the **pre-flight check** (end of `design-craft.md`) before declaring done, and tell the user about the spec file and customization flexibility.
 
 ### B) Add Standard Page
@@ -122,7 +128,7 @@ User says: "Build the features page", "Add pricing", "Create about page"
 2. Load `references/design-craft.md` + site-type file.
 3. Assess content: missing/partial → INVOKE professional-copywriter; complete → use verbatim.
 4. Build the page to the spec's *Current* style and dial mechanics — prefer layout families the site hasn't led with yet, while keeping the established visual system.
-5. Add the new route to `public/llms.txt` Key Pages if it's a page agents should find (skip utility pages).
+5. Add the new route to `public/llms.txt` Key Pages if it's a page agents should find (skip utility pages). If the route joins an existing family, update that family's count instead of adding a URL.
 6. Run the pre-flight check; update `site-specification.md`.
 
 **Note:** Workflow B does not re-run the interview or re-consult defaults — the spec is the authoritative source. Apply Current; don't re-derive.
@@ -250,7 +256,7 @@ These bolt specialized areas onto the foundation this skill lays.
 
 - **seo-audit** — meta tags, headings, canonicals, schema, sitemap, alt text. Run before every launch.
 - **pagespeed-audit** — live Lighthouse via PageSpeed Insights for deployed pages.
-- **code-review** — Hakuto-specific source audit against CLAUDE.md rules.
+- **hakuto-review** — Hakuto-specific source audit against CLAUDE.md rules.
 - **prelaunch-checklist** — final pre-launch verification.
 
 Suggest these proactively when the user says "ready to ship", "going live", or once all pages are built.
@@ -291,7 +297,7 @@ Suggest these proactively when the user says "ready to ship", "going live", or o
 | "Make it warmer/livelier/calmer" | (none — dial change, handle directly) |
 | "Run SEO test" | `seo-audit` |
 | "Test page speed" | `pagespeed-audit` |
-| "Code review" | `code-review` |
+| "Hakuto review", "review my site source" | `hakuto-review` |
 | "Ready to ship", "launch check" | `prelaunch-checklist` |
 
 ---

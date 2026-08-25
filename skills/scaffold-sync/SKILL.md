@@ -1,6 +1,6 @@
 ---
 name: scaffold-sync
-description: Pull selective scaffold updates from the installed Hakuto plugin into an existing Hakuto site. Compares the site's last-synced scaffold version against the current `${CLAUDE_PLUGIN_ROOT}/scaffold` tree, shows a per-file diff, and applies only files the user approves. Never overwrites silently. Persists state in `.hakuto-sync.json` at the site root. Use when the user requests "sync scaffold", "check for scaffold updates", "pull scaffold changes", "update scaffold", "what's new in the scaffold", or "is my scaffold current?".
+description: Pull selective scaffold updates from the installed Hakuto plugin into an existing Hakuto site. Compares the site's last-synced scaffold version against the current `${CLAUDE_PLUGIN_ROOT}/scaffold` tree, shows a per-file diff, and applies only files the user approves. Never overwrites silently. Persists state in `.hakuto-sync.json` at the site root. Use when the user requests "sync scaffold", "check for scaffold updates", "pull scaffold changes", "update scaffold", "what's new in the scaffold", or "is my scaffold current?". Not for creating a new site (that's `/hakuto:init` and `website-builder`) or for routine npm dependency upgrades — this syncs Hakuto's own scaffold files into a site that already exists.
 ---
 
 # Scaffold Sync Skill
@@ -81,7 +81,7 @@ Read `.hakuto-sync.json` at the site root.
 
 Before computing file drift, compare the site's `last_synced_plugin_version` with `CURRENT_PLUGIN_VERSION`. If the field is missing, treat it as "unknown" and show all migration notes newer than the site's `last_synced_sha` when possible; otherwise show all active migration notes and mark them "review".
 
-Use the migration registry at the bottom of this skill. Each plugin version entry lists:
+Use the migration registry in `references/migrations.md` — read only the entries newer than the site's `last_synced_plugin_version`. Each plugin version entry lists:
 - files that usually need to be applied from scaffold
 - package/dependency changes that require `bun install`
 - code patterns to update manually in customized files
@@ -290,90 +290,19 @@ The file is intended to be **tracked in git** at the site root — visible in di
 
 ## Migration Registry
 
-Use this registry during Step 4. Add one entry every time a plugin version ships a scaffold change that existing sites may need to apply manually.
+Entries live in `references/migrations.md`, one per plugin version that shipped a scaffold
+change existing sites may need to apply by hand. The file grows with every release, so read
+it selectively rather than in full:
 
-### 0.1.2 — Unpic/WebP image service
+- Grep it for the headings first (`^### `) to get the version list.
+- Read only the entries **newer than the site's `last_synced_plugin_version`**. Everything
+  older has either already been applied or is irrelevant to this site.
+- If `last_synced_plugin_version` is missing, read the whole file and mark every note
+  "review" rather than "apply" — you cannot tell what the site already has.
 
-Apply from scaffold when not heavily customized:
-- `astro.config.mjs`
-- `package.json`
-- `bun.lock`
-- `CLAUDE.md`
-- any scaffold page examples that still show `formats={['avif', 'webp']}`
-
-> ⚠️ **Superseded by 0.4.0** — Unpic was removed. Only `formats={['webp']}` and
-> the native-`<img>` SVG rule still stand.
-
-Manual edits for customized sites:
-- set Cloudflare adapter image service to `imageService: "custom"`
-- change local raster `<Picture>` usage to `formats={['webp']}`. `fallbackFormat` is **per-source-format**: **set `fallbackFormat="webp"` on `.webp`/`.avif` sources** — neither is in Astro's `specialFormatsFallback`, so omitting it ships a PNG fallback — and omit it on `.jpg`/`.jpeg`/`.gif`/`.svg`, which already fall back to themselves. On `.png` it is optional (setting it halves the emitted files; the old `ENOENT` failure is fixed in Astro >= 6.4)
-- render imported SVG assets with native `<img src={asset.src} width={asset.width} height={asset.height}>`
-
-After applying:
-- run `bun install` if `package.json` or `bun.lock` changed
-- run `bun run build`
-- verify optimized Astro image assets are real WebP files and no AVIF files are emitted
-
-### 0.4.0 — Drop Unpic, return to Astro's sharp service
-
-Unpic ignored the `widths` prop, turned `width`/`height` into inline styles that
-overrode Tailwind classes, and emitted `style="[object Object]"` on content-collection
-images. Sites carrying it should expect broken markup and oversized ladders until
-this migration is applied.
-
-Apply from scaffold when not heavily customized:
-- `astro.config.mjs`
-- `package.json`
-- `bun.lock`
-- `CLAUDE.md`
-- `src/index.css`
-
-Manual edits for customized sites:
-- remove `@unpic/astro` from `package.json`, then `bun install`
-- remove the `import { imageService } from "@unpic/astro/service"` line
-- **delete the `image: { service: … }` key entirely** — Astro's schema default is
-  already `astro/assets/services/sharp`
-- keep `imageService: "custom"` on the Cloudflare adapter. Do **not** switch to
-  `"compile"`: on adapter v13 that returns the workerd service unconditionally,
-  and on v14 `hasUserImageService()` explicitly excludes sharp, so sharp is
-  replaced either way
-- delete any `.img-uncap` (or other `max-width: none !important`) image utility
-  from `src/index.css` **and every class list that uses it**
-- add `w-full` to images that were relying on unpic's inline `width:100%` to fill
-  their container — otherwise they shrink to their `width` prop
-- add `widths={[W, W * 2]}` to every `<Image>`/`<Picture>` that has a `sizes` but
-  no `widths`; without it Astro emits no `srcset` at all and `sizes` is inert
-- drop `height` where it disagrees with the source's aspect ratio and CSS already
-  crops (`object-cover`) — sharp resizes with `fit: cover`, so a mismatch crops
-- if a rehype plugin right-sizes markdown images, give it a `widths` ladder too
-
-After applying:
-- run `bun run build`, then grep `dist/` for `style="[object Object]"`, `url=` and
-  `format=` on `<img>` — all three should be gone
-- watch for images that visually shrank (the missing `w-full` case) and for any
-  `<img>`/`<source>` that now ships a single candidate (the missing `widths` case)
-
-### 0.1.10 — Agent annotate dev toolbar
-
-Apply from scaffold when not heavily customized:
-- `astro.config.mjs`
-- `package.json`
-- `bun.lock`
-- `src/layouts/Layout.astro`
-
-Manual edits for customized sites:
-- remove `astro-grab`
-- add `astro-agent-annotate`
-- enable `devToolbar` only in development
-- register `astroAgentAnnotate()` only when the dev toolbar is enabled
-
-After applying:
-- run `bun install` if `package.json` or `bun.lock` changed
-- clear stale Vite/Astro caches with `rm -rf .astro/vite node_modules/.vite` if dev reports missing `virtual:astro:*` modules
-- run `bun run build`
-- run `bun run dev` and verify the toolbar shows `Agent Annotate`
-
----
+When a scaffold change ships that existing sites need, add an entry there — not here. Each
+entry states which files to apply when the site is not heavily customized, the manual edits
+for sites that are, and what to run afterwards.
 
 ## Output Format
 

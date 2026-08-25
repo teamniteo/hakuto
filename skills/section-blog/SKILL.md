@@ -155,6 +155,18 @@ Every blog post includes an author box at the bottom with a Gravatar avatar. Use
 
 > **Why a plain `<img>` instead of `<Picture>`?** Gravatar URLs are external CDN-served images outside Astro's asset pipeline. `<Picture>`/`<Image>` only optimize local imports (`@/assets/...`); for external URLs they pass through unchanged, so using `<img>` directly keeps the markup simpler without losing optimization.
 
+> **Size `s=` to the slot — it is the only right-sizing control you have.** Astro cannot
+> resize an external image, so whatever `s=` asks for is what ships. Set it to **2× the
+> rendered CSS size** for retina and no more: a 64px author box is `s=128`, a 32px byline
+> avatar is `s=64`. A fixed `s=160` on a 32px byline is 25× the necessary pixel area, and
+> repeated once per post it becomes the largest image cost on the site. Never mark an avatar
+> `loading="eager"` — it competes with the LCP element for no benefit.
+
+> **Gravatar is a third-party request on every page that renders a byline**, which exposes
+> each reader's IP to an external host. On a site whose positioning is privacy, prefer
+> self-hosting the handful of author avatars through the Astro image pipeline
+> (`@/assets/authors/*.jpg` + `<Picture>`) and drop the dependency entirely.
+
 ```astro
 ---
 import { createHash } from "node:crypto";
@@ -162,7 +174,9 @@ import { createHash } from "node:crypto";
 const emailHash = createHash("md5")
   .update(post.data.authorEmail.trim().toLowerCase())
   .digest("hex");
-const gravatarUrl = `https://gravatar.com/avatar/${emailHash}?s=160`;
+// 2x the 64px box below. A 32px byline variant would use s=64.
+const AVATAR_PX = 64;
+const gravatarUrl = `https://gravatar.com/avatar/${emailHash}?s=${AVATAR_PX * 2}`;
 ---
 
 <!-- Author box -->
@@ -171,8 +185,8 @@ const gravatarUrl = `https://gravatar.com/avatar/${emailHash}?s=160`;
     <img
       src={gravatarUrl}
       alt={post.data.author}
-      width="64"
-      height="64"
+      width={AVATAR_PX}
+      height={AVATAR_PX}
       loading="lazy"
       class="rounded-full shrink-0"
     />
@@ -223,6 +237,72 @@ This rewrites links during MDX/Markdown compile, so no client JS runs and extern
 ```
 
 Give the content wrapper an `id="blog-content"` for the selector. Note: this ships JS for one DOM operation and runs after hydration, so links briefly behave as same-tab links until the script executes.
+
+---
+
+## RSS Feed and Autodiscovery
+
+A blog without a feed is missing the cheapest distribution it will ever get, and a feed
+without an autodiscovery `<link>` is a feed no reader can find — aggregators only look at
+the `<head>`. Ship both or neither.
+
+Add `@astrojs/rss` and create the endpoint:
+
+```ts
+// src/pages/blog/rss.xml.ts
+import rss from "@astrojs/rss";
+import { getCollection } from "astro:content";
+import type { APIRoute } from "astro";
+
+export const GET: APIRoute = async (context) => {
+  const posts = (await getCollection("blog"))
+    .filter((p) => !p.data.draft)
+    .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+  return rss({
+    title: "…",           // match SITE_NAME in Layout.astro
+    description: "…",
+    site: context.site!,
+    items: posts.map((post) => ({
+      title: post.data.title,
+      description: post.data.description,
+      pubDate: post.data.pubDate,
+      link: `/blog/${post.id}/`,
+    })),
+  });
+};
+```
+
+Then pass `feedUrl` from every blog route so the autodiscovery link is emitted — `Layout.astro`
+already has the prop and renders nothing when it is absent:
+
+```astro
+<Layout title="Blog" feedUrl="/blog/rss.xml">
+```
+
+Set it on `/blog/`, on each post, and on any tag or category index. Leave it off the rest of
+the site.
+
+---
+
+## Author Identity
+
+A byline that is plain text tells a crawler nothing. Give each author a resolvable identity
+so the name connects to whatever credentials exist elsewhere on the site.
+
+- Link the visible byline to an author page (`/authors/jane-doe/`) or an anchor on `/about/`.
+- Emit `author` in the post's JSON-LD as a `Person` with that `url` — **not** a bare string:
+
+```ts
+author: {
+  "@type": "Person",
+  name: post.data.author,
+  url: new URL(`/authors/${post.data.authorSlug}/`, Astro.site).href,
+},
+```
+
+- Put a one-line bio under the byline as well as in the author box. `authorBio` is already in
+  the frontmatter schema.
 
 ---
 

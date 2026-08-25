@@ -1,20 +1,21 @@
 ---
 import "../index.css";
 import { Button } from "@/components/ui/button";
-import { Schema } from "astro-seo-schema";
+import Schema from "@/components/Schema.astro";
 import type { Thing, WithContext } from "schema-dts";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
 interface Props {
 	title?: string;
 	description?: string;
 	noindex?: boolean;
 	socialImageUrl?: string;
+	/** RSS/Atom feed URL, e.g. "/blog/rss.xml". Emits an autodiscovery <link>. */
+	feedUrl?: string;
 	schema?: WithContext<Thing> | WithContext<Thing>[];
 }
 
-// Site-wide defaults — update these for each new site
-const SITE_NAME = "Hakuto";
-const SITE_DESCRIPTION = "Astro + shadcn/ui website template for Hakuto.";
+
 
 // Agent readiness — set to true to expose site tools to AI agents via WebMCP
 const ENABLE_WEBMCP = false;
@@ -25,6 +26,7 @@ const {
 	description = SITE_DESCRIPTION,
 	noindex = false,
 	socialImageUrl,
+	feedUrl,
 	schema,
 } = Astro.props;
 
@@ -49,6 +51,9 @@ const title = pageTitle ? `${pageTitle} | ${SITE_NAME}` : SITE_NAME;
     {socialImageUrl && (
       <meta property="og:image" content={socialImageUrl} />
       <meta property="og:image:alt" content={title} />
+    )}
+    {feedUrl && (
+      <link rel="alternate" type="application/rss+xml" title={SITE_NAME} href={feedUrl} />
     )}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />

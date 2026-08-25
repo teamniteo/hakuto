@@ -1,6 +1,6 @@
 ---
 name: prelaunch-checklist
-description: Pre-launch validation for Hakuto sites — verifies wrangler config, form wiring, legal pages, placeholder content scrub; confirms `seo-audit` and `code-review` have been run; reminds the user of manual Cloudflare dashboard steps. Report-only — no fixes applied. Use when user requests "run prelaunch checklist", "is the site ready to ship?", "ready to go live", "pre-launch check", "launch check", or "final check before deploy".
+description: Pre-launch validation for Hakuto sites — verifies wrangler config, form wiring, legal pages, placeholder content scrub; confirms `seo-audit` and `hakuto-review` have been run; reminds the user of manual Cloudflare dashboard steps. Report-only — no fixes applied. Use when user requests "run prelaunch checklist", "is the site ready to ship?", "ready to go live", "pre-launch check", "launch check", or "final check before deploy". This is the final gate before deploy, not a mid-build quality check — during development reach for `hakuto-review` and `seo-audit` directly.
 ---
 
 # Prelaunch Checklist Skill
@@ -39,7 +39,7 @@ critical = []
 warnings = []
 passed = []
 manual_reminders = []
-gates = []   # SEO + code-review confirmations
+gates = []   # SEO + source-review confirmations
 ```
 
 ### 3. Run automated checks
@@ -78,6 +78,23 @@ If no forms exist, skip silently (don't add a passed entry — irrelevant).
 - Critical-or-warning depending on context. Default treat as warning since not all sites need them.
 - Check existence: `src/pages/privacy.{astro,md,mdx}`, `src/pages/terms.{astro,md,mdx}`, `src/pages/cookies.{astro,md,mdx}`. Missing all three → warning: "No legal pages found (privacy / terms / cookies). Add at least a privacy policy if you collect any user data via forms or analytics."
 - For each that exists, grep `Footer` component(s) for a link to the corresponding path. Existing-but-not-linked → warning: "privacy.astro exists but isn't linked from Footer."
+
+#### Check 5b — Trust anchor pages
+
+`/about`, `/contact` and `/privacy` are the pages both people and AI agents check to decide
+whether a business is real before recommending it. A stub counts as missing — the bar is
+roughly 500 characters of genuine content each.
+
+- For each of `about`, `contact`, `privacy`, look for `src/pages/{name}.{astro,md,mdx}` or
+  `src/pages/{name}/index.{astro,md,mdx}`.
+- Missing entirely → warning: "No /{name} page. Agents check this to verify the business is
+  legitimate."
+- Present but under ~500 characters of rendered text → warning: "/{name} is a stub (N chars).
+  Agents treat a near-empty trust page much like a missing one."
+- All three present with real content → pass.
+
+Not every site needs all three — a personal landing page reasonably has no /about separate
+from its homepage. Report as warnings and let the user decide, rather than blocking launch.
 
 #### Check 6 — Placeholder text
 
@@ -132,11 +149,11 @@ Use `AskUserQuestion` for each. These are confirmation gates, not auto-runs.
 If "No — run it after this" → add to `manual_reminders`: "Run `seo-audit` skill before going live."
 If "Yes" → add to `passed`.
 
-**Gate 2 — Code review:**
-> Has the source been reviewed (via the `code-review` skill, an external reviewer, or PR review)?
+**Gate 2 — Source review:**
+> Has the source been reviewed (via the `hakuto-review` skill, an external reviewer, or PR review)?
 > Options: Yes / No — do it after this / Not applicable
 
-If "No — do it after this" → add to `manual_reminders`: "Run `code-review` skill or get a second pair of eyes on the source."
+If "No — do it after this" → add to `manual_reminders`: "Run `hakuto-review` skill or get a second pair of eyes on the source."
 If "Yes" → add to `passed`.
 
 **Gate 3 — Lock file freshness:**
@@ -161,6 +178,8 @@ Always include in the report (these can't be checked from the repo):
 - **Confirm custom domain** is configured and DNS has propagated (Cloudflare dashboard → Workers & Pages → your worker → Settings → Domains & Routes → Add Custom Domain).
 - **Verify analytics** is firing on the live domain (if Plausible or another analytics tool is installed).
 - **Submit sitemap** to Google Search Console at `yourdomain.com/sitemap-index.xml` after first deploy.
+- **Enable Markdown for Agents** (Cloudflare dashboard → AI Crawl Control → Markdown for Agents, or `dash.cloudflare.com/?to=/:account/:zone/ai`). Cloudflare converts HTML to markdown on the fly for clients sending `Accept: text/markdown`, and sets `Vary: Accept` itself. **Requires a Pro, Business or Enterprise plan** — it is not available on Free, and it cannot be implemented in `_headers`: adding `Vary: Accept` to a site that only ever serves HTML advertises a variant that does not exist. Verify with `curl -sI -H "Accept: text/markdown" https://{domain}/ | grep -i '^content-type'`.
+- **Consider IndexNow** if the site publishes regularly (a blog, changelog or docs that change often). Drop a `<key>.txt` file in `public/` and ping `https://api.indexnow.org/indexnow?url=…&key=…` after each deploy. Bing, Yandex, Naver and Seznam pick changes up immediately instead of waiting on their crawl schedule; Google does not participate. Skip it for a static marketing site that rarely changes.
 
 ---
 
@@ -206,7 +225,7 @@ Prelaunch Checklist Results
 - Forms wired correctly (1 form found)
 - 404 page customized
 - SEO test confirmed run
-- Code review confirmed run
+- Source review confirmed run
 - `bun.lock` refreshed to latest stable packages
 - Scaffold sync confirmed run
 
@@ -253,6 +272,6 @@ list is empty and the manual steps are done, you're ready to ship.
 
 - Report-only: never modify files.
 - Run from the project root.
-- The two gates (SEO + code review) use `AskUserQuestion` — do not auto-invoke those skills.
+- The two gates (SEO + source review) use `AskUserQuestion` — do not auto-invoke those skills.
 - If a check is irrelevant to the project (e.g., no forms exist), skip it silently rather than padding the report with N/A entries.
 - Show file:line for every finding so the user can jump straight to it.

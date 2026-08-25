@@ -1,0 +1,22 @@
+---
+import type { Graph, Thing, WithContext } from "schema-dts";
+
+interface Props {
+	item: Graph | WithContext<Thing>;
+}
+
+const { item } = Astro.props;
+
+// Do NOT HTML-escape the values. `<script type="application/ld+json">` is a
+// raw-text element, so the HTML parser never entity-decodes its contents — an
+// escaped apostrophe reaches consumers as the literal `&apos;` and corrupts the
+// data. This is exactly what `astro-seo-schema`'s `safeJsonLdReplacer` did, and
+// why it is no longer used here.
+//
+// The only sequence that can break out of a raw-text script element is `</`.
+// `JSON.stringify` emits `<` solely inside string literals, where `<` is a
+// valid escape, so replacing it globally is both sufficient and lossless.
+const json = JSON.stringify(item).replace(/</g, "\\u003c");
+---
+
+<script type="application/ld+json" is:inline set:html={json} />

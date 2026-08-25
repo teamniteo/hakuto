@@ -48,8 +48,11 @@ You are the Hakuto Landing Page Development Agent. You build landing pages using
 You have access to: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, WebFetch, WebSearch, AskUserQuestion
 
 **Skills**:
+- `agent-browser` - Browser automation for interaction-based checks (clicking, forms, screenshots)
 - `brand-designer` - Custom color palette generation
 - `fonts` - Web fonts with Astro Fonts API
+- `hakuto-review` - Report-only source audit against this file's rules
+- `pagespeed-audit` - Live Lighthouse / Core Web Vitals audit of a deployed URL
 - `plausible-analytics` - Privacy-friendly analytics
 - `prelaunch-checklist` - Pre-launch validation (wrangler, forms, legal, placeholders, SEO/review status)
 - `professional-copywriter` - Conversion-optimized content
@@ -91,7 +94,7 @@ Do NOT create commits or branches - user manages version control. Focus only on 
 ### Step 3: Update Base Layout (src/layouts/Layout.astro)
 - **Remove ALL Hakuto scaffold placeholder content** from Layout.astro
 - Keep only essential structure: html, head, body tags
-- **Update `SITE_NAME` and `SITE_DESCRIPTION` constants** for the user's project
+- **Update `SITE_NAME` and `SITE_DESCRIPTION` in `src/lib/site.ts`** for the user's project, and fill `SITE_CONTACT` there (email, phone, postal address, social profiles). Those feed the `Organization` / `WebSite` JSON-LD in `src/lib/schema.ts` that the homepage emits — it is how agents verify the business is real. Leave a field `null` rather than guessing; the schema omits what isn't set, and an asserted-but-wrong address is worse than a missing one.
 - **Update `site` in `astro.config.mjs`** to the production URL (e.g. `"https://yoursite.com"`). This is the [Astro `site` option](https://docs.astro.build/en/reference/configuration-reference/#site) and is what the sitemap, canonical links, and JSON-LD bake in. Leaving it as `http://localhost:4321` in production produces a wrong sitemap.
 - Structure: `<Header /> → <slot /> → <Footer />`
 - Title construction is automatic: `{pageTitle} | {SITE_NAME}` or just `{SITE_NAME}` if no title
@@ -343,7 +346,7 @@ Update the favicons plugin configuration in astro.config.mjs:
 
 ## SEO & Structured Data
 
-Layout supports JSON-LD schema via `schema` prop (uses `astro-seo-schema` + `schema-dts`):
+Layout supports JSON-LD schema via `schema` prop (uses `src/components/Schema.astro` + `schema-dts`):
 
 ```astro
 ---
@@ -373,10 +376,20 @@ The scaffold ships with signals that help AI agents discover and interact with t
 
 | File | What it does | What to update |
 |---|---|---|
-| `public/robots.txt` | Standard crawler permissions | Usually leave as-is. Default allows all crawlers. |
-| `public/_headers` | Cloudflare static-asset response headers — ships **security headers** (CSP, Permissions-Policy, `X-Content-Type-Options`, `Referrer-Policy`) on `/*`, long-cache rules for `/_astro/*` and favicons, sitemap/llms.txt `Link`, and the `Content-Signal` AI preferences ([Cloudflare / IETF draft](https://datatracker.ietf.org/doc/draft-canel-robots-content-signal/)) | The security headers are tuned for the default marketing stack (GTM, Cookiebot, Plausible, FB Pixel, Paddle, Vimeo/YouTube) — if you add a CDN that's not under `https:` or use a feature like `camera`/`geolocation`, update the corresponding directive. Adjust `Content-Signal` defaults if needed (shipped: `ai-train=no, search=yes, ai-input=yes`). Served as an HTTP response header rather than a `robots.txt` directive so Lighthouse doesn't flag it as an "Unknown directive". |
-| `public/llms.txt` | Plain-text site summary for LLMs ([llmstxt.org](https://llmstxt.org)) | **Must be customized**: replace `Site Name`, description, key pages, and contact with the user's real info |
+| `src/pages/robots.txt.ts` | Crawler permissions, `Content-Signal` AI preferences, and the `Sitemap:` line | **Generated, not a static file** — it reads `context.site` so the `Sitemap:` URL always names the real host (`@astrojs/sitemap` does not write robots.txt, so nothing else supplies that line). Default allows every crawler; a commented AI-crawler block is there to uncomment if you decide to block training-only bots. Note `Google-Extended` gates Gemini *training* only and has no effect on Google Search indexing. |
+| `public/_headers` | Cloudflare static-asset response headers — ships **security headers** (CSP, HSTS, Permissions-Policy, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`) on `/*`, long-cache rules for `/_astro/*` and favicons, sitemap/llms.txt `Link`, and the `Content-Signal` AI preferences ([Cloudflare / IETF draft](https://datatracker.ietf.org/doc/draft-canel-robots-content-signal/)) | The security headers are tuned for the default marketing stack (GTM, Cookiebot, Plausible, FB Pixel, Paddle, Vimeo/YouTube) — if you add a CDN that's not under `https:` or use a feature like `camera`/`geolocation`, update the corresponding directive. Adjust `Content-Signal` defaults if needed (shipped: `ai-train=no, search=yes, ai-input=yes`). `Content-Signal` is sent here **and** in `robots.txt`, which is where the spec defines it. **Every site-wide rule belongs under `/*`** — a rule scoped to the literal `/` matches the homepage only, and it fails silently: no build error, no deploy error, the headers simply never reach any other page. Verify with `curl -sI` against an inner page, not just `/`. |
+| `public/llms.txt` | Plain-text site summary for LLMs ([llmstxt.org](https://llmstxt.org)) | **Must be customized**: replace `Site Name`, description, key pages, and contact with the user's real info, and **write the `## When to use this` section** — naming the concrete jobs the site is right for is what agent-readiness scanners grade, and generic marketing copy scores as absent |
+| `src/lib/site.ts` + `src/lib/schema.ts` | `Organization` and `WebSite` JSON-LD emitted on the homepage | Fill `SITE_CONTACT` — `contactPoint` (email/phone) and `address` (PostalAddress) are what let agents verify the business. Unset fields are omitted rather than emitted blank |
+| `src/pages/404.astro` | Agent-recoverable 404 | Keep the "Where to look next" list pointing at routes that actually resolve. A recovery list that 404s too is worse than none. Add the site's main sections as they get built |
+| `worker/problem.js` | RFC 9457 `application/problem+json` errors for `/~*` routes | Every route handler should return errors through `problem()`. The `/~*` surface is the only programmatic API most Hakuto sites have, so a consistent typed error shape is what makes it usable by an agent |
 | `src/layouts/Layout.astro` — `ENABLE_WEBMCP` | Opt-in [WebMCP](https://webmcp.org) tools (`search-site`, `get-page-content`, `navigate`) for in-page agents | Default `false`. Flip to `true` only if the user explicitly wants to expose tools to AI agents — the spec is early |
+
+**Markdown for Agents is a Cloudflare setting, not code.** Agent-readiness scanners check
+whether `Accept: text/markdown` returns markdown with `Vary: Accept`. That is Cloudflare's
+[Markdown for Agents](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/)
+feature — enable it per zone under AI Crawl Control; it needs a Pro, Business or Enterprise
+plan. Do **not** try to satisfy the check by adding `Vary: Accept` in `public/_headers`: with
+no markdown variant behind it, that header advertises something the site cannot serve.
 
 The WebMCP `search-site` tool depends on Pagefind being built — it's wired up by `section-docs` and any future search integration. If neither exists on the site, leave `ENABLE_WEBMCP = false`.
 
@@ -401,6 +414,9 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | Image looks cropped / content cut off at the edges | `width` and `height` disagree with the source's aspect ratio, so sharp resized with `fit: cover`. Drop `height` and let Astro derive it; keep both only when the crop is intended |
 | 2x candidate looks soft, or srcset tops out below what you asked for | `widths` above the source's intrinsic width are clamped (never upscaled). The source asset is too small — point at an `@2x` master |
 | Image visually shrank after adding `width` | The `width` prop sizes the *file*, not the element. If the slot should fill its container, add `w-full` (or `w-full h-full object-cover` for a fixed-height tile). Do not add a `max-width: none !important` utility |
+| LCP dominated by render delay on every page, large HTML, no external stylesheet | `build.inlineStylesheets` is forced to `"always"`, so the whole Tailwind bundle sits in a `<style>` block in every document and is re-transferred on every navigation. Keep it at `"auto"` — a bundle over ~15 kB belongs behind the immutable `/_astro/*` cache |
+| JSON-LD contains `&apos;` / `&quot;` where punctuation should be | Something HTML-escaped the JSON string values. `<script type="application/ld+json">` is a raw-text element, so the parser never decodes them and consumers read the entities literally. Use `src/components/Schema.astro`, which escapes only `<` — do **not** reintroduce `astro-seo-schema` |
+| `Content-Signal` / `Link` / security headers missing on every page but the homepage | The `_headers` rule is scoped to `/` instead of `/*`. `/` is an exact path match, not a prefix, and it fails silently — verify with `curl -sI` against an inner page |
 | Build fails | Check for unused imports, implicit `any` types |
 | Build fails with "Failed to get static paths from Cloudflare prerender server (404)" | The Cloudflare adapter's default `prerenderEnvironment: "workerd"` can fail outside Cloudflare. Set `prerenderEnvironment: "node"` in the `cloudflare()` adapter options |
 | Anchor links broken | Ensure target element has matching `id` attribute |

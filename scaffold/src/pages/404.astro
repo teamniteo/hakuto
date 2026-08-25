@@ -8,6 +8,15 @@ const schema: WithContext<WebPage> = {
 	name: "Page Not Found",
 	description: "The page you're looking for doesn't exist.",
 };
+
+// Where a visitor — or an agent that followed a stale link — should look next.
+// Keep these as real, resolving routes: a recovery list that 404s too is worse
+// than no list at all. Add the site's main sections here as they get built.
+const recovery = [
+	{ href: "/", label: "Home", note: "Start here" },
+	{ href: "/sitemap-index.xml", label: "Sitemap", note: "Every page on this site" },
+	{ href: "/llms.txt", label: "llms.txt", note: "What this site is, in plain text" },
+];
 ---
 
 <Layout
@@ -17,10 +26,24 @@ const schema: WithContext<WebPage> = {
   schema={schema}
 >
   <section class="flex min-h-[60vh] items-center justify-center">
-    <div class="text-center">
+    <div class="mx-auto max-w-md text-center">
       <h1 class="text-6xl font-bold tracking-tight">404</h1>
-      <p class="mt-3 text-muted-foreground">Oops! Page not found.</p>
-      <a href="/" class="mt-6 inline-block underline underline-offset-4">Return to Home</a>
+      <p class="mt-3 text-muted-foreground">
+        Oops! Page not found. This URL doesn't exist on this site — it may have moved or never
+        existed.
+      </p>
+
+      <h2 class="mt-8 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Where to look next
+      </h2>
+      <ul class="mt-3 space-y-2 text-left">
+        {recovery.map(({ href, label, note }) => (
+          <li>
+            <a href={href} class="underline underline-offset-4">{label}</a>
+            <span class="text-muted-foreground"> — {note}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   </section>
 </Layout>
