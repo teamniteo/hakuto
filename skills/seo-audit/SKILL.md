@@ -1,6 +1,6 @@
 ---
 name: seo-audit
-description: Static SEO audit for Astro `_dist/` HTML — meta tags, headings, canonicals, schema, sitemap, robots.txt, alt text, mixed content, internal links, image right-sizing (measured pixel dimensions vs the declared slot), favicons. Can scope to a single page, group of pages, or whole site. Report-only — no fixes applied. Use when user requests "run SEO test", "SEO audit", "check meta tags", "validate canonicals", "audit indexability", or "check site for SEO issues".
+description: Static SEO audit for Astro `_dist/` HTML — meta tags, headings, canonicals, schema, sitemap, robots.txt, alt text, mixed content, internal links, image right-sizing (measured pixel dimensions vs the declared slot), favicons. Can scope to a single page, group of pages, or whole site. Optional live pass once a domain is deployed: `bunx is-agentic` scores the public site for AI-agent readiness and its findings can be applied back to source. Static audit is report-only. Use when user requests "run SEO test", "SEO audit", "check meta tags", "validate canonicals", "audit indexability", "check site for SEO issues", "run is-agentic", "check agent readiness", or "score the site for AI agents".
 ---
 
 # SEO Audit
@@ -11,6 +11,10 @@ Validate SEO on Astro-built sites.
 - **Single page**: "Test SEO for homepage" or "Check SEO on about page"
 - **Group of pages**: "Test SEO for pricing and contact pages" or "Check all blog posts"
 - **Whole website**: "Run SEO test" or "Test all pages for SEO"
+
+Steps 1–7 audit built HTML in `_dist/` and never write. Steps 8–9 are opt-in
+and need a **deployed** domain: an `is-agentic` agent-readiness scan, and —
+only if the user asks for it — applying that report's fixes to source.
 
 ---
 
@@ -239,7 +243,9 @@ Use `Read` for each file's contents and `Glob` to confirm presence in `_dist/`.
 
 **llms.txt:** read `_dist/llms.txt`. Hints to LLM crawlers (ChatGPT, Perplexity, Claude) which content is canonical and how to summarize the site — without it, these tools fall back to generic crawling.
 - Missing → warning
-- Present → pass
+- Present but still the scaffold template (`# Site Name`, `Brief one-line description of your site`, `Describe what your site/product does`, `hello@example.com`, `https://example.com`) → critical: "llms.txt is the unedited scaffold template — it's live and tells crawlers the site is 'Site Name' at hello@example.com". Present-but-placeholder is worse than absent: it publishes wrong facts instead of none.
+- Present, and a Key Pages link resolves to no file in `_dist/` → critical: "llms.txt links to [route] which isn't built (the scaffold's `/docs/` is the usual leftover)". Resolve links the same way as internal anchors above.
+- Present with real content and resolving links → pass
 
 **Favicon:** Check both HTML head links AND generated files in `_dist`
 
@@ -270,11 +276,145 @@ Use `Read` for each file's contents and `Glob` to confirm presence in `_dist/`.
 - If descriptions{desc} has >1 file → warning: "Duplicate description in: [files]"
 - If h1s{text} has >1 file → warning: "Duplicate H1 '[text]' across N pages: [files]". Templated routes (per-check, per-doc, per-listing) are the usual culprit — qualify each H1 with its distinguishing attribute (platform, category, location) in the source template.
 
+### 8. Agent-Readiness Pass — `bunx is-agentic` (deployed domains only, opt-in)
+
+Everything above grades local `_dist/` HTML. This step scores the **live,
+deployed** site for how usable it is to AI agents — agent-friendly 404s,
+crawler access, machine-readable surfaces, content that exists without JS.
+It complements the static checks because it observes status codes, headers,
+and redirects that `_dist/` cannot show.
+
+**When to run:**
+
+- The user asks: "run is-agentic", "check agent readiness", "score the site
+  for AI agents", "run the SEO test and the agent audit".
+- The site is deployed **and the deploy is current**. The scan grades what is
+  live, not what is in the working tree — if there are unbuilt or undeployed
+  changes, say so before scanning.
+- Never run it unprompted at the end of a static audit. Mention it is
+  available and let the user choose.
+
+**Resolve the target** — first hit wins:
+
+1. A domain or URL passed in this invocation.
+2. `site` in `astro.config.mjs`, unless it is still the scaffold default
+   `http://localhost:4321`.
+3. A production URL documented in `AGENTS.md`.
+
+If none resolve, ask. Do not reuse a domain from an earlier turn.
+
+**Reject private targets** — the scan runs from Is Agentic's servers, so
+`localhost`, `127.0.0.1`, `0.0.0.0`, RFC1918 ranges, `*.local` and
+`*.internal` are unreachable. Stop and ask for the deployed URL.
+
+**Confirm before running.** This calls a third-party service (Vercel's Is
+Agentic) that fetches the public site, and when no completed report exists it
+**starts a new scan whose result is published at a public `report_url`**. Get
+an explicit go-ahead on the exact domain first.
+
+**Run it:**
+
+```bash
+bunx is-agentic <domain-or-url> --json
+```
+
+- Always `--json` — parse the structured response, never scrape the
+  ANSI-rendered terminal report.
+- No API key and no config. Node 18+ (Bun's runtime satisfies this).
+- A cached report returns immediately; a cold target triggers a fresh scan
+  that can take several minutes. Use a long timeout (`timeout: 600000`) or run
+  it in the background. **Do not** kill and retry a scan that is still
+  streaming — a second invocation just waits on the same scan.
+- Failures exit nonzero and print an RFC 9457 problem object on stdout with
+  `code`, `detail`, `resolution`. Handle by `code`:
+  - `invalid_url` → fix the target or ask the user.
+  - `report_not_found` → the CLI already ran its own scan-and-wait; retry the
+    command **once**, then stop.
+  - `rate_limit_exceeded` → honor `Retry-After`, report, and stop. Never loop.
+  - `report_temporarily_unavailable`, `api_unreachable` → report and stop.
+- Do not fall back to hand-fetching `is-agentic.com` when the CLI fails.
+
+**Response shape** (`PublicScanReport`):
+
+| Field | Meaning |
+| --- | --- |
+| `score` / `score_label` | 0–100 and its plain-English band (`null` if unscored) |
+| `score_breakdown.essential` | `{earned, available, passing, total}` — 80-point pool |
+| `score_breakdown.recommended` | same shape — 20-point pool |
+| `score_breakdown.bonus` | `{points, positive_signals}` — capped at +5 |
+| `issues[]` | `{id, name, tier, result, details, recommendation}` |
+| `report_url` | canonical public report — link it, never invent it |
+| `scanned_at` / `eligible_checks` | scan timestamp; checks that applied to this site |
+
+`issues[]` contains **only** failed and partial checks — `tier` is
+`essential` / `recommended` / `bonus`, `result` is `failed` / `partial`.
+Passing checks are implied by the `passing` / `total` counts. Not-applicable
+checks are excluded from scoring, so a smaller `eligible_checks` is not a
+penalty.
+
+**Map findings onto this skill's severities:**
+
+- `essential` + `failed` → ❌ critical
+- `essential` + `partial`, or `recommended` + `failed` → ⚠️ warning
+- `recommended` + `partial`, or anything `bonus` → list under
+  "Agent-readiness opportunities", not as a warning
+- Quote each finding's `details` as *evidence from the live scan* — never
+  restate it as something verified locally. The two audits look at different
+  artifacts and can legitimately disagree.
+
+Reports are cached and the CLI will not force a rescan, so re-running it in
+the same session to "confirm" a fix proves nothing. Rescan after the next
+deploy.
+
+### 9. Apply Fixes from the Agentic Report (opt-in — the only step that writes)
+
+Steps 1–8 are report-only. This step is the single exception and runs **only**
+when the user asked for fixes — "…and fix the issues", "fix what is-agentic
+found", "apply the report". Absent that, stop after the report.
+
+1. **Report first.** Show the Step 8 findings grouped critical → warning →
+   opportunity, with the score and `report_url`.
+2. **Ask what to apply** — one `AskUserQuestion`, defaulting to "all essential
+   failures". Any fix that bakes in a product or content decision (writing the
+   `llms.txt` description of the business, changing copy, exposing a new
+   machine-readable endpoint) needs the user's answer — never guess it.
+3. **Fix in source, never in `_dist/`** — that tree is a build artifact and the
+   next build overwrites it. Each finding's `recommendation` is the spec;
+   translate it to the file that owns that surface in a Hakuto site:
+
+| What the finding is about | Where it lives |
+| --- | --- |
+| 404 / soft-404 status codes | `src/pages/404.astro`; confirm `worker/index.js` and `wrangler.toml` are not answering `200` for unknown paths |
+| Crawler and agent access rules | `public/robots.txt` |
+| Site summary for LLM crawlers | `public/llms.txt` — replace the scaffold placeholders with real content |
+| Structured data / JSON-LD | the `schema` prop each page passes to `src/layouts/Layout.astro` (typed with `schema-dts`) |
+| Title, description, canonical, OG | `src/layouts/Layout.astro` and the per-page props |
+| Response headers, caching, CSP | `public/_headers` |
+| Content that only exists after JS runs | the `.astro` component — move it into server-rendered markup |
+| Sitemap coverage or wrong host | `@astrojs/sitemap` config and `site` in `astro.config.mjs` |
+| Semantic structure, headings, landmarks | the page's `.astro` markup |
+
+   A finding whose fix has no home in this table, or that you cannot verify
+   locally, goes back to the user as a recommendation — do not improvise
+   infrastructure to satisfy a check.
+
+4. **Re-run Steps 1–7** after editing. An agent-readiness fix can break a
+   static check — new JSON-LD that fails to parse, a robots.txt change that
+   drops the `Sitemap:` line.
+5. **Rebuild** with `bun run build`, then tell the user plainly: the score does
+   not move until they redeploy and rescan.
+
 ---
 
 ## Output Format
 
 Open with a scope header, then list issues in this order: Critical (❌) → Warnings (⚠️) → Passed (✅). Show `file:line` on every finding so the user can jump straight to it. End with a short "to fix" list naming source files in `src/pages/`.
+
+When Step 8 ran, append an **Agent Readiness** section after the static
+results: the score and label, the Essential / Recommended / Bonus breakdown,
+findings mapped to ❌/⚠️/opportunity with their `details` and `recommendation`,
+and the `report_url`. Keep it separate from the static findings — the two
+audits inspect different artifacts (live site vs `_dist/`).
 
 See `references/example-report.md` for the full template — match its shape and headings verbatim.
 
@@ -298,6 +438,7 @@ See `references/example-report.md` for the full template — match its shape and
 - `style="[object Object]"` on an `<img>` (image pipeline stringifying an object into an attribute)
 - robots.txt `Sitemap:` line points to a sitemap file not present in `_dist/`
 - Sitemap lists a `noindex` page (contradictory index signal)
+- `llms.txt` is the unedited scaffold template, or links to a route that isn't built
 
 **Warning (⚠️):**
 - Title/description outside optimal range (but >30/>100)
@@ -340,8 +481,11 @@ See `references/example-report.md` for the full template — match its shape and
 - **Search across files:** `Grep` for things like `<link rel="canonical"`, `<h1`, `og:image`, `http://` (mixed-content scan).
 - **Confirm asset presence:** `Glob` for `_dist/favicon.ico`, `_dist/apple-touch-icon*`, `_dist/site.webmanifest` etc.
 - **Validate JSON-LD:** extract the script content with `Grep`/`Read` and parse with `JSON.parse` via a one-liner in `Bash` or by inspection.
+- **Agent-readiness scan (Step 8):** `Bash` → `bunx is-agentic <domain> --json`, long timeout, after user confirmation.
 
-Read-only throughout — never `Write` or `Edit` from this skill.
+Read-only throughout — never `Write` or `Edit` — **except** Step 9, which the
+user has to opt into explicitly and which touches source files only, never
+`_dist/`.
 
 ---
 
@@ -357,6 +501,12 @@ This skill audits built HTML in `_dist/`. Some technical-SEO issues only exist a
 
 Report these as an "Out of static scope — verify with a live crawl / GSC" footer, not as passes.
 
+Step 8's `is-agentic` scan reaches the live site and so covers *some* of this
+(status codes for nonexistent paths, headers, JS-dependent content), but it
+scores agent readiness — it is not a crawler and does not enumerate redirect
+chains, inbound 404s, or field Core Web Vitals. Keep the footer even after a
+scan, minus whatever the scan actually observed.
+
 ## Notes
 
 - **Scope flexibility**: Parse user prompt to determine if testing single page, group, or all pages
@@ -366,3 +516,6 @@ Report these as an "Out of static scope — verify with a live crawl / GSC" foot
 - Track line numbers for hierarchy issues when possible
 - User decides which issues to fix in source files (`src/pages/`)
 - For single/group page tests, skip site-wide checks (orphaned pages, duplicate content) unless relevant
+- **`is-agentic` needs a deployed, public domain** — it never applies to a local-only run, and it grades the last deploy, not the working tree
+- **Never scan without confirming the domain** — a cold target publishes a new public report at `report_url`
+- **Fixes (Step 9) are opt-in** and always land in `src/`, `public/`, or config — never in `_dist/`

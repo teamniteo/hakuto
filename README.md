@@ -125,7 +125,7 @@ The Claude Code agent has access to specialized skills for common tasks:
 - **section-blog** — Multi-page blog system
 - **section-docs** — Documentation with sidebar nav
 - **section-form** — Contact forms and signups
-- **seo-audit** — Static SEO audit of the built HTML
+- **seo-audit** — Static SEO audit of the built HTML, plus an opt-in `bunx is-agentic` agent-readiness scan of the deployed domain
 - **skill-creator** — Author and evaluate new skills
 - **website-builder** — Design interview, style preview, and page creation
 
