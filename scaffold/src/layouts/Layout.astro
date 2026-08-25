@@ -3,6 +3,7 @@ import "../index.css";
 import { Button } from "@/components/ui/button";
 import Schema from "@/components/Schema.astro";
 import type { Thing, WithContext } from "schema-dts";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
 interface Props {
 	title?: string;
@@ -14,9 +15,7 @@ interface Props {
 	schema?: WithContext<Thing> | WithContext<Thing>[];
 }
 
-// Site-wide defaults — update these for each new site
-const SITE_NAME = "Hakuto";
-const SITE_DESCRIPTION = "Astro + shadcn/ui website template for Hakuto.";
+
 
 // Agent readiness — set to true to expose site tools to AI agents via WebMCP
 const ENABLE_WEBMCP = false;

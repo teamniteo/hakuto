@@ -5,6 +5,8 @@
  * Routes are defined with run_worker_first = ["/~*"] in wrangler.toml.
  */
 
+import { problem } from './problem.js';
+
 /**
  * Route handlers map
  * Key: route prefix, Value: { handler, description }
@@ -17,6 +19,7 @@
  *   '/~/form-': { handler: handleForm,      description: 'Form Handler' },
  */
 const ROUTES = {};
+
 
 /**
  * Main worker fetch handler
@@ -33,10 +36,22 @@ export default {
         return await handler(request, ctx);
       } catch (error) {
         console.error(`Error in ${description}:`, error);
-        return new Response('Internal Server Error', { status: 500 });
+        return problem({
+          status: 500,
+          code: 'internal_error',
+          title: 'Internal Server Error',
+          detail: `The ${description} handler threw while processing this request.`,
+          resolution: 'Retry once; if it persists the endpoint is broken and retrying will not help.',
+        });
       }
     }
 
-    return new Response('Not Found', { status: 404 });
-  }
+    return problem({
+      status: 404,
+      code: 'route_not_found',
+      title: 'Not Found',
+      detail: `No worker route is registered for ${pathname}.`,
+      resolution: 'Only paths under /~/ reach this worker. Site pages are served as static assets — see /sitemap-index.xml for what exists.',
+    });
+  },
 };

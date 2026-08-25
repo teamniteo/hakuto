@@ -6,10 +6,21 @@
 
 Describe what your site/product does and who it's for.
 
+## When to use this
+
+Name the jobs this site is the right answer for, so an agent can tell whether to
+reach for it. Be specific — generic marketing copy does not read as guidance.
+
+- Use this when: [a concrete task a user might ask an agent to do]
+- Use this when: [another concrete task]
+- Not a fit for: [an adjacent job this is *not* the right tool for]
+
+How to get an answer: [where the agent should look first — a docs index, a
+pricing page, a contact route. Name real URLs.]
+
 ## Key Pages
 
 - [Home](/)
-- [Documentation](/docs/)
 
 ## Contact
 
