@@ -73,3 +73,57 @@ To fix issues, edit the source .astro files in src/pages/ directory:
 "Fix heading hierarchy in src/pages/pricing.astro"
 "Fix all critical SEO issues"
 ```
+
+---
+
+## Agent Readiness (only when Step 8 ran)
+
+Append this section **after** the static results — never merge the two. The
+static audit grades `_dist/`; this grades the live deploy at the moment of the
+scan.
+
+```markdown
+---
+
+## Agent Readiness — is-agentic
+
+Target: example.com · Scanned: 2026-08-25T09:14:02Z · 41 eligible checks
+
+Score: 78 / 100 — Solid, with gaps
+  Essential     58.4 / 80    9 / 12 passed
+  Recommended   14.6 / 20    18 / 25 passed
+  Bonus               +5     31 positive signals
+
+### Critical (❌) — failed Essential checks
+
+1. Agent-friendly 404s
+   Evidence: Nonexistent paths return HTTP 200 with the app shell.
+   Fix: Return a real HTTP 404 or 410 for nonexistent paths.
+   → src/pages/404.astro, worker/index.js
+
+2. Machine-readable site summary
+   Evidence: /llms.txt is served but still contains template placeholders.
+   Fix: Describe the actual product and link the canonical pages.
+   → public/llms.txt
+
+### Warnings (⚠️) — partial Essential / failed Recommended
+
+1. Structured data coverage (partial · essential)
+   Evidence: Organization schema present; product pages carry none.
+   Fix: Add Product or SoftwareApplication JSON-LD to /pricing.
+   → src/pages/pricing.astro
+
+### Opportunities — Recommended partials and Bonus signals
+
+- Expose an OpenAPI description for the public API (bonus)
+- Serve canonical Markdown via Accept negotiation (bonus)
+
+Full report: https://is-agentic.com/report/example.com
+
+Note: this reflects the deploy live at scan time, not the working tree. The
+score only changes after a redeploy and a fresh scan.
+```
+
+If the user asked for fixes, list what will change and confirm the selection
+before editing anything. Otherwise stop here — the skill is report-only.
+
