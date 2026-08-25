@@ -79,6 +79,23 @@ If no forms exist, skip silently (don't add a passed entry — irrelevant).
 - Check existence: `src/pages/privacy.{astro,md,mdx}`, `src/pages/terms.{astro,md,mdx}`, `src/pages/cookies.{astro,md,mdx}`. Missing all three → warning: "No legal pages found (privacy / terms / cookies). Add at least a privacy policy if you collect any user data via forms or analytics."
 - For each that exists, grep `Footer` component(s) for a link to the corresponding path. Existing-but-not-linked → warning: "privacy.astro exists but isn't linked from Footer."
 
+#### Check 5b — Trust anchor pages
+
+`/about`, `/contact` and `/privacy` are the pages both people and AI agents check to decide
+whether a business is real before recommending it. A stub counts as missing — the bar is
+roughly 500 characters of genuine content each.
+
+- For each of `about`, `contact`, `privacy`, look for `src/pages/{name}.{astro,md,mdx}` or
+  `src/pages/{name}/index.{astro,md,mdx}`.
+- Missing entirely → warning: "No /{name} page. Agents check this to verify the business is
+  legitimate."
+- Present but under ~500 characters of rendered text → warning: "/{name} is a stub (N chars).
+  Agents treat a near-empty trust page much like a missing one."
+- All three present with real content → pass.
+
+Not every site needs all three — a personal landing page reasonably has no /about separate
+from its homepage. Report as warnings and let the user decide, rather than blocking launch.
+
 #### Check 6 — Placeholder text
 
 Grep `src/` **and `public/*.txt`** (excluding `node_modules`, `.astro`, `dist`) for these patterns. `public/llms.txt` is served live at `/llms.txt`, so its placeholders ship to crawlers exactly like on-page copy does. **Critical** if any are found, with file + line:
@@ -161,6 +178,7 @@ Always include in the report (these can't be checked from the repo):
 - **Confirm custom domain** is configured and DNS has propagated (Cloudflare dashboard → Workers & Pages → your worker → Settings → Domains & Routes → Add Custom Domain).
 - **Verify analytics** is firing on the live domain (if Plausible or another analytics tool is installed).
 - **Submit sitemap** to Google Search Console at `yourdomain.com/sitemap-index.xml` after first deploy.
+- **Enable Markdown for Agents** (Cloudflare dashboard → AI Crawl Control → Markdown for Agents, or `dash.cloudflare.com/?to=/:account/:zone/ai`). Cloudflare converts HTML to markdown on the fly for clients sending `Accept: text/markdown`, and sets `Vary: Accept` itself. **Requires a Pro, Business or Enterprise plan** — it is not available on Free, and it cannot be implemented in `_headers`: adding `Vary: Accept` to a site that only ever serves HTML advertises a variant that does not exist. Verify with `curl -sI -H "Accept: text/markdown" https://{domain}/ | grep -i '^content-type'`.
 - **Consider IndexNow** if the site publishes regularly (a blog, changelog or docs that change often). Drop a `<key>.txt` file in `public/` and ping `https://api.indexnow.org/indexnow?url=…&key=…` after each deploy. Bing, Yandex, Naver and Seznam pick changes up immediately instead of waiting on their crawl schedule; Google does not participate. Skip it for a static marketing site that rarely changes.
 
 ---

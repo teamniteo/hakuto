@@ -72,6 +72,22 @@ Distinct-per-page-count H1s can still be site-wide duplicates. Evaluated in Step
 - If any skip (e.g., H1→H3) → ❌ critical: "Broken hierarchy at line X: H1→H3 (skipped H2)"
 - No skips → ✅ pass
 
+**Flat structure:** a page can have a valid H1 and plenty of prose and still be
+unreadable to an agent, because nothing below the H1 marks where one idea ends and the next
+begins. A skipped level is a broken outline; *no* outline is worse, and the skip check above
+passes it silently.
+
+- Page has an H1 and ≥ 500 characters of body text but **zero H2s** → ⚠️ warning: "Flat
+  heading structure on [url]: N chars under a single H1, no H2s". Agent-readiness scanners
+  grade this directly — it is the difference between a partial and a full pass on
+  "content without JavaScript".
+- Long pages (≥ 2000 chars) with only one or two H2s and no deeper structure → ⚠️ warning:
+  the sections are too coarse to navigate.
+
+The fix is real section headings in the `.astro` markup, not decorative `<p class="font-bold">`
+lead-ins. Check for that pattern specifically: a bolded paragraph immediately followed by
+body copy is a heading that lost its element.
+
 ---
 
 ## Image Alt Text

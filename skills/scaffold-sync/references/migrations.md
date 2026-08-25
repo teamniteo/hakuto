@@ -133,6 +133,22 @@ Manual edits for customized sites:
 4. **Set `build.inlineStylesheets: "auto"`** if it was forced to `"always"`.
 5. Optional: pass `feedUrl` from blog routes for RSS autodiscovery (new `Layout` prop).
 
+Agent-readiness surfaces added in the same release (apply if the site is graded by an
+agent-readiness scanner, or just to bring it level with the scaffold):
+
+6. **`worker/problem.js`** (new) — RFC 9457 `application/problem+json` errors. `worker/index.js`
+   now returns typed errors through it instead of plain-text `'Not Found'` / `'Internal Server
+   Error'`. Point existing route handlers at `problem()` too so the shape is consistent.
+7. **`src/lib/site.ts` + `src/lib/schema.ts`** (new) — `SITE_NAME` / `SITE_DESCRIPTION` moved
+   out of `Layout.astro`, joined by `SITE_CONTACT`, feeding `Organization` + `WebSite` JSON-LD
+   on the homepage. Sites with their own schema module should merge rather than adopt this
+   wholesale; sites with none get an identity type they were missing.
+8. **`src/pages/404.astro`** — adds a "Where to look next" list pointing at `/`,
+   `/sitemap-index.xml` and `/llms.txt`. Adapt the list to the site's real sections.
+9. **`public/llms.txt`** — adds a `## When to use this` section, and drops the `/docs/` Key
+   Pages line that 404s on sites without a docs section. If the site's `llms.txt` is already
+   written, add the section by hand rather than overwriting the file.
+
 After applying:
 - run `bun install` (`package.json` changed)
 - run `bun run build`, then confirm `dist/client/robots.txt` has a `Sitemap:` line with the

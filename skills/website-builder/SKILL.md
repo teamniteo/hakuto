@@ -107,6 +107,11 @@ Print the full briefs in the chat message, then a single-select AskUserQuestion 
 1. Write `site-specification.md` (template below) recording direction, dials, palette, fonts.
 2. **Rewrite `public/llms.txt` from the spec, in the same breath** — site name, one-line description, overview, and contact. The scaffold ships a raw template and it is served **live** at `/llms.txt`: left untouched it publishes "Site Name", `hello@example.com`, and a link to `/docs/` that 404s on a site with no docs section. As soon as the spec exists, the real values exist — write them. Key Pages must list only routes that actually build.
    **Cover route *families*, not just the marketing pages.** An `llms.txt` that lists five top-level pages on a site with a blog, docs and a templated hub omits exactly the body of content an agent wants. For every route family the site builds, add a category-level entry with a count — `- [Blog](/blog/) — 37 posts on …`, `- [Docs](/docs/) — 30 pages covering …` — rather than enumerating URLs. Every route in the main nav needs an entry too.
+   **Write the `## When to use this` section** — the scaffold ships it as a prompt, and it is
+   the single thing agent-readiness scanners look for to decide whether a site tells agents
+   when to reach for it. Name the concrete jobs this site is the right answer for, and at
+   least one adjacent job it is *not*. Generic marketing copy does not read as guidance and
+   scores as absent.
 3. Load `references/design-craft.md` + `references/site-types/[type].md`, then follow CLAUDE.md's Mandatory Workflow steps 3–7. Site-type files define content *jobs*; section composition and order come from the direction, dials, and craft patterns.
 4. Content per Content Strategy below — pass the copywriter the direction name and tone.
 5. Set `site` in `astro.config.mjs` to the production URL if the user provided a domain (drives sitemap/canonicals/JSON-LD); otherwise leave the scaffold default and note it must be updated before deploy.
