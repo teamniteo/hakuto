@@ -1,9 +1,9 @@
 ---
-name: code-review
-description: Hakuto-specific code review for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization (right-sizing via `width`/`sizes`, oversized images), className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, internal links (trailing-slash convention), accessibility (aria-labels, semantic elements), LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "review code", "code review", "audit code", "check code quality", or "lint the site".
+name: hakuto-review
+description: Hakuto-specific source audit for Astro + Tailwind v4 + shadcn/ui sites. Audits source code against the project's CLAUDE.md rules — image optimization (right-sizing via `width`/`sizes`, oversized images), className vs class, Tailwind v4 setup, Fonts API, Cloudflare adapter, internal links (trailing-slash convention), accessibility (aria-labels, semantic elements), LCP / critical-render-path performance, deferred marketing pixels, static-asset caching and security headers in `_headers`, code hygiene. Can review a single file, recently changed files, or the whole src/ tree. Report-only — no fixes applied. Use when user requests "Hakuto review", "review my site source", "audit the site source", "check site code quality", or "lint the site".
 ---
 
-# Code Review Skill
+# Hakuto Review Skill
 
 Audit Hakuto-built sites against the project's own CLAUDE.md rules.
 
@@ -12,7 +12,7 @@ This skill is the **source-side** counterpart to `seo-audit` (which audits the b
 **Flexible Scope:** parses the user request to choose what to review:
 - **Single file**: "Review src/pages/index.astro" or "Audit Header.astro"
 - **Changed files**: "Review my changes" or "Review recent changes"
-- **Whole project** (default): "Run code review", "Audit the site"
+- **Whole project** (default): "Run a Hakuto review", "Audit the site"
 
 ---
 
@@ -234,7 +234,7 @@ Hakuto sites are fully static-prerendered with many inline scripts (GTM, Cookieb
 ## Output Format
 
 ```markdown
-Code Review Results for [scope]
+Hakuto Review Results for [scope]
 ================================
 
 📊 Summary:
@@ -301,7 +301,7 @@ Scope: [Whole project | src/pages/index.astro | Changed files: 3]
 ---
 
 To fix issues, ask Claude:
-- "Fix all critical code review issues"
+- "Fix all critical Hakuto review issues"
 - "Convert hero <img> to <Picture> in src/pages/index.astro"
 - "Right-size the images in src/pages/blog/ — measure each slot and add width + sizes"
 - "Add aria-label to icon-only buttons in Header.astro"

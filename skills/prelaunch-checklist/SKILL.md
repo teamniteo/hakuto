@@ -1,6 +1,6 @@
 ---
 name: prelaunch-checklist
-description: Pre-launch validation for Hakuto sites — verifies wrangler config, form wiring, legal pages, placeholder content scrub; confirms `seo-audit` and `code-review` have been run; reminds the user of manual Cloudflare dashboard steps. Report-only — no fixes applied. Use when user requests "run prelaunch checklist", "is the site ready to ship?", "ready to go live", "pre-launch check", "launch check", or "final check before deploy".
+description: Pre-launch validation for Hakuto sites — verifies wrangler config, form wiring, legal pages, placeholder content scrub; confirms `seo-audit` and `hakuto-review` have been run; reminds the user of manual Cloudflare dashboard steps. Report-only — no fixes applied. Use when user requests "run prelaunch checklist", "is the site ready to ship?", "ready to go live", "pre-launch check", "launch check", or "final check before deploy".
 ---
 
 # Prelaunch Checklist Skill
@@ -39,7 +39,7 @@ critical = []
 warnings = []
 passed = []
 manual_reminders = []
-gates = []   # SEO + code-review confirmations
+gates = []   # SEO + source-review confirmations
 ```
 
 ### 3. Run automated checks
@@ -132,11 +132,11 @@ Use `AskUserQuestion` for each. These are confirmation gates, not auto-runs.
 If "No — run it after this" → add to `manual_reminders`: "Run `seo-audit` skill before going live."
 If "Yes" → add to `passed`.
 
-**Gate 2 — Code review:**
-> Has the source been reviewed (via the `code-review` skill, an external reviewer, or PR review)?
+**Gate 2 — Source review:**
+> Has the source been reviewed (via the `hakuto-review` skill, an external reviewer, or PR review)?
 > Options: Yes / No — do it after this / Not applicable
 
-If "No — do it after this" → add to `manual_reminders`: "Run `code-review` skill or get a second pair of eyes on the source."
+If "No — do it after this" → add to `manual_reminders`: "Run `hakuto-review` skill or get a second pair of eyes on the source."
 If "Yes" → add to `passed`.
 
 **Gate 3 — Lock file freshness:**
@@ -206,7 +206,7 @@ Prelaunch Checklist Results
 - Forms wired correctly (1 form found)
 - 404 page customized
 - SEO test confirmed run
-- Code review confirmed run
+- Source review confirmed run
 - `bun.lock` refreshed to latest stable packages
 - Scaffold sync confirmed run
 
@@ -253,6 +253,6 @@ list is empty and the manual steps are done, you're ready to ship.
 
 - Report-only: never modify files.
 - Run from the project root.
-- The two gates (SEO + code review) use `AskUserQuestion` — do not auto-invoke those skills.
+- The two gates (SEO + source review) use `AskUserQuestion` — do not auto-invoke those skills.
 - If a check is irrelevant to the project (e.g., no forms exist), skip it silently rather than padding the report with N/A entries.
 - Show file:line for every finding so the user can jump straight to it.
