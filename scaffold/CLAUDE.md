@@ -422,7 +422,32 @@ Your goal is to create a beautiful, performant landing page that matches the use
 | Anchor links broken | Ensure target element has matching `id` attribute |
 | `import.meta.env.MY_VAR` is `undefined` in production | The Cloudflare deploy doesn't plumb env vars into the build. Hardcode the value in source (e.g. `src/config.ts`) for prerendered config, or move the read into `worker/index.js` for runtime/secret values. See "Environment Variables" above |
 | Pagefind search 404s in dev (`/pagefind/pagefind.js`) | **Expected — pagefind is intentionally not active on localhost.** The index is generated only by `astro build` and the prod adapter is gated to `NODE_ENV === "production"` so dev keeps Astro's image service out of the Cloudflare workerd endpoint that needs runtime bindings. Do NOT remove the `NODE_ENV` guard to "fix" dev pagefind — that breaks dev images. Test pagefind on a deploy preview. |
+| `lastmod` in the sitemap, or a page's "Last updated" date, is the deploy date on every page | The Cloudflare build cloned shallow, so git only knows the tip commit. Prefix the build command with `git fetch --unshallow`. See "Cloudflare Workers Builds: unshallow the clone first" |
 | Sitemap / canonical URLs show `localhost:4321` (or wrong domain) in production | `site` in `astro.config.mjs` was never updated. Set it to the production URL (e.g. `"https://yoursite.com"`) and redeploy — see [Astro `site` config](https://docs.astro.build/en/reference/configuration-reference/#site) |
+
+### Cloudflare Workers Builds: unshallow the clone first
+
+Cloudflare Workers Builds (and Pages builds) check out the repository as a **shallow clone** —
+`git log` sees only the tip commit, so every file looks like it was last modified at deploy time.
+Anything that derives a date from git history (sitemap `lastmod`, a doc/blog "Last updated"
+line, changelog ordering) then gets the same wrong timestamp for the whole site.
+
+**Prefix the build command with `git fetch --unshallow`** in the Cloudflare project's build
+settings:
+
+```sh
+git fetch --unshallow || true && bun run build
+```
+
+- `|| true` keeps the build green when the clone is already complete — `git fetch --unshallow`
+  exits non-zero on a full clone (`fatal: --unshallow on a complete repository does not make sense`).
+- This belongs in the **Cloudflare dashboard build command** (Workers & Pages → project →
+  Settings → Build), not in `package.json` — local builds already have full history and
+  `bun run build` must stay usable offline.
+- It fails silently otherwise: the build succeeds, the deploy succeeds, and only the dates are wrong.
+- **Check for a Cloudflare MCP server first** (`cloudflare-api`, `cloudflare-builds`). If one is
+  connected, read and update the project's build command through it instead of walking the user
+  through the dashboard.
 
 ### Environment Variables (CRITICAL)
 

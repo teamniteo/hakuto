@@ -175,6 +175,7 @@ If "Yes" → add to `passed`.
 Always include in the report (these can't be checked from the repo):
 
 - **Toggle Cloudflare Access on for the `workers.dev` URL** in the Cloudflare dashboard once your custom domain is live, so Google doesn't index the site under two URLs. (Workers & Pages → your worker → Settings → Domains & Routes → click `…` on the `workers.dev` row → enable Cloudflare Access.) Leave Cloudflare Access **off** on the Preview URLs row so per-PR previews stay publicly shareable.
+- **Prefix the Cloudflare build command with `git fetch --unshallow`** if the site builds on Cloudflare Workers Builds / Pages CI rather than locally (Workers & Pages → your worker → Settings → Build → Build command): `git fetch --unshallow || true && bun run build`. Cloudflare clones shallow, so git sees only the tip commit and every git-derived date (sitemap `lastmod`, "Last updated" lines) becomes the deploy date. It fails silently — the build and deploy both succeed. If a Cloudflare MCP server (`cloudflare-api`, `cloudflare-builds`) is connected, offer to read and set the build command through it instead of sending the user to the dashboard.
 - **Confirm custom domain** is configured and DNS has propagated (Cloudflare dashboard → Workers & Pages → your worker → Settings → Domains & Routes → Add Custom Domain).
 - **Verify analytics** is firing on the live domain (if Plausible or another analytics tool is installed).
 - **Submit sitemap** to Google Search Console at `yourdomain.com/sitemap-index.xml` after first deploy.

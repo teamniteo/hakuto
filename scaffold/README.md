@@ -24,6 +24,27 @@ bun run build        # → dist/client/
 wrangler deploy      # → Cloudflare Workers
 ```
 
+### Deploying from Cloudflare Workers Builds
+
+If the site builds on Cloudflare (Workers Builds / Pages CI) rather than from your machine, set the
+project's **build command** to:
+
+```sh
+git fetch --unshallow || true && bun run build
+```
+
+Cloudflare checks the repo out as a shallow clone, so git only knows the tip commit and every file
+looks like it was last modified at deploy time. Anything derived from git history — sitemap
+`lastmod`, a doc or blog "Last updated" line, changelog ordering — then gets the same wrong date on
+every page. `|| true` keeps the build green when the clone is already complete (`git fetch
+--unshallow` errors on a full clone). Keep this in the Cloudflare dashboard build command, not in
+`package.json`: local builds already have full history.
+
+> **You may not need the dashboard.** If the Cloudflare MCP server is connected (`cloudflare-api`,
+> `cloudflare-builds`), ask the agent to set the build command for you — it can read the project's
+> current build configuration and update it in place. Fall back to the dashboard only when no
+> Cloudflare MCP is available.
+
 > Astro's Cloudflare adapter writes a redirected config at `dist/client/wrangler.json` and `.wrangler/deploy/config.json` during build — for this static-assets + custom-worker setup that generated config omits `main`, so a bare `wrangler deploy` picking it up would fail wrangler's `run_worker_first` check and skip deploying `worker/index.js`. The `build` script removes both generated files so `wrangler deploy` always falls back to the authoritative root `wrangler.toml`.
 
 ### Preview the built site
