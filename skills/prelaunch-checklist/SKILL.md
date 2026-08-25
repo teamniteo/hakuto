@@ -1,6 +1,6 @@
 ---
 name: prelaunch-checklist
-description: Pre-launch validation for Hakuto sites — verifies wrangler config, form wiring, legal pages, placeholder content scrub; confirms `seo-audit` and `hakuto-review` have been run; reminds the user of manual Cloudflare dashboard steps. Report-only — no fixes applied. Use when user requests "run prelaunch checklist", "is the site ready to ship?", "ready to go live", "pre-launch check", "launch check", or "final check before deploy".
+description: Pre-launch validation for Hakuto sites — verifies wrangler config, form wiring, legal pages, placeholder content scrub; confirms `seo-audit` and `hakuto-review` have been run; reminds the user of manual Cloudflare dashboard steps. Report-only — no fixes applied. Use when user requests "run prelaunch checklist", "is the site ready to ship?", "ready to go live", "pre-launch check", "launch check", or "final check before deploy". This is the final gate before deploy, not a mid-build quality check — during development reach for `hakuto-review` and `seo-audit` directly.
 ---
 
 # Prelaunch Checklist Skill
@@ -161,6 +161,7 @@ Always include in the report (these can't be checked from the repo):
 - **Confirm custom domain** is configured and DNS has propagated (Cloudflare dashboard → Workers & Pages → your worker → Settings → Domains & Routes → Add Custom Domain).
 - **Verify analytics** is firing on the live domain (if Plausible or another analytics tool is installed).
 - **Submit sitemap** to Google Search Console at `yourdomain.com/sitemap-index.xml` after first deploy.
+- **Consider IndexNow** if the site publishes regularly (a blog, changelog or docs that change often). Drop a `<key>.txt` file in `public/` and ping `https://api.indexnow.org/indexnow?url=…&key=…` after each deploy. Bing, Yandex, Naver and Seznam pick changes up immediately instead of waiting on their crawl schedule; Google does not participate. Skip it for a static marketing site that rarely changes.
 
 ---
 
