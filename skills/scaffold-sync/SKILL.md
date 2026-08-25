@@ -148,7 +148,8 @@ Plugin version: 0.1.2
 Migration notes:
   - 0.1.2: Unpic/WebP image service — apply astro.config.mjs,
     package.json, bun.lock, CLAUDE.md; update local Picture usage to
-    formats={['webp']} fallbackFormat="webp"; render SVGs with <img>.
+    formats={['webp']}; render SVGs with <img>. Set fallbackFormat
+    ONLY on .webp/.avif sources.
 
 📊 Summary:
 ✅ Already in sync: 142 files
@@ -305,7 +306,7 @@ Apply from scaffold when not heavily customized:
 
 Manual edits for customized sites:
 - set Cloudflare adapter image service to `imageService: "custom"`
-- change local raster `<Picture>` usage to `formats={['webp']}` (do **not** add `fallbackFormat="webp"` — it breaks the build with `ENOENT … dist/_astro/<name>.png`)
+- change local raster `<Picture>` usage to `formats={['webp']}`. `fallbackFormat` is **per-source-format**: **set `fallbackFormat="webp"` on `.webp`/`.avif` sources** — neither is in Astro's `specialFormatsFallback`, so omitting it ships a PNG fallback — and omit it on `.jpg`/`.jpeg`/`.gif`/`.svg`, which already fall back to themselves. On `.png` it is optional (setting it halves the emitted files; the old `ENOENT` failure is fixed in Astro >= 6.4)
 - render imported SVG assets with native `<img src={asset.src} width={asset.width} height={asset.height}>`
 
 After applying:

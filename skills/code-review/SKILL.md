@@ -86,6 +86,11 @@ For each `.astro` file:
 
 - **Critical**: a local image is `import`-ed (e.g. `import hero from '@/assets/…'`) and rendered with a bare `<img>` tag. CLAUDE.md mandates `<Picture>` / `<Image>` from `astro:assets` for local raster images. **Exception**: local `.svg` imports rendered as `<img src={logo.src}>` are correct (CLAUDE.md → Image Optimization keeps SVGs out of the raster pipeline).
 - **Warning**: `<Picture>` missing `formats={['webp']}`.
+- **`fallbackFormat` — resolve the SOURCE file's extension first; never flag it blanket.** Astro's `specialFormatsFallback` is `['gif','svg','jpg','jpeg']`; every other format defaults to a **PNG** `<img>` fallback. Follow the `import` to its real extension before judging, and skip the tag entirely if you cannot (a content-collection `featuredImage`, a `.map()` over a mixed array).
+  - **Critical**: a `.webp` or `.avif` source with **no** `fallbackFormat="webp"`. The fallback is silently transcoded to PNG — for photos routinely megabytes, often larger than the source. This is the only genuinely wrong combination.
+  - **Warning (advisory)**: a `<Picture>` whose `src` is a content-collection image or otherwise dynamic, in a project whose collection contains any `.webp`/`.avif` asset, with a hardcoded or absent `fallbackFormat`. Recommend the computed form: `fallbackFormat={img.format === "webp" ? "webp" : undefined}`.
+  - **Pass**: `.jpg`/`.jpeg`/`.gif`/`.svg` with no `fallbackFormat` (they fall back to themselves), and `.png` either way — omitted it falls back to PNG, set to `"webp"` it reuses the webp files and emits half as many.
+  - **Do NOT flag** `.png` + `fallbackFormat="webp"` as build-breaking. That was true on Astro < 6.4 and is now guarded by `referencedImages` in `dist/assets/build/generate.js`; it builds clean on 6.4.8 and 7.1.3.
 - **Warning**: an above-the-fold image (in the first section of a page) without `loading="eager"`, or a below-the-fold image without `loading="lazy"`.
 - **Pass (do NOT flag)**: bare `<img>` whose `src` is an external URL such as `https://images.unsplash.com/…` — CLAUDE.md explicitly allows this for placeholder/external imagery.
 
@@ -104,8 +109,10 @@ A prop-presence review misses most of what goes wrong here, because the failure 
 - **Warning** — *both `width` and `height` on an image whose box is CSS-controlled* (`w-full`, `h-*`, `aspect-*`, `object-cover`). If the pair's ratio differs from the source's, sharp crops the file and CSS then crops it again. Phrase as "drop `height` unless the crop is intended" — this skill can't read the asset's intrinsic size, so don't assert the ratio is wrong.
   - Pass: square `width`/`height` on a round avatar (`rounded-full`, `size-*`) — the crop is the point.
 - **Warning (advisory)** — *`width` looks like an intrinsic asset size, not a display size*. Heuristic: `width` ≥ 1600 on an image inside a card/tile/grid container (`grid`, `md:grid-cols-*`, `max-w-sm|md|lg|xl`, `w-*` on the wrapper), or a value that matches a common capture dimension (1920, 2560, 3024, 5120). This skill cannot compute layout — phrase the finding as "verify `width={N}` against the rendered slot" rather than asserting it's wrong.
-- **Warning** — *markdown-content images not centrally right-sized*. The project has a blog or docs content collection (`src/content/**` with `.md`/`.mdx`) but `astro.config.mjs` `markdown.rehypePlugins` contains no plugin that sets `width`/`widths`/`sizes` on content `<img>` elements. Article columns are ~710–766px while pipeline images render at intrinsic resolution (1024–2220px). The fix is one rehype plugin (`width = 768`, `widths = [384, 768, 1536]`, `sizes = "(min-width: 768px) 768px, 100vw"`), not per-post annotation.
+- **Warning** — *markdown-content images not centrally right-sized*. The project has a blog or docs content collection (`src/content/**` with `.md`/`.mdx`) but `astro.config.mjs` registers no rehype plugin that sets `width`/`widths`/`sizes` on content `<img>` elements. Article columns are ~710–766px while pipeline images render at intrinsic resolution (1024–2220px). The fix is one rehype plugin (`width = 768`, `widths = [384, 768, 1536]`, `sizes = "(min-width: 768px) 768px, 100vw"`), not per-post annotation.
+  - **Check both config shapes.** Astro 6 takes `markdown.rehypePlugins: [...]`; Astro 7 takes `markdown.processor: unified({ rehypePlugins: [...] })` and *rejects* the legacy key with `unified is not a function`. Looking only for `markdown.rehypePlugins` false-positives on every Astro 7 project.
   - If such a plugin exists but sets `width` without `widths`, flag it: every in-article image loses its srcset entirely.
+- **Critical** — *content images referenced by an absolute `/…` public path*. A markdown body containing `![alt](/images/foo.png)` resolves to `public/`, which **never enters the asset pipeline** — no webp, no srcset, full resolution on every viewport, regardless of any rehype cap. A rehype plugin cannot fix these: public-dir images are absent from `file.data.astro.localImagePaths`, which is what such plugins key off. The fix is to move the asset into `src/assets/` and reference it *relatively* from the markdown. Detect: `!\[[^\]]*\]\(/` in any `src/content/**` markdown file.
 - **Warning** — *`max-width: none !important` utilities on images*. Sharp emits no inline cap to override, and the `!important` defeats Tailwind preflight's `img { max-width: 100% }` plus any `max-w-*` on the element. A slot that should fill its container wants `w-full`.
 - **Pass** — every local `<Picture>`/`<Image>` declares `width` and `widths`, plus `sizes` unless full-bleed.
 
@@ -311,6 +318,8 @@ To fix issues, ask Claude:
 - Bare `<img>` for an imported local image
 - Local `<Picture>` / `<Image>` with no explicit `width` — emits the intrinsic-resolution file
 - `sizes` present but no `widths` / `densities` — `getSrcSet` returns `[]`, so a single candidate ships and `sizes` does nothing
+- `.webp` / `.avif` source with no `fallbackFormat="webp"` — the `<img>` fallback is transcoded to PNG
+- Markdown content image referenced by an absolute `/…` public path — bypasses the pipeline entirely
 - `@font-face` / `@import` for fonts in CSS; custom fonts without `experimental.fonts`
 - Cloudflare `imageService: "passthrough"` or `"compile"` (both replace sharp), or missing `prerenderEnvironment: "node"`
 - Editable favicon source under `public/`
