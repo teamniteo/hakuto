@@ -269,7 +269,12 @@ On a clean run (user did not pick "Cancel"), write `.hakuto-sync.json`:
 }
 ```
 
-If the user cancelled, **do not touch the state file** — the next run resumes the same diff window.
+Note the absence of `baseline_method`: if Step 3a probed a baseline, this write replaces the
+inferred version with one that was actually recorded, so the marker is deliberately dropped.
+Carrying it forward would label a known value as a guess.
+
+If the user cancelled, **do not touch the state file** — the next run resumes the same diff
+window, and a probed baseline keeps its `baseline_method` marker until a sync completes.
 
 ### 11. Final report
 
@@ -307,6 +312,11 @@ If any conflicts were skipped, list them with one-line reminders so the user can
 
   // Plugin version that provided the scaffold at the most recent successful sync.
   "last_synced_plugin_version": "0.1.2",
+
+  // Present only while the version above was *inferred* by the Step 3a probe rather than
+  // recorded at sync time. Step 10 drops it: after a successful sync the version is known,
+  // not guessed, and leaving it would misreport a recorded value as an inferred one.
+  "baseline_method": "probe",
 
   // Paths applied on the last run (relative to site root).
   "applied_paths": [],
