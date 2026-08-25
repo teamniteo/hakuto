@@ -250,7 +250,7 @@ These bolt specialized areas onto the foundation this skill lays.
 
 - **seo-audit** — meta tags, headings, canonicals, schema, sitemap, alt text. Run before every launch.
 - **pagespeed-audit** — live Lighthouse via PageSpeed Insights for deployed pages.
-- **code-review** — Hakuto-specific source audit against CLAUDE.md rules.
+- **hakuto-review** — Hakuto-specific source audit against CLAUDE.md rules.
 - **prelaunch-checklist** — final pre-launch verification.
 
 Suggest these proactively when the user says "ready to ship", "going live", or once all pages are built.
@@ -291,7 +291,7 @@ Suggest these proactively when the user says "ready to ship", "going live", or o
 | "Make it warmer/livelier/calmer" | (none — dial change, handle directly) |
 | "Run SEO test" | `seo-audit` |
 | "Test page speed" | `pagespeed-audit` |
-| "Code review" | `code-review` |
+| "Hakuto review", "review my site source" | `hakuto-review` |
 | "Ready to ship", "launch check" | `prelaunch-checklist` |
 
 ---

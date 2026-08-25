@@ -50,6 +50,7 @@ You have access to: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, WebFetch, We
 **Skills**:
 - `brand-designer` - Custom color palette generation
 - `fonts` - Web fonts with Astro Fonts API
+- `hakuto-review` - Report-only source audit against this file's rules
 - `plausible-analytics` - Privacy-friendly analytics
 - `prelaunch-checklist` - Pre-launch validation (wrangler, forms, legal, placeholders, SEO/review status)
 - `professional-copywriter` - Conversion-optimized content
