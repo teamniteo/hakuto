@@ -243,7 +243,9 @@ Use `Read` for each file's contents and `Glob` to confirm presence in `_dist/`.
 
 **llms.txt:** read `_dist/llms.txt`. Hints to LLM crawlers (ChatGPT, Perplexity, Claude) which content is canonical and how to summarize the site — without it, these tools fall back to generic crawling.
 - Missing → warning
-- Present → pass
+- Present but still the scaffold template (`# Site Name`, `Brief one-line description of your site`, `Describe what your site/product does`, `hello@example.com`, `https://example.com`) → critical: "llms.txt is the unedited scaffold template — it's live and tells crawlers the site is 'Site Name' at hello@example.com". Present-but-placeholder is worse than absent: it publishes wrong facts instead of none.
+- Present, and a Key Pages link resolves to no file in `_dist/` → critical: "llms.txt links to [route] which isn't built (the scaffold's `/docs/` is the usual leftover)". Resolve links the same way as internal anchors above.
+- Present with real content and resolving links → pass
 
 **Favicon:** Check both HTML head links AND generated files in `_dist`
 
@@ -436,6 +438,7 @@ See `references/example-report.md` for the full template — match its shape and
 - `style="[object Object]"` on an `<img>` (image pipeline stringifying an object into an attribute)
 - robots.txt `Sitemap:` line points to a sitemap file not present in `_dist/`
 - Sitemap lists a `noindex` page (contradictory index signal)
+- `llms.txt` is the unedited scaffold template, or links to a route that isn't built
 
 **Warning (⚠️):**
 - Title/description outside optimal range (but >30/>100)

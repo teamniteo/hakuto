@@ -105,11 +105,13 @@ Print the full briefs in the chat message, then a single-select AskUserQuestion 
 
 **Step 6 — Lock spec, build the site.**
 1. Write `site-specification.md` (template below) recording direction, dials, palette, fonts.
-2. Load `references/design-craft.md` + `references/site-types/[type].md`, then follow CLAUDE.md's Mandatory Workflow steps 3–7. Site-type files define content *jobs*; section composition and order come from the direction, dials, and craft patterns.
-3. Content per Content Strategy below — pass the copywriter the direction name and tone.
-4. Set `site` in `astro.config.mjs` to the production URL if the user provided a domain (drives sitemap/canonicals/JSON-LD); otherwise leave the scaffold default and note it must be updated before deploy.
-5. Keep `branding.astro` as the living style guide — exclude it from nav.
-6. Run the **pre-flight check** (end of `design-craft.md`) before declaring done, and tell the user about the spec file and customization flexibility.
+2. **Rewrite `public/llms.txt` from the spec, in the same breath** — site name, one-line description, overview, and contact. The scaffold ships a raw template and it is served **live** at `/llms.txt`: left untouched it publishes "Site Name", `hello@example.com`, and a link to `/docs/` that 404s on a site with no docs section. As soon as the spec exists, the real values exist — write them. Key Pages must list only routes that actually build.
+3. Load `references/design-craft.md` + `references/site-types/[type].md`, then follow CLAUDE.md's Mandatory Workflow steps 3–7. Site-type files define content *jobs*; section composition and order come from the direction, dials, and craft patterns.
+4. Content per Content Strategy below — pass the copywriter the direction name and tone.
+5. Set `site` in `astro.config.mjs` to the production URL if the user provided a domain (drives sitemap/canonicals/JSON-LD); otherwise leave the scaffold default and note it must be updated before deploy.
+6. Keep `branding.astro` as the living style guide — exclude it from nav.
+7. Re-check `public/llms.txt` against the pages that actually got built — routes and contact only — before declaring done.
+8. Run the **pre-flight check** (end of `design-craft.md`) before declaring done, and tell the user about the spec file and customization flexibility.
 
 ### B) Add Standard Page
 
@@ -120,7 +122,8 @@ User says: "Build the features page", "Add pricing", "Create about page"
 2. Load `references/design-craft.md` + site-type file.
 3. Assess content: missing/partial → INVOKE professional-copywriter; complete → use verbatim.
 4. Build the page to the spec's *Current* style and dial mechanics — prefer layout families the site hasn't led with yet, while keeping the established visual system.
-5. Run the pre-flight check; update `site-specification.md`.
+5. Add the new route to `public/llms.txt` Key Pages if it's a page agents should find (skip utility pages).
+6. Run the pre-flight check; update `site-specification.md`.
 
 **Note:** Workflow B does not re-run the interview or re-consult defaults — the spec is the authoritative source. Apply Current; don't re-derive.
 
@@ -261,6 +264,7 @@ Suggest these proactively when the user says "ready to ship", "going live", or o
 ✅ 2–3 genuinely distinct directions proposed; user picked or merged one
 ✅ Style preview built with real tokens and approved before the full build
 ✅ Dials + direction + palette + fonts recorded in site-specification.md
+✅ `public/llms.txt` written from the spec — no `Site Name`, no `hello@example.com`, no links to routes that don't exist
 ✅ User content preserved (not overwritten); copywriter invoked only when needed
 ✅ Site-type content jobs all covered; structure driven by dials + craft patterns
 ✅ Pre-flight check (design-craft.md) run on every built page

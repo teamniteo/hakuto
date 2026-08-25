@@ -81,7 +81,7 @@ If no forms exist, skip silently (don't add a passed entry — irrelevant).
 
 #### Check 6 — Placeholder text
 
-Grep `src/` (excluding `node_modules`, `.astro`, `dist`) for these patterns. **Critical** if any are found, with file + line:
+Grep `src/` **and `public/*.txt`** (excluding `node_modules`, `.astro`, `dist`) for these patterns. `public/llms.txt` is served live at `/llms.txt`, so its placeholders ship to crawlers exactly like on-page copy does. **Critical** if any are found, with file + line:
 - `Lorem ipsum`
 - `\bTODO\b`
 - `\bFIXME\b`
@@ -92,8 +92,15 @@ Grep `src/` (excluding `node_modules`, `.astro`, `dist`) for these patterns. **C
 - `\+1 \(555\)`
 - `example\.com` (in user-facing strings — exclude config files and comments)
 - `Astro \+ shadcn/ui website template for Hakuto` (the exact scaffold SITE_DESCRIPTION default)
+- `^# Site Name` and `Brief one-line description of your site` (the scaffold `public/llms.txt` header)
+- `Describe what your site/product does` (scaffold `public/llms.txt` overview)
 
 Report each with `file:line` so the user can jump to it.
+
+Additionally, resolve every link in `public/llms.txt` against the built site: a
+Key Pages entry pointing at a route that doesn't exist (the scaffold ships
+`/docs/`, which 404s on any site without a docs section) → critical:
+"llms.txt links to [route], which isn't a page on this site".
 
 #### Check 7 — Layout placeholders
 
