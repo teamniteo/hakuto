@@ -1,6 +1,6 @@
 ---
 name: seo-audit
-description: Static SEO audit for Astro `_dist/` HTML — meta tags, headings, canonicals, schema, sitemap, robots.txt, alt text, mixed content, internal links, image right-sizing (measured pixel dimensions vs the declared slot), favicons. Can scope to a single page, group of pages, or whole site. Optional live pass once a domain is deployed: `bunx is-agentic` scores the public site for AI-agent readiness and its findings can be applied back to source. Static audit is report-only. Use when user requests "run SEO test", "SEO audit", "check meta tags", "validate canonicals", "audit indexability", "check site for SEO issues", "run is-agentic", "check agent readiness", or "score the site for AI agents".
+description: Static SEO audit of built `_dist/` HTML for Astro sites — indexability, meta tags, headings, canonicals, structured-data integrity, sitemap, robots.txt, llms.txt, images, internal links. Scopes to one page, a group, or the whole site; report-only. Can also score the deployed domain for AI-agent readiness. Use for "run SEO test", "SEO audit", "check meta tags", "validate structured data", "audit indexability", "check agent readiness". Not for source code or security/cache headers (`hakuto-review`), live Lighthouse and Core Web Vitals (`pagespeed-audit`), or ship-readiness (`prelaunch-checklist`).
 ---
 
 # SEO Audit
@@ -15,6 +15,18 @@ Validate SEO on Astro-built sites.
 Steps 1–7 audit built HTML in `_dist/` and never write. Steps 8–9 are opt-in
 and need a **deployed** domain: an `is-agentic` agent-readiness scan, and —
 only if the user asks for it — applying that report's fixes to source.
+
+## Check Catalogue
+
+The checks themselves live in `references/`, each carrying its own severity. Read the
+relevant file when you reach the step that uses it — don't work from memory.
+
+| File | Used by | Contents |
+| --- | --- | --- |
+| `references/checks-onpage.md` | Step 5 | Meta tags, `<html lang>`, headings, alt text, image asset health and right-sizing (local **and** third-party), text contrast, URL hygiene, mixed content, internal links, external link liveness |
+| `references/checks-schema.md` | Step 5 | JSON-LD: per-type expectations, conflicting `@id`, rating substantiation, entity-escaped values, author identity, and the do-not-recommend list |
+| `references/checks-technical.md` | Step 6 | Sitemap, robots.txt, Content-Signal, crawler-signal `_headers` rules, duplicate `/index.html`, llms.txt coverage, favicon, feed autodiscovery, page weight, JS-dependent commercial content |
+| `references/example-report.md` | Output | Report template — match its shape and headings verbatim |
 
 ---
 
@@ -53,6 +65,13 @@ This avoids redundant builds; Hakuto's external build hooks handle compilation a
 
 Use the `Read` tool on `AGENTS.md` for Astro metadata about all pages in the site — page structure, routes, intended titles/descriptions. This is your context for what *should* be on each page.
 
+**`AGENTS.md` descriptions can be truncated — do not report the difference as a finding.**
+`@nuasite/agent-summary` (≤ 0.0.36) extracts the meta description with
+`content=["']([^"']*)["']`, whose character class stops at an apostrophe. A description of
+"The page you're looking for doesn't exist." is recorded as "The page you". The built page
+is correct; the summary is not. Treat `AGENTS.md` as a routes-and-intent map, and read the
+actual `<meta name="description">` out of `_dist/` whenever you need the real string.
+
 ### 3. List Built Files
 
 Use `Glob` with `_dist/**/*.html` to enumerate built pages, then filter to the pages in scope (from Step 0). If the glob returns nothing or `_dist/` is missing, report the error and stop.
@@ -65,216 +84,47 @@ passed = []
 titles = {}           # title → files using it
 descriptions = {}     # description → files using it
 h1s = {}              # H1 text → files using it
-links = {}           # page → pages it links to
+links = {}            # page → pages it links to
 noindex_pages = []    # page URLs carrying <meta name="robots" content="noindex">
+schema_nodes = {}     # page → parsed JSON-LD nodes (for cross-page @id and rating checks)
+ext_images = {}       # third-party image host → [(page, src, slot width)]
 ```
 
 ### 5. Test Each File
 
-For each file, run these checks:
+Run every check in `references/checks-onpage.md` and `references/checks-schema.md` against
+each file in scope. Populate the trackers as you go — several checks (duplicate titles,
+cross-page H1s, site-wide `aggregateRating` counts, third-party image hosts) are only
+decidable once every page has been seen, and are evaluated in Step 7.
 
-#### Meta Tags
+### 6. Check Site-Wide & Technical Files
 
-**Title:** `<title>` in `<head>`
-- Missing → critical
-- <30 chars → critical: "Title too short: X chars (need 50-60)"
-- 30-49 or 61+ chars → warning: "Title X chars (optimal: 50-60)"
-- 50-60 chars → pass
-- Track in titles{} for duplicates
+Run every check in `references/checks-technical.md`. Use `Read` for each file's contents and
+`Glob` to confirm presence in `_dist/`.
 
-**Meta Description:** `<meta name="description">` in `<head>`
-- Missing → critical
-- <100 chars → critical: "Description too short: X chars (need 150-160)"
-- 100-149 or 161+ chars → warning: "Description X chars (optimal: 150-160)"
-- 150-160 chars → pass
-- Track in descriptions{} for duplicates
-
-**Canonical:** `<link rel="canonical" href="...">` in `<head>`
-- Missing → critical
-- Relative URL (no http://) → warning: "Should be absolute URL"
-- Absolute URL pointing to a different page than the current file's URL → critical: "Cross-canonical: page X canonicals to Y (silently de-indexes X)"
-- Absolute, self-referencing → pass
-
-To check self-reference: derive expected URL from file path (e.g. `_dist/about/index.html` → `/about/` or `/about`) and compare against canonical href path. Account for trailing-slash variants.
-
-**Open Graph:** Check for og:title, og:description, og:image, og:url
-- Missing any → warning for each missing tag
-- All present → pass
-
-**Robots Meta:** `<meta name="robots" content="...">` in `<head>`
-- Contains `noindex` → record this page URL in `noindex_pages[]` (used in Step 6 to confirm it's excluded from the sitemap). Not itself an issue — intentional noindex is fine.
-- Contains `nofollow` on an indexable content page → warning: "Page-level nofollow on [url] (blocks link equity flow)"
-
-#### HTML Document
-
-**Lang Attribute:** `<html lang="...">` on the root element. Screen readers and translation tools rely on this to pronounce content correctly and offer the right translation.
-- Missing `lang` attribute → warning: "Missing `<html lang>` attribute"
-- Present but empty (`lang=""`) → warning: "Empty `<html lang>` attribute"
-- Present with non-empty value → pass
-
-#### Heading Hierarchy
-
-**H1 Count:**
-- 0 H1s → critical: "Missing H1"
-- >1 H1s → critical: "Multiple H1s (found X)"
-- Exactly 1 → pass
-
-**H1 Text (cross-page):** record the H1's text content in `h1s{}`. Templated pages (per-check, per-doc, per-city listings) commonly render the *same* H1 across dozens of URLs — Google reads that as thin/duplicate content even when each page's body differs. Distinct-per-page-count H1s can still be site-wide duplicates. Evaluated in Step 7.
-- Normalize whitespace before recording (collapse runs of spaces/newlines, trim).
-
-**Hierarchy:** Check H1→H2→H3→H4→H5→H6 sequence
-- If any skip (e.g., H1→H3) → critical: "Broken hierarchy at line X: H1→H3 (skipped H2)"
-- No skips → pass
-
-#### Schema Markup
-
-Find `<script type="application/ld+json">`. JSON-LD unlocks rich results in Google (knowledge panels, breadcrumbs, FAQ accordions, sitelinks) — pages without it forfeit those SERP enhancements.
-- Not found → warning: "No schema markup"
-- Found, invalid JSON → critical: "Invalid JSON-LD: [error]"
-- Found, valid JSON:
-  - Organization/LocalBusiness: check name, url → pass if present. Also expect `logo` and `sameAs` (social profiles) → warning if either missing: "Organization schema missing [logo/sameAs]".
-  - Article/BlogPosting: check headline, author, `datePublished` → present = pass. Additionally require:
-    - `dateModified` → warning if missing: "Article schema missing dateModified (freshness signal)". Populate from git commit history, not hand-maintained.
-    - `publisher` (Organization ref) and `image` → warning for each missing.
-  - **Product / SoftwareApplication** pages (pricing, app-download, product landing): expect a `Product`/`SoftwareApplication` node, ideally with `offers` and `aggregateRating` → warning if the page is clearly a product page but carries no such schema.
-  - Other types → pass
-
-**Breadcrumbs:** if the page renders a visible breadcrumb trail (e.g. `<nav aria-label="Breadcrumb">`, or an ordered list of ancestor links near the top), expect a matching `BreadcrumbList` in JSON-LD.
-- Visible breadcrumb present but no `BreadcrumbList` schema → warning: "Visible breadcrumb has no BreadcrumbList schema on [url]".
-
-#### Image Alt Text
-
-Extract all `<img>` tags in `<body>`:
-- Missing `alt` attribute → critical: "Image missing alt: [src]"
-- Empty `alt=""` on a decorative image (no surrounding link/caption) → pass (intentional)
-- Empty `alt=""` on a content image (inside `<a>`, `<figure>`, or with no other text in link) → warning: "Empty alt on content image: [src]"
-- **Low-quality alt** — non-empty but clearly not human-written: ends in an image extension (`.png`/`.jpg`/`.jpeg`/`.gif`/`.webp`/`.svg`), is a bare slug/filename (`screenshot-2024-11`, `image_01`, `IMG_2043`), or just repeats the file's basename → warning: "Filename-style alt on [src]: '[alt]' — rewrite as a description". These pass a naive presence check but carry no SEO value.
-- Non-empty descriptive alt → pass
-
-Ignore `<img>` inside `<picture>` only when the `<picture>` itself has an `<img>` child with alt (don't double-count).
-
-**Image dimensions (CLS):** every rendered `<img>` in `<body>` should carry both `width` and `height` attributes (Astro's `<Picture>`/`<Image>` emit these automatically; raw `<img>` tags often don't). Missing dimensions force the browser to reflow once the image loads, hurting Cumulative Layout Shift.
-- `<img>` missing `width` or `height` → warning: "Image missing width/height (causes layout shift): [src]"
-- Both present → pass
-
-#### Image Asset Health
-
-For each `<img src="...">` and `<source srcset="...">` referencing a **local** path (starts with `/` or relative, not `http://`/`https://`), `stat` the resolved file in `_dist/`:
-
-- > 2 MB → critical: "Oversized image: [src] (X MB) — will tank LCP"
-- 1–2 MB → warning: "Large image: [src] (X MB) — consider compressing"
-- ≤ 1 MB → pass
-
-Skip external images (Unsplash, CDN URLs) — they're outside our control. Skip SVG files (typically tiny). Astro's build fails on broken `<Picture>`/`<Image>` imports, so existence is already guaranteed at this stage.
-
-#### Image Right-Sizing — emitted pixels vs declared slot
-
-File size in MB is only a proxy — a well-compressed 5000px logo in a 200px card passes the size check above and is still a 25× waste. Measure the pixels instead.
-
-For each `<img>` / `<source>` with a local `src`/`srcset`:
-
-1. Parse `srcset` into (file, descriptor) pairs; include the plain `src` as a candidate.
-2. Read each candidate's **real pixel width** (`sharp(file).metadata()`, or `sips -g pixelWidth -g pixelHeight` on macOS).
-3. Derive the largest slot width the tag advertises from `sizes` — take the largest `px` value, resolving `Nvw` and `calc(100vw - Npx)` against a 1920px viewport. Fall back to the `width` attribute when there's no `sizes`.
-
-Report:
-
-- Largest candidate **> 2× the largest declared slot** → critical: "Oversized: [file] is Npx for an Mpx slot (N/M×)".
-- Tag has a `sizes` attribute but **only one candidate** → warning: "`sizes` is inert on [src] — no `srcset` emitted". Astro's `getSrcSet` returns `[]` unless `widths`/`densities` is set, so the markup looks right-sized but ships a single file.
-- A candidate's **aspect ratio differs from the fallback's by > 1%** → warning: "Aspect drift on [file]: WxH (AR a) vs fallback AR b". Usually a `width`+`height` pair that disagrees with the source ratio, making sharp crop with `fit: cover`. Allow rounding noise — a 1px difference on a short image is not a finding.
-- A literal `style="[object Object]"` on any `<img>` → critical. Something in the image pipeline is stringifying an object into an attribute; the tag's styling is silently dead.
-
-Skip SVG here — it's vector, so pixel width says nothing about delivery weight and every logo would false-positive.
-
-#### URL Hygiene
-
-Per page URL (from sitemap.xml or file path):
-- Uppercase letters in path → warning: "URL not lowercase: [url]"
-- Underscores in path segments → warning: "URL uses underscores instead of hyphens: [url]"
-- Query parameters (`?foo=bar`) on indexable pages → warning: "Indexable URL has query params: [url]"
-
-#### Mixed Content
-
-Scan built HTML for `http://` (not `https://`) references:
-- `<script src="http://...">`, `<link href="http://...">`, `<img src="http://...">`, `<iframe src="http://...">` → critical: "Mixed content: [tag] loads insecure [url]"
-- `<a href="http://...">` → warning: "Insecure link: anchor points to http:// [url]" — following the link drops the user from HTTPS to HTTP
-- Ignore `http://` inside JSON-LD `@context` (`http://schema.org` is canonical) and inside text content / comments.
-
-#### Internal Links
-
-Extract all `<a href="...">` tags:
-- Record internal links (ignore external URLs that start with `http://` or `https://`)
-- Track in links{}: current_page → [linked_pages]
-
-**Target validation:** for each internal href, confirm the target resolves to a file in `_dist/`:
-- `/about` → `_dist/about.html` or `_dist/about/index.html`
-- `/blog/post-name/` → `_dist/blog/post-name/index.html`
-- `#section-id` (in-page anchor) → confirm an element with `id="section-id"` exists on the current page
-- `/page#section` → confirm both the file exists AND the id exists on that page
-
-Strip query strings (`?utm_source=...`) before resolving. Ignore `mailto:`, `tel:`, `javascript:` schemes.
-
-- Target file not found → critical: "Broken internal link: [href] on [page] (target missing in _dist)"
-- In-page anchor with no matching id → critical: "Broken anchor: [href] on [page] (no element with id=[fragment])"
-- Resolves correctly → pass
-
-### 6. Check Technical Files
-
-Use `Read` for each file's contents and `Glob` to confirm presence in `_dist/`.
-
-**Sitemap:** read `_dist/sitemap.xml` (or `_dist/sitemap-index.xml` if present; follow the index to its child sitemaps)
-- Missing → critical
-- Present, list all URLs → pass
-- Check if all pages in sitemap → warning if any missing
-- **noindex leak** — any URL in `noindex_pages[]` (from Step 5) that also appears in the sitemap → critical: "Sitemap lists noindex page [url] (contradictory signal — remove from sitemap)".
-- **`<lastmod>` freshness** — every `<url>` should carry a `<lastmod>`. Missing on some/all → warning: "Sitemap missing <lastmod> on N URLs (weakens freshness/crawl signals)". Derive lastmod from git commit history so it stays accurate without hand-maintenance.
-- **Placeholder lastmod** — all URLs share one identical `<lastmod>` (e.g. the build date) → warning: "All sitemap <lastmod> values identical — likely build-time stamp, not real content dates".
-
-**Robots.txt:** read `_dist/robots.txt`
-- Missing → critical
-- Present, no "Sitemap:" line → warning
-- Present, has "Sitemap:" → confirm each `Sitemap:` URL actually resolves to a file in `_dist/` (e.g. `Sitemap: https://site/sitemap-index.xml` → `_dist/sitemap-index.xml` exists). A dead/misspelled sitemap reference wastes crawl budget and is invisible to a naive "has Sitemap:" check.
-  - `Sitemap:` URL with no matching file in `_dist/` → critical: "robots.txt points to missing sitemap: [url]".
-  - Multiple `Sitemap:` lines where the real sitemap is an index → warning: "Multiple/redundant Sitemap: lines — list only the sitemap index".
-  - All `Sitemap:` lines resolve → pass.
-
-**Duplicate index (`/index.html`):** static hosts serve a directory's `index.html` at *both* `/` and `/index.html`, creating a duplicate-content pair unless one 301-redirects.
-- For each `_dist/**/index.html`, flag if the site has no `_redirects` (or host config) rule sending `/index.html → /` (and nested `/<dir>/index.html → /<dir>/`) → warning: "`/index.html` reachable as a duplicate of `/` — add a 301 in `public/_redirects`". Report-only; the fix lives in `public/_redirects`.
-
-**llms.txt:** read `_dist/llms.txt`. Hints to LLM crawlers (ChatGPT, Perplexity, Claude) which content is canonical and how to summarize the site — without it, these tools fall back to generic crawling.
-- Missing → warning
-- Present but still the scaffold template (`# Site Name`, `Brief one-line description of your site`, `Describe what your site/product does`, `hello@example.com`, `https://example.com`) → critical: "llms.txt is the unedited scaffold template — it's live and tells crawlers the site is 'Site Name' at hello@example.com". Present-but-placeholder is worse than absent: it publishes wrong facts instead of none.
-- Present, and a Key Pages link resolves to no file in `_dist/` → critical: "llms.txt links to [route] which isn't built (the scaffold's `/docs/` is the usual leftover)". Resolve links the same way as internal anchors above.
-- Present with real content and resolving links → pass
-
-**Favicon:** Check both HTML head links AND generated files in `_dist`
-
-*HTML head checks* (per page in scope):
-- `<link rel="icon">` (any type) → required, missing = critical
-- `<link rel="apple-touch-icon">` → recommended, missing = warning
-- `<link rel="manifest">` (web app manifest) → recommended, missing = warning
-
-*File checks* (in `_dist`, site-wide):
-- `favicon.ico` → required, missing = critical
-- `favicon.svg` OR `favicon-32x32.png` (or similar PNG fallback) → required, missing = critical
-- `apple-touch-icon.png` (or `apple-touch-icon-180x180.png`) → recommended, missing = warning
-- `manifest.webmanifest` (or `site.webmanifest`) → recommended, missing = warning
-
-*Validation*:
-- For each `<link rel="icon" href="...">`, confirm the referenced file exists in `_dist` → broken reference = critical
-- All required present and resolving → pass
+Note that the `_headers`, `robots.txt` and `astro.config.mjs` checks read **source**, not
+`_dist/` — see the note at the top of that file.
 
 ### 7. Analyze Structure
 
 **Orphaned Pages:** BFS from index.html/index.astro
 - Find homepage (index.*), start there
 - Visit all linked pages recursively
-- Pages not reached → warning: "Orphaned: [page]"
+- Pages not reached → ⚠️ warning: "Orphaned: [page]"
 
 **Duplicate Content:**
-- If titles{title} has >1 file → warning: "Duplicate title in: [files]"
-- If descriptions{desc} has >1 file → warning: "Duplicate description in: [files]"
-- If h1s{text} has >1 file → warning: "Duplicate H1 '[text]' across N pages: [files]". Templated routes (per-check, per-doc, per-listing) are the usual culprit — qualify each H1 with its distinguishing attribute (platform, category, location) in the source template.
+- If `titles{title}` has >1 file → ⚠️ warning: "Duplicate title in: [files]"
+- If `descriptions{desc}` has >1 file → ⚠️ warning: "Duplicate description in: [files]"
+- If `h1s{text}` has >1 file → ⚠️ warning: "Duplicate H1 '[text]' across N pages: [files]".
+  Templated routes (per-check, per-doc, per-listing) are the usual culprit — qualify each H1
+  with its distinguishing attribute (platform, category, location) in the source template.
+
+**Site-wide aggregations** (from the per-page trackers):
+- `aggregateRating` asserted on N pages but displayed on M < N → ❌ critical, reported once
+  with the counts. See `references/checks-schema.md`.
+- Third-party image hosts → group by host: "68 Gravatar avatars across 34 pages", not 68
+  findings. See `references/checks-onpage.md`.
+- Entity-escaped JSON-LD → group by cause with a page count, not one finding per string.
 
 ### 8. Agent-Readiness Pass — `bunx is-agentic` (deployed domains only, opt-in)
 
@@ -385,13 +235,14 @@ found", "apply the report". Absent that, stop after the report.
 | What the finding is about | Where it lives |
 | --- | --- |
 | 404 / soft-404 status codes | `src/pages/404.astro`; confirm `worker/index.js` and `wrangler.toml` are not answering `200` for unknown paths |
-| Crawler and agent access rules | `public/robots.txt` |
+| Crawler and agent access rules, AI-crawler policy, `Content-Signal` | `src/pages/robots.txt.ts` |
 | Site summary for LLM crawlers | `public/llms.txt` — replace the scaffold placeholders with real content |
-| Structured data / JSON-LD | the `schema` prop each page passes to `src/layouts/Layout.astro` (typed with `schema-dts`) |
-| Title, description, canonical, OG | `src/layouts/Layout.astro` and the per-page props |
-| Response headers, caching, CSP | `public/_headers` |
+| Structured data / JSON-LD | the `schema` prop each page passes to `src/layouts/Layout.astro` (typed with `schema-dts`, serialized by `src/components/Schema.astro`) |
+| Title, description, canonical, OG, feed autodiscovery | `src/layouts/Layout.astro` and the per-page props |
+| Crawler-signal headers (`Link`, `Content-Signal`) | `public/_headers` — security and cache headers are `hakuto-review`'s |
 | Content that only exists after JS runs | the `.astro` component — move it into server-rendered markup |
 | Sitemap coverage or wrong host | `@astrojs/sitemap` config and `site` in `astro.config.mjs` |
+| Page weight / inline CSS | `build.inlineStylesheets` in `astro.config.mjs` |
 | Semantic structure, headings, landmarks | the page's `.astro` markup |
 
    A finding whose fix has no home in this table, or that you cannot verify
@@ -408,7 +259,22 @@ found", "apply the report". Absent that, stop after the report.
 
 ## Output Format
 
-Open with a scope header, then list issues in this order: Critical (❌) → Warnings (⚠️) → Passed (✅). Show `file:line` on every finding so the user can jump straight to it. End with a short "to fix" list naming source files in `src/pages/`.
+Open with a scope header, then list issues in this order: Critical (❌) → Warnings (⚠️) →
+Passed (✅). Show `file:line` on every finding so the user can jump straight to it. End with
+a short "to fix" list naming source files in `src/`, `public/` or config.
+
+**Severity definitions:**
+
+- **❌ Critical** — blocks indexing, publishes false information, or breaks a feature
+  silently. Fix before the next deploy.
+- **⚠️ Warning** — a real cost (crawl budget, LCP, rich-result eligibility, accessibility)
+  that is not blocking. Each check in the references carries its own severity; grade from
+  there rather than re-deciding.
+- **✅ Pass** — meets all requirements.
+
+Group repeated instances of one cause into a single finding with a count. "68 Gravatar
+avatars across 34 pages" is a finding; 68 separate entries is noise that gets the whole
+report skimmed.
 
 When Step 8 ran, append an **Agent Readiness** section after the static
 results: the score and label, the Essential / Recommended / Bonus breakdown,
@@ -416,51 +282,8 @@ findings mapped to ❌/⚠️/opportunity with their `details` and `recommendati
 and the `report_url`. Keep it separate from the static findings — the two
 audits inspect different artifacts (live site vs `_dist/`).
 
-See `references/example-report.md` for the full template — match its shape and headings verbatim.
-
----
-
-## Severity Rules
-
-**Critical (❌):**
-- Missing: title, meta description, H1, canonical, sitemap, robots.txt
-- Title <30 chars, description <100 chars
-- Multiple H1s or broken heading hierarchy
-- Invalid JSON-LD
-- Cross-canonical (canonical points to a different page)
-- Missing `alt` attribute on `<img>` (different from intentional `alt=""`)
-- Mixed content (https page loading http resources)
-- Missing favicon: no `<link rel="icon">` in head, missing `favicon.ico`, or missing SVG/PNG fallback
-- Broken favicon reference (link points to file not present in `_dist`)
-- Broken internal link (anchor href targets a file or in-page id that doesn't exist)
-- Local image > 2 MB
-- Emitted image more than 2× the largest slot its `sizes` declares
-- `style="[object Object]"` on an `<img>` (image pipeline stringifying an object into an attribute)
-- robots.txt `Sitemap:` line points to a sitemap file not present in `_dist/`
-- Sitemap lists a `noindex` page (contradictory index signal)
-- `llms.txt` is the unedited scaffold template, or links to a route that isn't built
-
-**Warning (⚠️):**
-- Title/description outside optimal range (but >30/>100)
-- Missing: Open Graph, schema, llms.txt
-- Missing recommended favicon assets: `apple-touch-icon`, web manifest link, or manifest file
-- Relative canonical URL
-- Empty `alt=""` on content images (inside links/figures)
-- URL hygiene: uppercase, underscores, or query params on indexable URLs
-- Duplicates (title, description, or cross-page H1 text), orphaned pages
-- Missing or empty `<html lang>` attribute
-- Local image 1–2 MB
-- `sizes` attribute present but only one candidate emitted (no `srcset`)
-- Aspect-ratio drift > 1% between a srcset candidate and the fallback
-- Insecure anchor link (`<a href="http://...">`)
-- Filename-style/low-quality `alt` text; `<img>` missing `width`/`height` (CLS)
-- Sitemap missing `<lastmod>`, or all `<lastmod>` values identical (build-time stamp)
-- Article/BlogPosting schema missing `dateModified`/`publisher`/`image`; Organization missing `logo`/`sameAs`; visible breadcrumb with no `BreadcrumbList`; product page with no `Product`/`SoftwareApplication` schema
-- `/index.html` reachable as a duplicate of `/` with no 301
-- Page-level `nofollow` on an indexable content page
-
-**Pass (✅):**
-- Meets all requirements
+See `references/example-report.md` for the full template — match its shape and headings
+verbatim.
 
 ---
 
@@ -477,10 +300,13 @@ See `references/example-report.md` for the full template — match its shape and
 
 - **Build:** `Bash` → `bun run build` (produces `_dist/`).
 - **Enumerate built pages:** `Glob` with `_dist/**/*.html`.
-- **Read a file:** `Read` (HTML pages, `AGENTS.md`, `sitemap.xml`, `robots.txt`, `llms.txt`).
-- **Search across files:** `Grep` for things like `<link rel="canonical"`, `<h1`, `og:image`, `http://` (mixed-content scan).
-- **Confirm asset presence:** `Glob` for `_dist/favicon.ico`, `_dist/apple-touch-icon*`, `_dist/site.webmanifest` etc.
-- **Validate JSON-LD:** extract the script content with `Grep`/`Read` and parse with `JSON.parse` via a one-liner in `Bash` or by inspection.
+- **Read a file:** `Read` (HTML pages, `AGENTS.md`, `sitemap.xml`, `robots.txt`, `llms.txt`, `public/_headers`, `astro.config.mjs`).
+- **Search across files:** `Grep` for things like `<link rel="canonical"`, `<h1`, `og:image`, `http://` (mixed-content scan), `&apos;` (JSON-LD corruption).
+- **Confirm asset presence:** `Glob` for `_dist/favicon.ico`, `_dist/apple-touch-icon*`, `_dist/site.webmanifest`, `_dist/**/rss.xml` etc.
+- **Validate JSON-LD:** extract the script content and parse it with `JSON.parse` via a one-liner in `Bash` — do not eyeball it. The `@id` and entity-escaping checks need a real parse.
+- **Measure image pixels:** `sips -g pixelWidth -g pixelHeight` (macOS) or `sharp(file).metadata()`.
+- **Measure inline CSS / document size:** `Bash` → byte counts on the `<style>` block and the file.
+- **External link liveness (opt-in):** `Bash` → `curl -sS -o /dev/null -w '%{http_code}' -I -L --max-time 10`.
 - **Agent-readiness scan (Step 8):** `Bash` → `bunx is-agentic <domain> --json`, long timeout, after user confirmation.
 
 Read-only throughout — never `Write` or `Edit` — **except** Step 9, which the
@@ -489,17 +315,28 @@ user has to opt into explicitly and which touches source files only, never
 
 ---
 
-## Out of Static Scope (needs a live crawl)
+## Out of Static Scope (needs a live crawl or real layout)
 
-This skill audits built HTML in `_dist/`. Some technical-SEO issues only exist at the network/host layer and **cannot** be found here — a live crawl (Screaming Frog / Ahrefs / an external audit) is still the right tool for them. Call these out to the user at the end of a whole-site run so a clean report isn't mistaken for "nothing left to check":
+This skill audits built HTML in `_dist/`. Some issues only exist at the network/host layer,
+or need real rendered geometry, and **cannot** be found here. Call these out to the user at
+the end of a whole-site run so a clean report isn't mistaken for "nothing left to check":
 
-- Redirect **status codes** and chains (301 vs 302, 307→308 trailing-slash upgrades, redirect loops).
-- `www`→apex (or apex→`www`) canonicalization and HTTPS-upgrade redirects — Cloudflare/host layer.
-- HTTP response headers (`X-Robots-Tag`, `Link: rel=canonical`, caching, HSTS).
-- Live 404s from **inbound** external links not present in the site's own `_dist/` graph (pull these from Google Search Console).
-- Server response time / real Core Web Vitals under load (use the `pagespeed-audit` skill for field data).
+- Redirect **status codes** and chains (301 vs 302, 307→308 trailing-slash upgrades,
+  redirect loops).
+- `www`→apex (or apex→`www`) canonicalization and HTTPS-upgrade redirects — Cloudflare/host
+  layer. Note that `_headers` linting above checks what *should* be sent; only a live
+  request proves what *is*.
+- HTTP response headers as actually served (`X-Robots-Tag`, `Link: rel=canonical`, caching,
+  HSTS).
+- Live 404s from **inbound** external links not present in the site's own `_dist/` graph
+  (pull these from Google Search Console).
+- Server response time / real Core Web Vitals under load — use the `pagespeed-audit` skill
+  for field data.
+- **Mobile tap-target sizing** (< 44px guidance) — needs laid-out geometry, not markup. Use
+  `pagespeed-audit` or `agent-browser`.
 
-Report these as an "Out of static scope — verify with a live crawl / GSC" footer, not as passes.
+Report these as an "Out of static scope — verify with a live crawl / GSC" footer, not as
+passes.
 
 Step 8's `is-agentic` scan reaches the live site and so covers *some* of this
 (status codes for nonexistent paths, headers, JS-dependent content), but it
@@ -511,11 +348,11 @@ scan, minus whatever the scan actually observed.
 
 - **Scope flexibility**: Parse user prompt to determine if testing single page, group, or all pages
 - Read AGENTS.md for page metadata context
-- Test built HTML files in `_dist/`, not source `.astro` files
-- Focus on `<head>` and `<body>` sections in built HTML
+- Test built HTML files in `_dist/`, not source `.astro` files — **except** `_headers`,
+  `robots.txt` and `astro.config.mjs`, which are read from source
 - Track line numbers for hierarchy issues when possible
-- User decides which issues to fix in source files (`src/pages/`)
-- For single/group page tests, skip site-wide checks (orphaned pages, duplicate content) unless relevant
+- User decides which issues to fix in source files
+- For single/group page tests, skip site-wide checks (orphaned pages, duplicate content, `_headers` lint, sitemap) unless relevant
 - **`is-agentic` needs a deployed, public domain** — it never applies to a local-only run, and it grades the last deploy, not the working tree
 - **Never scan without confirming the domain** — a cold target publishes a new public report at `report_url`
 - **Fixes (Step 9) are opt-in** and always land in `src/`, `public/`, or config — never in `_dist/`
