@@ -382,7 +382,7 @@ The scaffold ships with signals that help AI agents discover and interact with t
 | `src/lib/site.ts` + `src/lib/schema.ts` | `Organization` and `WebSite` JSON-LD emitted on the homepage | Fill `SITE_CONTACT` — `contactPoint` (email/phone) and `address` (PostalAddress) are what let agents verify the business. Unset fields are omitted rather than emitted blank |
 | `src/pages/404.astro` | Agent-recoverable 404 | Keep the "Where to look next" list pointing at routes that actually resolve. A recovery list that 404s too is worse than none. Add the site's main sections as they get built |
 | `worker/problem.js` | RFC 9457 `application/problem+json` errors for `/~*` routes | Every route handler should return errors through `problem()`. The `/~*` surface is the only programmatic API most Hakuto sites have, so a consistent typed error shape is what makes it usable by an agent |
-| `src/layouts/Layout.astro` — `ENABLE_WEBMCP` | Opt-in [WebMCP](https://webmcp.org) tools (`search-site`, `get-page-content`, `navigate`) for in-page agents | Default `false`. Flip to `true` only if the user explicitly wants to expose tools to AI agents — the spec is early |
+| `src/layouts/Layout.astro` — `ENABLE_WEBMCP` | [WebMCP](https://webmcp.org) tools (`search-site`, `get-page-content`, `navigate`) for in-page agents | **Default `true`** — nothing to update. `search-site` runs on the Pagefind index `astro build` already writes, so it works on every site with no extra wiring. Set to `false` only if the user does not want tools exposed to agents |
 
 **Markdown for Agents is a Cloudflare setting, not code.** Agent-readiness scanners check
 whether `Accept: text/markdown` returns markdown with `Vary: Accept`. That is Cloudflare's
@@ -391,7 +391,23 @@ feature — enable it per zone under AI Crawl Control; it needs a Pro, Business 
 plan. Do **not** try to satisfy the check by adding `Vary: Accept` in `public/_headers`: with
 no markdown variant behind it, that header advertises something the site cannot serve.
 
-The WebMCP `search-site` tool depends on Pagefind being built — it's wired up by `section-docs` and any future search integration. If neither exists on the site, leave `ENABLE_WEBMCP = false`.
+**WebMCP is on by default and needs no search UI.** `pagefind()` sits in `astro.config.mjs`
+for every Hakuto site, so `astro build` writes `dist/client/pagefind/` whether or not a
+visible search box exists — `search-site` queries that index directly. Adding a search page
+(`section-docs`) only changes what *humans* see, not what agents can do.
+
+Two consequences worth knowing:
+
+- **The tools only work on a built origin.** In `astro dev` there is no `/pagefind/`, so
+  `search-site` returns a "search index unavailable" message pointing the agent at
+  `/sitemap-index.xml` and `/llms.txt`. That is expected — verify on a deploy preview.
+- **Tool results are MCP `CallToolResult` objects** (`{ content: [{ type: "text", text }] }`),
+  and the registration accepts either `document.modelContext` (current spec) or
+  `navigator.modelContext` (earlier drafts). Keep both branches when editing.
+
+Adding a tool of your own: register it in the same block, keep the description written for a
+reader who cannot see the page, and return through the `reply()` helper so the shape stays
+uniform. `navigate` is deliberately same-origin only — do not relax that.
 
 ## Available shadcn Components
 All compatible with raw Astro: accordion, alert, alert-dialog, aspect-ratio, avatar, badge, breadcrumb, button, calendar, card, carousel, checkbox, collapsible, command, context-menu, dialog, dropdown-menu, form, hover-card, input, input-otp, label, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, skeleton, slider, sonner, switch, table, tabs, textarea, toggle, toggle-group, tooltip

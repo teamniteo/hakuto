@@ -17,8 +17,10 @@ interface Props {
 
 
 
-// Agent readiness — set to true to expose site tools to AI agents via WebMCP
-const ENABLE_WEBMCP = false;
+// Agent readiness — WebMCP tools for in-page AI agents. On by default: the
+// search tool runs on the Pagefind index every build already produces.
+// Set to false to stop exposing tools to agents.
+const ENABLE_WEBMCP = true;
 
 const { url } = Astro;
 const {
@@ -81,58 +83,121 @@ const title = pageTitle ? `${pageTitle} | ${SITE_NAME}` : SITE_NAME;
 
     {ENABLE_WEBMCP && (
       <script is:inline>
-        // WebMCP: expose site tools to AI agents
-        (function() {
-          if (!navigator.modelContext) return;
-          navigator.modelContext.registerTool({
+        // WebMCP (https://webmcp.org): expose site tools to in-page AI agents.
+        // `search-site` is backed by the same Pagefind index the site's own search
+        // UI uses — `pagefind()` is in astro.config.mjs, so `astro build` always
+        // writes /pagefind/, whether or not a search page exists.
+        (function () {
+          // The spec moved from navigator.modelContext to document.modelContext;
+          // shipping implementations are split, so accept either.
+          var ctx =
+            (typeof document !== "undefined" && document.modelContext) ||
+            (typeof navigator !== "undefined" && navigator.modelContext);
+          if (!ctx || typeof ctx.registerTool !== "function") return;
+
+          // Tool results are MCP CallToolResult objects: { content: [{ type, text }] }.
+          function reply(value) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: typeof value === "string" ? value : JSON.stringify(value, null, 2),
+                },
+              ],
+            };
+          }
+
+          var pagefindPromise = null;
+          function loadPagefind() {
+            if (!pagefindPromise) {
+              pagefindPromise = import("/pagefind/pagefind.js").then(async (pf) => {
+                await pf.init();
+                return pf;
+              });
+              // Do not cache a failure — a retry after a slow deploy should work.
+              pagefindPromise.catch(() => {
+                pagefindPromise = null;
+              });
+            }
+            return pagefindPromise;
+          }
+
+          ctx.registerTool({
             name: "search-site",
-            description: "Search this site for a given query. Returns matching page titles and URLs.",
+            description:
+              "Full-text search across every page of this site. Returns the best matching pages with their title, URL and a highlighted excerpt. Use this before guessing a URL.",
             inputSchema: {
               type: "object",
               properties: {
-                query: { type: "string", description: "Search query" }
+                query: { type: "string", description: "Search terms, e.g. 'pricing' or 'refund policy'" },
+                limit: {
+                  type: "number",
+                  description: "Maximum number of results to return (1-20, default 5)",
+                },
               },
-              required: ["query"]
+              required: ["query"],
             },
-            async execute({ query }) {
+            async execute({ query, limit }) {
+              var max = Math.min(Math.max(Number(limit) || 5, 1), 20);
+              var pf;
               try {
-                const pagefind = await import("/pagefind/pagefind.js");
-                await pagefind.init();
-                const search = await pagefind.search(query);
-                const results = await Promise.all(search.results.slice(0, 5).map(r => r.data()));
-                return results.map(r => ({ title: r.meta?.title, url: r.url, excerpt: r.excerpt }));
+                pf = await loadPagefind();
               } catch (e) {
-                return { results: [], message: "Search unavailable" };
+                // The index is only emitted by `astro build`, so this is the normal
+                // answer on `astro dev`, not a site defect.
+                return reply(
+                  "Search index unavailable on this origin (it is generated at build time). Fall back to /sitemap-index.xml or /llms.txt.",
+                );
               }
-            }
+              var search = await pf.search(String(query));
+              var results = await Promise.all(search.results.slice(0, max).map((r) => r.data()));
+              if (results.length === 0) {
+                return reply({ query: query, total: 0, results: [], message: "No pages matched." });
+              }
+              return reply({
+                query: query,
+                total: search.results.length,
+                results: results.map((r) => ({
+                  title: (r.meta && r.meta.title) || r.url,
+                  url: new URL(r.url, window.location.origin).href,
+                  // Pagefind wraps matches in <mark>; agents want plain text.
+                  excerpt: String(r.excerpt || "").replace(/<[^>]+>/g, ""),
+                })),
+              });
+            },
           });
-          navigator.modelContext.registerTool({
+
+          ctx.registerTool({
             name: "get-page-content",
-            description: "Get the main text content of the current page as plain text.",
+            description: "Get the main text content of the page currently open, as plain text.",
             inputSchema: { type: "object", properties: {}, required: [] },
             async execute() {
-              const main = document.querySelector("main");
-              return {
+              var main = document.querySelector("main");
+              return reply({
                 title: document.title,
                 url: window.location.href,
-                content: main ? main.innerText.slice(0, 4000) : document.body.innerText.slice(0, 4000)
-              };
-            }
+                content: (main || document.body).innerText.slice(0, 4000),
+              });
+            },
           });
-          navigator.modelContext.registerTool({
+
+          ctx.registerTool({
             name: "navigate",
-            description: "Navigate to a page on this site by path.",
+            description: "Navigate to a page on this site by path, e.g. '/pricing/'.",
             inputSchema: {
               type: "object",
-              properties: {
-                path: { type: "string", description: "Site path to navigate to" }
-              },
-              required: ["path"]
+              properties: { path: { type: "string", description: "Site path to navigate to" } },
+              required: ["path"],
             },
             async execute({ path }) {
-              window.location.href = path;
-              return { navigated: path };
-            }
+              // Same-origin only — this tool must not be a redirect gadget.
+              var target = new URL(String(path), window.location.origin);
+              if (target.origin !== window.location.origin) {
+                return reply("Refused: this tool only navigates within " + window.location.origin + ".");
+              }
+              window.location.href = target.href;
+              return reply("Navigating to " + target.pathname + ".");
+            },
           });
         })();
       </script>
