@@ -12,6 +12,7 @@ Entries are listed oldest first.
 - [0.1.10 — Agent annotate dev toolbar](#0110-agent-annotate-dev-toolbar)
 - [0.4.0 — Drop Unpic, return to Astro's sharp service](#040-drop-unpic-return-to-astros-sharp-service)
 - [0.7.0 — SEO/agent-surface fixes (three live defects)](#070-seoagent-surface-fixes-three-live-defects)
+- [0.10.0 — WebMCP on by default, backed by Pagefind](#0100-webmcp-on-by-default-backed-by-pagefind)
 
 ---
 
@@ -181,5 +182,47 @@ After applying:
 - **Redeploy.** The JSON-LD and header fixes only take effect on the live site after a deploy.
 - Verify headers with `curl -sI <origin>/some/inner/page/` — **not** `curl -sI <origin>/`.
   The homepage passes even with the bug present.
+
+### 0.10.0 — WebMCP on by default, backed by Pagefind
+
+Sites built before 0.10.0 ship `ENABLE_WEBMCP = false` in `src/layouts/Layout.astro`, so the
+`search-site` / `get-page-content` / `navigate` tools never register. The old comment said the
+search tool needed a search integration first — that was wrong: `pagefind()` is in every
+site's `astro.config.mjs`, so `astro build` always writes `dist/client/pagefind/`, search page
+or not. The tools also returned bare objects instead of MCP `CallToolResult`s, and only looked
+at `navigator.modelContext` — the spec has since moved to `document.modelContext`.
+
+**Detect:** both must hold.
+```sh
+grep -q 'ENABLE_WEBMCP = false' src/layouts/Layout.astro &&  # tools never register
+  grep -q 'pagefind()' astro.config.mjs                      # index is being built anyway
+```
+
+Apply from scaffold when not heavily customized:
+- `src/layouts/Layout.astro`
+
+Manual edits for customized sites — in the `ENABLE_WEBMCP` block of `Layout.astro`:
+
+1. **Flip `ENABLE_WEBMCP` to `true`.** No other wiring is needed; the Pagefind index already
+   exists in every production build.
+2. **Resolve the registry from either global**:
+   `document.modelContext || navigator.modelContext`, and bail unless `registerTool` is a
+   function. Shipping implementations are split across the two spellings.
+3. **Return MCP `CallToolResult` objects** — `{ content: [{ type: "text", text }] }`, not the
+   raw result object. Agents that follow the spec discard anything else. The scaffold does
+   this through a small `reply()` helper.
+4. **Make `search-site` useful**: cache the `pagefind.js` import (but not a failed one), take
+   an optional `limit` (1–20, default 5), absolutize `r.url` against
+   `window.location.origin`, and strip Pagefind's `<mark>` tags out of the excerpt.
+5. **Constrain `navigate` to the same origin.** The old version assigned
+   `window.location.href` from the raw argument, which let an agent be steered off-site.
+
+Sites that deliberately do not want to expose tools to agents keep `ENABLE_WEBMCP = false` —
+that is now the only reason to leave it off.
+
+After applying:
+- run `bun run build`, then `grep -c search-site dist/client/index.html` (expect a hit)
+- the tools are inert on `astro dev` — `/pagefind/` only exists in a build, so verify on a
+  deploy preview
 
 ---
