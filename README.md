@@ -32,6 +32,13 @@ claude
 /hakuto:init
 ```
 
+For Codex:
+
+```sh
+codex plugin marketplace add teamniteo/hakuto --ref main
+codex plugin add hakuto@hakuto
+```
+
 Followed by:
 
 ```sh

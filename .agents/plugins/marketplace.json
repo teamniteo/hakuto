@@ -1,0 +1,20 @@
+{
+  "name": "hakuto",
+  "interface": {
+    "displayName": "Hakuto"
+  },
+  "plugins": [
+    {
+      "name": "hakuto",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
