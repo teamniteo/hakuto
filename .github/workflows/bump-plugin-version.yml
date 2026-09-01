@@ -4,6 +4,7 @@ on:
   pull_request:
     paths-ignore:
       - '.claude-plugin/plugin.json'
+      - '.codex-plugin/plugin.json'
     types:
       - opened
       - ready_for_review
@@ -43,6 +44,7 @@ jobs:
             exit 0
           fi
           NEW_VERSION="$new" perl -0pi -e 's/("version"[[:space:]]*:[[:space:]]*")[^"]+(")/$1$ENV{NEW_VERSION}$2/' .claude-plugin/plugin.json
+          NEW_VERSION="$new" perl -0pi -e 's/("version"[[:space:]]*:[[:space:]]*")[^"]+(")/$1$ENV{NEW_VERSION}$2/' .codex-plugin/plugin.json
           echo "version=$new" >> "$GITHUB_OUTPUT"
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
@@ -51,4 +53,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "chore: Bump plugin version to ${{ steps.bump.outputs.version }}"
-          file_pattern: .claude-plugin/plugin.json
+          file_pattern: .claude-plugin/plugin.json .codex-plugin/plugin.json

@@ -1,0 +1,38 @@
+{
+  "name": "hakuto",
+  "version": "0.11.0",
+  "description": "AI-native Astro and Cloudflare site builder for Codex.",
+  "author": {
+    "name": "Niteo",
+    "url": "https://github.com/teamniteo"
+  },
+  "homepage": "https://hakuto.dev",
+  "repository": "https://github.com/teamniteo/hakuto",
+  "license": "MIT",
+  "keywords": [
+    "astro",
+    "cloudflare",
+    "website builder",
+    "site builder"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Hakuto",
+    "shortDescription": "Build Astro and Cloudflare sites",
+    "longDescription": "Build production-ready Astro and Cloudflare sites with Hakuto skills, design rules, and a tested starter scaffold.",
+    "developerName": "Niteo",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://hakuto.dev",
+    "defaultPrompt": [
+      "Create a new Hakuto site in this empty directory",
+      "Build a landing page for a coffee roaster",
+      "Review this Hakuto site before launch"
+    ],
+    "brandColor": "#0F172A"
+  }
+}
