@@ -1,6 +1,6 @@
 {
   "name": "hakuto",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "AI-native Astro and Cloudflare site builder for Codex.",
   "author": {
     "name": "Niteo",
