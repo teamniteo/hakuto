@@ -201,6 +201,7 @@ Create at style-preview approval (Workflow A step 6); read before every subseque
 - **Site Type**: [SaaS or General]
 - **Target Audience**: [who]
 - **Primary Goal**: [conversion/credibility/leads/signups]
+- **Tone**: [from interview dimension 6, e.g. "warm, plain-spoken" or "technical, no fluff"]
 
 ## Design Direction
 - **Direction**: "[Name]" — [one-line concept]
