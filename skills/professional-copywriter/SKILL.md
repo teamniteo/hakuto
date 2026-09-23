@@ -1,70 +1,110 @@
 ---
 name: professional-copywriter
-description: "Professional SaaS and website copywriting focused on benefit-driven messaging and conversion optimization. Use when content is missing, incomplete, or user explicitly requests copy generation/improvement. Critical constraint: preserve user-provided copy verbatim unless they request edits. Not for placing copy the user already wrote — that constraint above means when they supply the words, use them verbatim rather than loading this skill to rewrite them."
+description: "Benefit-driven, conversion-focused copy for SaaS and company websites: heroes, headlines, taglines, feature and pricing sections, About pages, CTA and button text. Also strips AI-sounding patterns from existing site copy. Use when a page or section has missing or partial content, or the user asks to \"write the copy\", \"improve this headline\", \"rewrite the hero\", \"punch up the CTAs\", or \"make this sound less AI-generated\". Skip when the user has supplied finished copy and asked for no edits (place it verbatim), and skip blog posts and docs pages (`section-blog` and `section-docs` use neutral placeholders by design)."
 ---
 
 # Professional Copywriting
 
-Generate conversion-optimized website copy for SaaS and company pages. Primary constraint: never modify user-provided content unless explicitly requested.
+Write website copy that says what the product does for the visitor, in plain words, without
+sounding machine-generated. User-provided copy is never changed unless they ask.
 
-## Core Constraint: Preserve User Content
+## When to write, when to preserve
 
-User-provided copy is sacred. Only generate or edit when:
-1. Content is missing/incomplete
-2. User explicitly requests changes
+The user's words carry context you don't have: legal wording, positioning they fought over,
+their own voice. Rewriting them unasked destroys that and forces them to undo your work.
 
-When in doubt, ask before modifying.
+For each page or section:
 
-## Writing Principles
+| Situation | Action |
+|---|---|
+| User supplied complete copy, no edit requested | Use it verbatim |
+| User supplied partial copy (bullets, a headline, notes) | Keep their words as anchors, write only what's missing |
+| No copy supplied | Write it |
+| User asked for edits or a rewrite | Edit, keeping their core message |
 
-### Benefits Over Features
-Translate every feature into user outcomes. Apply the "So what?" test.
+When it's unclear whether text is final or a rough note, ask before rewriting it.
 
-**Examples:**
+## Before writing: read the context
+
+Copy has to fit the site it lands on. Before drafting, read `site-specification.md` if it
+exists, and use whatever the invoking skill passed you:
+
+- **Audience and primary goal** (Configuration section): who you're persuading and what the
+  #1 CTA is.
+- **Tone**: from the spec's Tone line or what the invoker passed. If neither exists, infer it
+  from the direction's concept and the "Messaging & Tone" section of
+  `${CLAUDE_PLUGIN_ROOT}/skills/website-builder/references/site-types/[saas|general].md`, and
+  say which tone you used.
+- **Content jobs**: the same site-type file lists what each page must accomplish. Cover those
+  jobs; don't invent sections they don't call for.
+
+A terse, technical direction for developers and a warm one for a local design studio should
+not produce the same hero.
+
+## Never invent facts
+
+Generated sites ship. An invented "Trusted by 10,000 teams", a made-up testimonial or a
+fabricated "cuts reporting time by 80%" becomes a false claim on the user's live site.
+
+Numbers, customer names, logos, testimonials, awards, certifications and review scores come
+from the user. When a section needs proof you don't have, write a placeholder that says
+exactly what goes there and starts with `TODO`, so the prelaunch checklist's placeholder
+scan catches it:
+
+- `TODO: number of active customers`
+- `TODO: quote from a customer about onboarding speed, with name and role`
+
+Concrete-sounding claims without numbers are fine when they describe what the product
+actually does ("Reply from Slack, archive in one click").
+
+## Writing principles
+
+### Benefits over features
+Translate every feature into what the visitor gets. Apply the "So what?" test.
+
 - ❌ "1,000-watt motor with stainless steel blades"
-- ✅ "Blend frozen fruit in 10 seconds—no chunks, no hassle"
+- ✅ "Blends frozen fruit smooth, with no chunks left behind"
 
-### Structure for Scanning
-- Descriptive headings that summarize content
-- Short paragraphs (1-3 sentences)
-- Bullet points for lists
-- Inverted pyramid: critical info first
+### Structure for scanning
+- Headings that state the point of the section, not a label for it
+- Paragraphs of 1-3 sentences
+- Real lists as bullets; don't disguise them as "The first… The second…" prose
+- Most important information first
 
-### Clarity Over Cleverness
-- Write conversationally
-- Avoid jargon unless audience-specific
-- Keep sentences short and direct
-- Every word must serve a purpose
+### Clarity over cleverness
+- Write conversationally and directly. Avoid jargon unless the audience uses it.
+- Every word must earn its place.
+- Name the problem in the visitor's own words. A question hook ("Still chasing approvals
+  over email?") works once per page; more than that reads as a template.
 
-### Address Pain Points
-Ask questions that resonate with user problems:
-"Tired of [pain point]?" or "Ready to [desired outcome]?"
+### Voice and specificity
+- Have a stance: react to facts, don't just list them.
+- Vary rhythm: uniform cadence reads as AI. Mix sentence lengths, but don't build paragraphs
+  out of fragments ("Fast. Simple. Yours.").
+- Be concrete about what the product does. Specific numbers are the strongest copy there is,
+  and they must be the user's numbers (see above).
+- Mirror customer language: use the words customers use in reviews, support tickets and
+  interviews. Don't invent marketing vocabulary for them.
+- One thing, one name: if it's the "dashboard" in the hero, it stays the "dashboard" in the
+  CTA. Visitors read a new word as a new thing.
 
-### Voice & Specificity
-- **Have a stance** — react to facts, don't just list them
-- **Vary rhythm** — mix short punchy sentences with longer ones; uniform cadence reads as AI
-- **Be concrete** — "Cut weekly reporting from 4hrs to 15min" beats "Streamline your workflow"
-- **Mirror customer language** — use the words customers use in reviews, support tickets, and interviews; don't invent marketing vocabulary for them
+## AI tells
 
-## AI Tells to Avoid
+The full catalogue is in `references/ai-tells.md`, including the patterns that are fine in
+context (fragments in a hero, "we" on a company site). These show up most in marketing copy:
 
-Strip these patterns. They make copy sound machine-generated and dilute trust.
+- "It's not X, it's Y", and "Not X. Not Y. Just Z."
+- Promotional clichés and stock AI vocabulary: seamless, robust, unlock, elevate, empower,
+  leverage, cutting-edge, all-in-one solution
+- Magic adverbs: quietly, deeply, fundamentally, truly, effortlessly
+- Copula avoidance: "serves as", "stands as", "represents" → "is"
+- Grandiose stakes, and fake-depth -ing tails ("...empowering teams, fostering collaboration")
+- Vague attributions ("experts agree", "studies show") and quotable one-liners that say nothing
+- Stacked triplets, anaphora ("Built for X. Built for Y. Built for Z."), and "The result? Y."
+- Suspense transitions ("Here's the thing") and forced metaphors ("a Swiss Army knife for…")
+- More than two or three em dashes per page, and title-case headings or buttons
 
-- **Significance puffery** — "marks a pivotal moment", "stands as a testament", "in the evolving landscape", "deeply rooted"
-- **Promotional clichés** — "nestled in the heart of", "groundbreaking", "vibrant", "robust", "seamless", "bespoke", "tailored", "meticulous", "unlock/unveil the secrets"
-- **Copula avoidance** — "serves as / stands as / functions as" → just write "is"
-- **Fake-depth -ing tails** — "...empowering teams, fostering collaboration, driving outcomes" (cut the trailing -ing clause)
-- **Negative parallelisms & forced triplets** — "It's not just X, it's Y"; rule-of-three lists that pad with synonyms
-- **Em-dash & filler overuse** — em dashes where commas/periods work; trim wordy phrases:
-  - "in order to" → "to"
-  - "at this point in time" → "now"
-  - "the ability to" → "can"
-- **Vague attributions** — "industry leaders", "experts agree", "studies show" without a specific source
-- **Stale connectors** — "not only", "designed to enhance", "when it comes to", "in the realm of", "amongst"
-
-Use specific, direct language instead.
-
-### Before / After
+One instance is rarely the problem. Several together, or one repeated down the page, is.
 
 ❌ **AI-sounding:**
 > Our groundbreaking platform serves as a vibrant hub, empowering teams to navigate the complexities of modern collaboration. It's not just a tool — it's a testament to seamless productivity.
@@ -72,68 +112,66 @@ Use specific, direct language instead.
 ✅ **Human:**
 > One shared inbox for your whole team. Reply from Slack, archive in one click, and stop losing threads in CC chains.
 
-## Page-Specific Patterns
+## Page patterns
 
-### Hero Section
-- Benefit-focused headline
-- Specific subhead
-- Clear CTA
-- Trust indicator (logos/stat)
+### Hero
+- Headline stating the main benefit
+- Subhead that makes it specific: for whom, how
+- One primary CTA
+- Proof: logos, a stat or a short quote, from the user or as a `TODO` placeholder
 
-**Headline formulas:**
-- `{Outcome} without {pain point}` — "Ship faster without breaking production"
-- `The {category} for {audience}` — "The CRM for solo founders"
-- `{Pain-point question}?` — "Still chasing approvals over email?"
+Headline shapes to start from (not to fill in mechanically):
+- `{Outcome} without {pain point}`: "Ship faster without breaking production"
+- `The {category} for {audience}`: "The CRM for solo founders"
+- `{Pain-point question}?`: "Still chasing approvals over email?" (the page's one question hook)
 
-### Features/Services
-- Benefit headline per section
-- Brief explanation
-- User outcome
-- Supporting proof
+### Features and services
+- A benefit headline per section, a short explanation, the visitor's outcome, and proof
+  where the user has it
 
 ### Pricing
-- Clear tier differentiation
-- Value emphasis over cost
-- Preemptive objection handling
-- Segment CTAs by buyer type
+- Make the difference between tiers obvious at a glance
+- Frame price against the value delivered
+- Answer the likely objections (contracts, cancellation, limits) next to the price
+- Label CTAs by buyer: "Start free" for individuals, "Talk to sales" for teams
 
 ## CTAs
-Make specific and benefit-focused. Place frequently (every other screen).
 
-**Formula:** `[Action verb] + [what they get]` — e.g. "Start free trial", "See pricing", "Get the checklist".
+Formula: action verb + what they get: "Start free trial", "See pricing", "Get the checklist".
+Use sentence case on buttons and headings, keeping capitals for proper nouns.
 
-**Examples:**
-- ❌ "Sign Up Now", "Submit", "Learn More"
-- ✅ "Start Your Free Trial", "See How It Works"
+- ❌ "Sign up now", "Submit", "Learn more"
+- ✅ "Start your free trial", "See how it works"
 
-## Decision Framework
+Repeat the primary CTA after each major section so it's never far away, but don't stack two
+CTAs with the same intent next to each other. A secondary CTA offers a different step
+("See pricing" next to "Start free trial").
 
-**Before writing, check:**
-1. Has user provided content for this section?
-   - Complete → Use verbatim
-   - Partial → Expand with this skill
-   - Missing → Generate with this skill
+## Final anti-AI pass
 
-2. Did user request edits?
-   - Yes → Apply skill
-   - No → Preserve original
+Before delivering, read `references/ai-tells.md`, then re-read the whole draft once and ask:
+**"what here sounds AI-generated?"** Revise those lines. The catalogue is easy to satisfy line
+by line while the page as a whole still feels generated, so read it as a visitor would, top
+to bottom, and watch for patterns that repeat across sections: every heading a
+"What/Why/How", every section opening with a question, the same word paying itself off.
 
-**Mixed content:** Generate only what's missing, preserve what exists.
-
-**For headlines and primary CTAs**, return 2-3 alternatives with a one-line rationale each so the user can pick. Body copy and section text can be returned as a single best draft.
-
-## Final Anti-AI Pass
-
-Before any other check, re-read the full draft once and ask: **"what here sounds AI-generated?"** Revise those lines. This single pass catches more drift than the rest of the checklist combined — the AI Tells list is exhaustive but easy to satisfy in spirit while still violating in feel. Reading the draft as a human, with one job, surfaces what a checklist misses.
-
-## Quality Checklist
-
-Before delivering:
-- [ ] User content preserved where provided
+Then confirm:
+- [ ] User copy preserved where provided; only missing parts written
+- [ ] Tone matches the spec or the invoker's brief
+- [ ] No invented numbers, names, quotes or logos; every gap is a `TODO:` placeholder
 - [ ] Features translated to benefits
-- [ ] Headlines scannable
-- [ ] CTAs clear and action-oriented
-- [ ] No AI tells (see list above)
-- [ ] Short paragraphs (1-3 sentences)
-- [ ] Conversational tone
-- [ ] Final anti-AI pass completed (see section above)
+- [ ] Headings and buttons in sentence case
+- [ ] CTAs name what the visitor gets
+
+## Output
+
+- **Invoked by `website-builder` or another skill during a build:** write the copy straight
+  into the page or component files it's working on, then list any `TODO:` placeholders you
+  left.
+- **Direct request from the user:** show the copy in the chat grouped by section, and ask
+  before writing it into files unless they already told you to.
+- **Headlines and primary CTAs:** offer 2-3 alternatives with a one-line rationale each, with
+  your pick first. For body copy, give one best draft.
+- **Rewrites of existing copy:** show before and after for each changed passage, so the user
+  can see what moved and why.
+- **Tone:** if you inferred it, say which tone you used in one line.
