@@ -69,6 +69,11 @@ Stagger with `delay-*` utilities (or `--animate-delay` tokens) on successive ele
 
 Every animation must answer "what does this communicate?" (hierarchy, feedback, storytelling). Decoration-only motion gets cut.
 
+**Paint budget (iOS Safari).** Phones run out of GPU tile memory long before a Mac does. The symptom is black, unpainted areas while scrolling, and it never reproduces on desktop. So:
+- **No big blur filters for glows.** Never `rounded-full bg-* blur-[120px]` / `blur-3xl` blobs, and never animate one. Use a radial-gradient `glow` utility (and a gradient-masked `halo` behind mockups). The recipes are in `hakuto-review` → category O.
+- **Infinite animations touch only `opacity` / `transform`.** Need a pulsing glow? Put a static `box-shadow` on an `::after` and animate its `opacity`. Never animate `box-shadow` / `filter` directly.
+- **`backdrop-blur` only on the sticky header and modal overlays.** Not on pills, cards, toasts, or diagram nodes.
+
 ## Avoid the Defaults
 
 The generic-AI tells. Not a style guide — a list of reflexes to catch:
@@ -95,6 +100,7 @@ Run before declaring a page done (Workflow A step 6 and every Workflow B page):
 - [ ] CTAs: WCAG AA contrast, no text wrap, no two adjacent CTAs with the same intent
 - [ ] Eyebrows ≤ 1 per 3 sections
 - [ ] Motion matches the recorded MOTION dial and honors `prefers-reduced-motion`
+- [ ] Paint budget: no blur ≥ 40px on glows, infinite animations are `opacity`/`transform` only, `backdrop-blur` only on sticky header and overlays
 - [ ] Images are real, seeded placeholders, or labeled TODO slots — no div-fakes
 - [ ] Internal links use the site's trailing-slash convention; anchor targets exist
 - [ ] `bun run check` passes
