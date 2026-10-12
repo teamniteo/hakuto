@@ -1,6 +1,6 @@
 ---
 name: hakuto-review
-description: Source-level audit for Hakuto sites (Astro + Tailwind v4 + shadcn/ui) — grades `src/` and config against the project CLAUDE.md rules: images, component and Tailwind v4 correctness, Cloudflare adapter, internal links, accessibility, render-path performance, and `public/_headers`, where it owns both the caching and the CSP/security-header policy. Reviews one file, the recent diff, or all of `src/`; report-only. Use for "Hakuto review", "review my site source", "check site code quality", "lint the site", "check my security headers". Not for built-HTML SEO (`seo-audit`) or live Lighthouse scores (`pagespeed-audit`).
+description: Source-level audit for Hakuto sites (Astro + Tailwind v4 + shadcn/ui) — grades `src/` and config against the project CLAUDE.md rules: images, component and Tailwind v4 correctness, Cloudflare adapter, internal links, accessibility, render-path and mobile paint performance (blur filters, animated paint), and `public/_headers`, where it owns both the caching and the CSP/security-header policy. Reviews one file, the recent diff, or all of `src/`; report-only. Use for "Hakuto review", "review my site source", "check site code quality", "lint the site", "check my security headers". Not for built-HTML SEO (`seo-audit`) or live Lighthouse scores (`pagespeed-audit`).
 ---
 
 # Hakuto Review Skill
@@ -229,6 +229,45 @@ Hakuto sites are fully static-prerendered with many inline scripts (GTM, Cookieb
 
 > **Verification tip for the user (not for the skill to run):** `curl -I https://{domain}/` on a deployed URL should show all four headers. Re-running the security scan after deploy should clear the original findings. The scaffold ships sensible defaults — check `scaffold/public/_headers` in the hakuto repo for the canonical reference policy.
 
+### O. Mobile Paint Cost — Blur Filters & Animated Paint (`src/**/*.astro`, `src/index.css`)
+
+iOS Safari has a small GPU tile-memory budget. Large blur filters, `backdrop-filter`, and animations that repaint every frame can exhaust it: the page renders part of a section, then **black, unpainted areas while scrolling** that fill in seconds later. Desktop browsers, including Safari on a Mac, have enough headroom to hide this, so it never shows up during development. Three Hakuto sites shipped it (site-hakuto#40, site-vendorvigilance#49, site-trialtrack#44). Static source checks are the only reliable way to catch it before a user does.
+
+- **Critical** — *Animated large blur*. An element with a CSS blur ≥ 40px (`blur-2xl`, `blur-3xl`, `blur-[Npx]` with N ≥ 40, or `filter: blur(…)`) that also has a running animation (`animate-*`, or a class whose keyframes run `infinite`), e.g. the "drifting glow" `animate-drift rounded-full bg-brand/30 blur-[120px]`.
+- **Critical** — *Infinite paint-property animation over `backdrop-filter`*. Infinite `@keyframes` that animate `box-shadow`, `filter`, `backdrop-filter`, `background-position`, or a size property, applied to an element that has, or sits inside or under, a `backdrop-blur*` element. Every frame re-blurs the backdrop.
+- **Warning** — *Large static blur blob*. A blur ≥ 40px on a decorative glow (`rounded-full bg-* blur-*`, typically `pointer-events-none absolute`), even without animation. Report one finding per file with a count.
+- **Warning** — *Infinite paint-property animation*. Infinite `@keyframes` that animate `box-shadow` / `filter` / `background-position` without a backdrop involved. Animate `opacity` / `transform` on a pseudo-element instead.
+- **Warning** — *Decorative `backdrop-blur`*. `backdrop-blur*` on pills, badges, cards, toasts, or diagram nodes. Most sit on an almost-opaque background, where the blur is invisible but still repaints. **Exempt:** the sticky site header, other sticky nav bars, and modal or drawer overlays that blur only while open.
+- **Pass** — no blur ≥ 40px on decorative elements, and infinite animations touch only `opacity` / `transform` (plus SVG `stroke-dashoffset` on small paths).
+
+Detect: `grep -rnE 'blur-(2xl|3xl|\[[0-9]{2,}px\])|filter: ?blur\(|backdrop-blur|backdrop-filter' src`, then read each hit's class list and the keyframes it references in `src/index.css`. Skip `blur-sm` / `blur-[1–8px]` on small elements; they're cheap.
+
+Recommended fixes. Cite these in the finding so the fix prompt carries them:
+
+```css
+/* Soft radial light; color from text-* (`glow text-brand/30`). Replaces rounded-full bg-* blur-[120px]. */
+@utility glow {
+  background-image: radial-gradient(closest-side, currentColor,
+    color-mix(in oklab, currentColor 45%, transparent) 55%, transparent);
+}
+/* Soft glow hugging a rectangle (behind a mockup). Replaces -inset-8 rounded-[3rem] bg-* blur-3xl. */
+@utility halo {
+  --halo-fade: 6rem;
+  margin: -2rem;
+  background-color: currentColor;
+  mask-image:
+    linear-gradient(to right, transparent, #000 var(--halo-fade), #000 calc(100% - var(--halo-fade)), transparent),
+    linear-gradient(to bottom, transparent, #000 var(--halo-fade), #000 calc(100% - var(--halo-fade)), transparent);
+  mask-composite: intersect;
+}
+```
+
+- A drifting glow keeps its `animate-*` class. It moves a gradient instead of a blur filter.
+- A pulsing shadow moves to an `::after` that carries a static `box-shadow`, with only its `opacity` animated (`animation-delay: inherit` keeps per-element offsets).
+- Decorative `backdrop-blur` is dropped, and its background nudged a step more opaque (`bg-white/80` → `/90`).
+
+> **Verification tip for the user (not for the skill to run):** reproduce on a real iPhone, not a Mac. Desktop Safari's Responsive Design Mode does not emulate the memory limit.
+
 ---
 
 ## Output Format
@@ -329,6 +368,7 @@ To fix issues, ask Claude:
 - `public/_headers` missing `/_astro/*` rule with `max-age >= 31536000, immutable` on a Cloudflare Workers (`[assets]`) project
 - `public/_headers` missing `Content-Security-Policy` entirely, or CSP present but missing one of `frame-ancestors` / `base-uri` / `object-src` / `form-action`
 - `public/_headers` missing `Permissions-Policy`
+- Animated element carrying a blur ≥ 40px, or an infinite `box-shadow` / `filter` / `backdrop-filter` animation on or over a `backdrop-blur` element. Causes black, unpainted areas on iOS Safari
 
 **Warning (⚠️)** — should fix but non-blocking:
 - Custom tokens outside `@theme`; CSS variables outside `@layer base`
@@ -353,6 +393,7 @@ To fix issues, ask Claude:
 - Security headers placed on a path-specific rule (e.g. `/`) instead of `/*`
 - CSP omits a known third-party origin actually loaded by the site
 - Google Ads (`AW-…`) tag present without `allow_google_signals: false` — informational
+- Static decorative blur ≥ 40px (use the `glow` / `halo` utilities); infinite `box-shadow` / `filter` / `background-position` animation; decorative `backdrop-blur` on pills, cards, or toasts (sticky header and modal overlays exempt)
 
 **Pass (✅)** — meets the requirement.
 
