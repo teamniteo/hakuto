@@ -240,7 +240,10 @@ iOS Safari has a small GPU tile-memory budget. Large blur filters, `backdrop-fil
 - **Warning** — *Decorative `backdrop-blur`*. `backdrop-blur*` on pills, badges, cards, toasts, or diagram nodes. Most sit on an almost-opaque background, where the blur is invisible but still repaints. **Exempt:** the sticky site header, other sticky nav bars, and modal or drawer overlays that blur only while open.
 - **Pass** — no blur ≥ 40px on decorative elements, and infinite animations touch only `opacity` / `transform` (plus SVG `stroke-dashoffset` on small paths).
 
-Detect: `grep -rnE 'blur-(2xl|3xl|\[[0-9]{2,}px\])|filter: ?blur\(|backdrop-blur|backdrop-filter' src`, then read each hit's class list and the keyframes it references in `src/index.css`. Skip `blur-sm` / `blur-[1–8px]` on small elements; they're cheap.
+Detect — run both greps; neither covers the other:
+
+1. Blur and backdrop: `grep -rnE 'blur-(2xl|3xl|\[[0-9]{2,}px\])|filter: ?blur\(|backdrop-blur|backdrop-filter' src`, then read each hit's class list and the keyframes it references in `src/index.css`. Skip `blur-sm` / `blur-[1–8px]` on small elements; they're cheap.
+2. Paint-property keyframes: `grep -rnE -A12 '@keyframes' src | grep -E 'box-shadow|filter|background-position|[^-](width|height):'`. This is the only route to the *Infinite paint-property animation* Warning when no blur is nearby — a `box-shadow` pulse on a plain button never matches grep 1. For each hit, read the enclosing `@keyframes` block (the `-A12` window can spill into the next one), then trace its name to the `--animate-*` token or `animate-[name_…]` class that uses it and check the iteration count is `infinite`. If the animated element has, or sits inside or under, a `backdrop-blur*` element, it's the Critical above instead.
 
 Recommended fixes. Cite these in the finding so the fix prompt carries them:
 
