@@ -43,7 +43,7 @@ Primary: Features · Pricing · Docs/Resources (if technical) · Login · **[Sig
 
 ## Messaging & Tone
 
-- Action-oriented ("Start building", "Try free") and benefit-focused ("Ship 2× faster") — clarity over cleverness
+- Action-oriented ("Start building", "Try free") and benefit-focused ("Deploy on every push") — clarity over cleverness
 - Subtle friction-removal, not fake urgency: "No credit card required", "Cancel anytime"
 - **Technical/developer**: drop marketing fluff, use precision, show code, GitHub stars, integrations; no-nonsense tone
 - **Business/enterprise**: ROI, security, compliance, SLAs; big-name logos and decision-maker testimonials; credible tone
@@ -54,7 +54,7 @@ Multiple CTAs per page: at the hero, after the product story, near proof, at the
 
 ## Proof & Trust
 
-In rough order of effectiveness: customer logos → usage metrics ("10K+ developers") → review ratings (G2, Capterra) → testimonials with attribution → case studies with numbers → integration badges. **Never invent metrics or logos** — if none provided, build a labeled placeholder section and tell the user to supply them.
+In rough order of effectiveness: customer logos → usage metrics (the user's exact figure, e.g. "11,847 developers", not rounded to "10K+") → review ratings (G2, Capterra) → testimonials with attribution → case studies with numbers → integration badges. **Never invent metrics or logos** — if none provided, build a labeled placeholder section and tell the user to supply them.
 
 Trust signals: security/compliance badges (SOC 2, GDPR), uptime/status page, support promise, money-back guarantee, data hosting location. Place near CTAs and pricing where they reduce friction, and in the footer.
 
