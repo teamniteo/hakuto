@@ -210,8 +210,8 @@ should tell the pitch. Labels tell the visitor where they are, not why to keep r
 Keep labels where the visitor is looking something up rather than being persuaded: FAQ,
 Pricing, Docs, Contact, navigation. A claim heading on a FAQ just slows the search down.
 
-Front-load the noun that matters. Phone widths cut a heading at about 25-30 characters per
-line; the first line may be all a visitor reads.
+Front-load the noun that matters. On a phone a heading wraps early, and the first line may
+be all a visitor reads.
 
 ## Common failures
 

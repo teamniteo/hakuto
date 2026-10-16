@@ -206,8 +206,8 @@ Customer testimonials and quotes are never edited for AI tells. They're the cust
 ## Headlines
 
 Most visitors read the headings and skim everything else, so the headings carry the pitch.
-This covers the hero H1, section H2s and feature headings. Formulas, a hero anatomy and
-label-to-claim rewrites are in `references/headlines.md`.
+This covers the hero H1, section H2s and feature headings. Before drafting, read
+`references/headlines.md`: formulas, a hero anatomy and label-to-claim rewrites.
 
 ### What a headline has to do
 
@@ -263,8 +263,9 @@ Each candidate passes all of these on its own:
 
 - **Read alone,** it says what you sell or what the visitor gets, with the category clear
   from the eyebrow, H1 or subhead.
-- **Picture it, prove it, only us.** A visitor can picture it, someone could check it, and a
-  competitor couldn't publish it unchanged (Harry Dry's three questions).
+- **Picture it, prove it, only us.** The three questions from Clarity over cleverness, with
+  a higher bar: a body line is filler when it fails all three, but a headline has to pass
+  all three.
 - **"Now you can…"** in front of it reads as compelling and true.
 - **Repeatable.** A visitor could restate its promise in their own words after one read.
 - **Every fact is the user's.** A timeframe, number or "only" in a headline is a claim like
