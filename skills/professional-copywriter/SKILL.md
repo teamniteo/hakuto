@@ -1,6 +1,6 @@
 ---
 name: professional-copywriter
-description: "Benefit-driven, conversion-focused copy for SaaS and company websites: heroes, headlines, taglines, feature and pricing sections, About pages, CTA and button text. Also strips AI-sounding patterns from existing site copy. Use when a page or section has missing or partial content, or the user asks to \"write the copy\", \"improve this headline\", \"rewrite the hero\", \"punch up the CTAs\", or \"make this sound less AI-generated\". Skip when the user has supplied finished copy and asked for no edits (place it verbatim), and skip blog posts and docs pages (`section-blog` and `section-docs` use neutral placeholders by design)."
+description: "Benefit-driven, conversion-focused copy for SaaS and company websites: heroes, headlines, taglines, feature and pricing sections, About pages, CTA and button text. Also strips AI-sounding patterns from existing site copy. Use when a page or section has missing or partial content, or the user asks to \"write the copy\", \"improve this headline\", \"give me headline options\", \"fix the section headings\", \"rewrite the hero\", \"punch up the CTAs\", or \"make this sound less AI-generated\". Skip when the user has supplied finished copy and asked for no edits (place it verbatim), and skip blog posts and docs pages (`section-blog` and `section-docs` use neutral placeholders by design)."
 ---
 
 # Professional Copywriting
@@ -203,6 +203,76 @@ Customer testimonials and quotes are never edited for AI tells. They're the cust
 ✅ **Human:**
 > One shared inbox for your whole team. Reply from Slack, archive in one click, and stop losing threads in CC chains.
 
+## Headlines
+
+Most visitors read the headings and skim everything else, so the headings carry the pitch.
+This covers the hero H1, section H2s and feature headings. Formulas, a hero anatomy and
+label-to-claim rewrites are in `references/headlines.md`.
+
+### What a headline has to do
+
+- **Make sense alone.** Headlines travel without the page: search results, link previews,
+  tab titles, AI summaries. Read alone, the hero (eyebrow, H1 and subhead together) says
+  what this is and who it's for. "Work smarter" says nothing.
+- **Front-load the meaning.** Scanners take in the first two or three words of a heading.
+  Put the category, outcome or audience there, not "Welcome to", "Introducing", "Meet" or
+  the company name.
+- **Carry one idea.** Two benefits in an H1 weaken both. The rest goes to the subhead and
+  the sections below, which is where the one difference gets its support.
+- **Talk about the visitor's outcome, not the company.** "We're a leading provider of…"
+  loses to what the visitor gets.
+- **Match what the visitor already knows.** Someone who only feels the problem needs it
+  named in their words; someone comparing you to a competitor needs the difference and the
+  offer. The awareness table in the reference maps this to page types.
+- **Name the category somewhere above the fold**: eyebrow, H1 or subhead. Visitors who
+  can't place the product guess, often wrong. Famous brands can drop it; an unknown one
+  can't, so it needs more words than an Apple headline.
+- **Prefer plain over clever.** In usability and A/B research, plain headlines beat puns and
+  wordplay; clever lines also fail for non-native readers and out of context. When torn,
+  pick the plain one.
+- **Fit the space.** No magic length, but an H1 of about 4-12 words that fits 2-4 lines on
+  a phone is the usual range. Section headings fit one line where possible.
+
+**Subhead and eyebrow.** The subhead (1-2 sentences) says how the product delivers the
+H1's promise, which is what makes it believable, and who it's for if the H1 didn't say. It
+never restates the H1. An eyebrow is optional and carries what the H1 doesn't: usually the
+category or audience.
+
+**Section headings state the point.** "Features", "Integrations" and "Why us" are labels;
+"Works with the bank you already use" is a claim. Reading the H2s alone, top to bottom,
+should tell the pitch. Keep labels where visitors look things up instead of being
+persuaded: FAQ, Pricing, Docs, Contact.
+
+### How to write one
+
+1. **Start from the material.** The one difference, and the user's customer language:
+   reviews, support tickets, sales notes, testimonials they gave you. The best headline is
+   often a customer's sentence, lightly edited. Don't invent customer phrasing.
+2. **Draft wide before choosing.** Write 10-15 candidates for a hero H1 (fewer for a section
+   heading) using at least four different formulas from the reference. First drafts are
+   rarely the best, and drafting across formulas stops every option being the same shape.
+   Keep the long list to yourself.
+3. **Cut with the tests below**, then rank the survivors with the scoring in the reference.
+4. **Present 2-3** (see Output), each with its subhead, since a headline is judged with the
+   line under it. When the user asked only for the headline, the subheads are suggestions:
+   say so, and leave their subhead in place unless they take one.
+
+### Headline tests
+
+Each candidate passes all of these on its own:
+
+- **Read alone,** it says what you sell or what the visitor gets, with the category clear
+  from the eyebrow, H1 or subhead.
+- **Picture it, prove it, only us.** A visitor can picture it, someone could check it, and a
+  competitor couldn't publish it unchanged (Harry Dry's three questions).
+- **"Now you can…"** in front of it reads as compelling and true.
+- **Repeatable.** A visitor could restate its promise in their own words after one read.
+- **Every fact is the user's.** A timeframe, number or "only" in a headline is a claim like
+  any other: the user's, or a `TODO:`. The verb counts too: a tool that warns about
+  breaches doesn't "keep you compliant", and one that drafts doesn't "write" for you.
+- **No AI tells.** Headlines are where "not X, it's Y", performed cleverness, stock
+  vocabulary and question hooks collect. Run the headline checks in `references/ai-tells.md`.
+
 ## Page patterns
 
 Each part of a page meets the visitor in a different state, which sets how long the copy
@@ -212,19 +282,10 @@ can be and what goes first.
 The visitor is skimming and deciding whether to stay. They should know what this is and
 who it's for within five seconds.
 
-- Headline stating the main benefit
+- Headline stating the main benefit or the one difference (see Headlines)
 - Subhead that makes it specific: for whom, how
 - One primary CTA
 - Proof: logos, a stat or a short quote, from the user or as a `TODO` placeholder
-
-Headline shapes to start from (not to fill in mechanically):
-- `{Outcome} without {pain point}`: "Ship faster without breaking production"
-- `The {category} for {audience}`: "The CRM for solo founders"
-- `{Pain-point question}?`: "Still chasing approvals over email?" (the page's one question hook)
-
-A headline passes when it reads as compelling and true after "Now you can…", when a
-visitor could repeat its promise in their own words after one read, and when it still
-works alone, not just next to the other alternatives.
 
 ### Features and services
 The visitor is checking whether it fits their situation.
@@ -337,6 +398,7 @@ Then confirm:
 - [ ] Every FAQ answer states a real term or is a `TODO:`
 - [ ] Features translated to benefits (or stated precisely, for technical buyers)
 - [ ] Each headline alternative passes the headline tests on its own
+- [ ] Section headings state a point; reading them alone tells the pitch
 - [ ] Headings and buttons in sentence case
 - [ ] CTAs name what the visitor gets
 
@@ -349,9 +411,11 @@ Then confirm:
   testimonial, the story questions for About, "why you and not X?" for a missing difference.
 - **Direct request from the user:** show the copy in the chat grouped by section, and ask
   before writing it into files unless they already told you to.
-- **Headlines and primary CTAs:** offer 2-3 alternatives with a one-line rationale each, with
-  your pick first. Each must pass the headline tests under Hero on its own. For body copy,
-  give one best draft.
+- **Headlines and primary CTAs:** offer 2-3 alternatives, your pick first, each from a
+  different formula, with its subhead and a one-line rationale naming who it's for and why
+  it works. Each must pass the headline tests on its own. During a build, write your pick
+  into the page and list the runners-up with the `TODO:`s. For body copy, give one best
+  draft.
 - **Rewrites of existing copy:** show before and after for each changed passage, so the user
   can see what moved and why.
 - **Tone:** if you inferred it, say which tone you used in one line.
