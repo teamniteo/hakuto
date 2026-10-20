@@ -35,3 +35,12 @@ jobs:
       - name: Run preview-server smoke tests
         working-directory: scaffold
         run: bun test test/dev-smoke.test.ts
+
+      # The smoke test builds, which regenerates the page_summary block. The
+      # generator replaces from the first `<page_summary>` it finds, so a stray
+      # tag above the block would silently wipe the agent rules.
+      - name: AGENTS.md rules survive the build
+        working-directory: scaffold
+        run: |
+          test "$(grep -c '<page_summary>' AGENTS.md)" -eq 1
+          grep -q '^## Mandatory Workflow' AGENTS.md

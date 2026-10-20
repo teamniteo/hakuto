@@ -5,7 +5,7 @@ import type { APIRoute } from "astro";
 // nothing else supplies that line.
 //
 // `context.site` is Astro's build-time `site` config, not a runtime env var —
-// the "no `import.meta.env` under src/" rule in CLAUDE.md does not apply here.
+// the "no `import.meta.env` under src/" rule in AGENTS.md does not apply here.
 export const GET: APIRoute = ({ site }) => {
 	const sitemap = site ? new URL("sitemap-index.xml", site).href : "/sitemap-index.xml";
 

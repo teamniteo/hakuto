@@ -101,7 +101,7 @@ How the pieces fit:
 - **Search.** `pagefind()` is already in `astro.config.mjs` (astro-pagefind is installed), so
   every build writes the index; the docs home renders the search box. Don't touch the
   adapter. The index only exists after `bun run build` — search finds nothing in
-  `bun run dev` and that is expected (see the site's CLAUDE.md). Do not add
+  `bun run dev` and that is expected (see the site's AGENTS.md). Do not add
   `data-pagefind-body` anywhere: it would drop every other page from the index, including
   what the site's WebMCP `search-site` tool relies on. The templates use
   `data-pagefind-ignore` on navigation instead.
@@ -152,13 +152,13 @@ From the site root run `bun run check`, then `bun run build`. Then check `dist/c
   `dist/client/docs/<category>/<page>/`; no page for any draft
 - Each page has exactly one `<main>` and one `<h1>`
 - Titles and meta descriptions are the real strings you wrote — read them from
-  `dist/client/`, because the build regenerates `AGENTS.md` and its description extraction
+  `dist/client/`, because the build regenerates the `page_summary` block of `AGENTS.md` and its description extraction
   truncates at the first apostrophe
 - `dist/client/pagefind/` exists
 - Contrast and underlines: body links are underlined in both themes; if you changed any
   `--docs-*` colour, re-check it against the contrast notes at the top of `docs.css`
 
-`AGENTS.md` is regenerated on every build — don't edit it by hand.
+Only the `page_summary` block of `AGENTS.md` is regenerated on every build — don't edit inside it.
 
 ### Step 8: Record and report
 

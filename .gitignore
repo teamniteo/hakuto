@@ -22,7 +22,6 @@ dist-ssr
 .hakuto
 .claude
 .ports
-AGENTS.md
 
 # Editor directories and files
 .vscode/*

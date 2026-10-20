@@ -30,7 +30,8 @@ didn't pass a URL on this invocation, you must ask before fetching.
 - "/pagespeed-audit https://example.com https://example.com/pricing" → test both
 
 **No URL provided in this invocation**:
-- Read `AGENTS.md` to find a documented production URL or page list.
+- Read `AGENTS.md` to find a documented production URL, or the page list in its
+  `page_summary` block.
 - If found, list the URLs and ask the user which to audit (use
   AskUserQuestion when 2–4 candidates exist).
 - If not found, ask the user for at least one deployed URL via
@@ -295,7 +296,7 @@ See `references/example-report.md` for the full template — match its shape and
 **Fetch results:** `curl` to a temp file (NOT WebFetch — see Step 3 for
 why). **Parse:** `jq` against the saved file (see Step 4 for the script).
 
-**Read page list (optional):** use the `Read` tool on `AGENTS.md`.
+**Read page list (optional):** use the `Read` tool on `AGENTS.md` — the `page_summary` block at the end.
 
 ---
 

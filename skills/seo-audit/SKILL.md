@@ -51,14 +51,15 @@ report and stop.
 
 ### 2. Read Page Metadata
 
-Read `AGENTS.md` for the routes and intended titles/descriptions of every page — your context
+Read the `page_summary` block at the end of `AGENTS.md` for the routes and intended
+titles/descriptions of every page — your context
 for what *should* be on each page.
 
-**`AGENTS.md` descriptions can be truncated — don't report the difference as a finding.**
+**`page_summary` descriptions can be truncated — don't report the difference as a finding.**
 `@nuasite/agent-summary` (≤ 0.0.36) extracts the meta description with
 `content=["']([^"']*)["']`, whose character class stops at an apostrophe. A description of
 "The page you're looking for doesn't exist." is recorded as "The page you". The built page is
-correct; the summary is not. Treat `AGENTS.md` as a routes-and-intent map, and read the actual
+correct; the summary is not. Treat the block as a routes-and-intent map, and read the actual
 `<meta name="description">` out of `dist/client/` whenever you need the real string.
 
 ### 3. List Built Files
