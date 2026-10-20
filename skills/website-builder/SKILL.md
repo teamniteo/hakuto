@@ -9,13 +9,13 @@ Generate production-ready websites through a design interview: read the brief, a
 
 ---
 
-## Working Alongside CLAUDE.md
+## Working Alongside AGENTS.md
 
-This skill is the orchestrator referenced by Hakuto's CLAUDE.md. Follow CLAUDE.md's "Mandatory Workflow" (`index.css` → `Layout.astro` → Project Plan → Components) alongside this skill's design workflows. CLAUDE.md owns the *how* (which files to touch, what conventions to follow); this skill owns the *what* (which direction, which content strategy, when to invoke siblings).
+This skill is the orchestrator referenced by the site's AGENTS.md (the agent instructions; `CLAUDE.md` just imports it). Follow AGENTS.md's "Mandatory Workflow" (`index.css` → `Layout.astro` → Project Plan → Components) alongside this skill's design workflows. AGENTS.md owns the *how* (which files to touch, what conventions to follow); this skill owns the *what* (which direction, which content strategy, when to invoke siblings).
 
-Two deliberate differences from older CLAUDE.md copies: the Project Plan lives in `site-specification.md` under `## Project Plan`, not in CLAUDE.md (so CLAUDE.md stays clean for `scaffold-sync`), and the spec is created at style-preview approval rather than while writing `index.css`.
+Two deliberate differences from older instruction-file copies: the Project Plan lives in `site-specification.md` under `## Project Plan`, not in AGENTS.md or CLAUDE.md (so the instructions stay clean for `scaffold-sync`), and the spec is created at style-preview approval rather than while writing `index.css`.
 
-CLAUDE.md's Technical Requirements (Tailwind v4 in `src/index.css`, `className` on React components, Fonts API, Cloudflare `imageService: "custom"`, `<Picture>` with `width`/`widths`/`sizes`) apply to every page this skill produces.
+AGENTS.md's Technical Requirements (Tailwind v4 in `src/index.css`, `className` on React components, Fonts API, Cloudflare `imageService: "custom"`, `<Picture>` with `width`/`widths`/`sizes`) apply to every page this skill produces.
 
 ---
 
@@ -98,7 +98,7 @@ Print the full briefs in the chat message, then a single-select AskUserQuestion 
 1. **Rewrite `public/llms.txt` from the spec, in the same breath.** The scaffold ships a raw template that is served **live** at `/llms.txt`: left untouched it publishes "Site Name", `hello@example.com`, and bracketed placeholders. As soon as the spec exists, the real values exist — write site name, one-line description, overview, and contact. Key Pages must list only routes that actually build.
    **Cover route *families*, not just the marketing pages.** An `llms.txt` that lists five top-level pages on a site with a blog, docs and a templated hub omits exactly the body of content an agent wants. For every route family the site builds, add a category-level entry with a count — `- [Blog](/blog/) — 37 posts on …`, `- [Docs](/docs/) — 30 pages covering …` — rather than enumerating URLs. Every route in the main nav needs an entry too.
    **Write the `## When to use this` section** — the scaffold ships it as a prompt, and it is the single thing agent-readiness scanners look for to decide whether a site tells agents when to reach for it. Name the concrete jobs this site is the right answer for, and at least one adjacent job it is *not*. Generic marketing copy does not read as guidance and scores as absent.
-2. Load `references/design-craft.md` + `references/site-types/[type].md`, then follow CLAUDE.md's Mandatory Workflow steps 3–7, ticking items off the spec's Project Plan. Site-type files define content *jobs*; section composition and order come from the direction, dials, and craft patterns.
+2. Load `references/design-craft.md` + `references/site-types/[type].md`, then follow AGENTS.md's Mandatory Workflow steps 3–7, ticking items off the spec's Project Plan. Site-type files define content *jobs*; section composition and order come from the direction, dials, and craft patterns.
 3. Content per Content Strategy below.
 4. Set `site` in `astro.config.mjs` to the production URL if the user provided a domain (drives sitemap/canonicals/JSON-LD); otherwise leave the scaffold default and list it as an open TODO in the final report.
 5. Keep `branding.astro` as the living style guide — exclude it from nav.

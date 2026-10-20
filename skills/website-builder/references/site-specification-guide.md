@@ -4,7 +4,7 @@
 
 The spec is the consistency contract: every later page and session builds to it, not to defaults.
 It records the approved direction (dials, palette, fonts, patterns), the user's customizations,
-and the build plan. It lives at the project root, not in CLAUDE.md, so CLAUDE.md stays clean for
+and the build plan. It lives at the project root, not in AGENTS.md, so AGENTS.md stays clean for
 `scaffold-sync`.
 
 ---
@@ -24,9 +24,9 @@ and the build plan. It lives at the project root, not in CLAUDE.md, so CLAUDE.md
 **Missing spec on an existing site:** infer it from the built pages (palette from `index.css`,
 fonts from `astro.config.mjs`, dials from the layouts actually used), then write it.
 
-**Older specs** (built before the direction/dial system, or with the plan still in CLAUDE.md):
+**Older specs** (built before the direction/dial system, or with the plan still in CLAUDE.md or AGENTS.md):
 infer dial values from the built pages, migrate to the template below, and move any
-`## Project Plan` from CLAUDE.md into the spec.
+`## Project Plan` from that file into the spec.
 
 ---
 

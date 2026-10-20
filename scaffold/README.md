@@ -74,6 +74,6 @@ Astro 6 · Tailwind CSS v4 · shadcn/ui · TypeScript · Biome · Bun · Cloudfl
 
 ## Working with Claude
 
-`CLAUDE.md` at the repo root carries the agent spec. The Hakuto plugin provides skills (`brand-designer`, `fonts`, `hakuto-review`, `pagespeed-audit`, `plausible-analytics`, `prelaunch-checklist`, `professional-copywriter`, `scaffold-sync`, `section-blog`, `section-docs`, `section-form`, `seo-audit`, `website-builder`) that auto-invoke based on what you ask for.
+`AGENTS.md` at the repo root carries the agent spec (read by Codex and other agents; `CLAUDE.md` imports it for Claude Code), followed by a build-generated page index. The Hakuto plugin provides skills (`brand-designer`, `fonts`, `hakuto-review`, `pagespeed-audit`, `plausible-analytics`, `prelaunch-checklist`, `professional-copywriter`, `scaffold-sync`, `section-blog`, `section-docs`, `section-form`, `seo-audit`, `website-builder`) that auto-invoke based on what you ask for.
 
 Update the plugin with `/plugin update hakuto` inside Claude Code.

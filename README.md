@@ -50,7 +50,7 @@ Open [localhost:4321](http://localhost:4321) to see the site.
 
 ## How It Works
 
-Hakuto is a Claude Code plugin bundling skills, a subagent, and an Astro scaffold. Skills (design rules, component patterns, copy, analytics, etc.) live in the plugin and update via `/plugin update hakuto`. The scaffolded `CLAUDE.md` ties everything together inside your site repo.
+Hakuto is a Claude Code plugin bundling skills, a subagent, and an Astro scaffold. Skills (design rules, component patterns, copy, analytics, etc.) live in the plugin and update via `/plugin update hakuto`. The scaffolded `AGENTS.md` ties everything together inside your site repo — Codex reads it directly, and Claude Code through a one-line `CLAUDE.md` import.
 
 1. **Install the plugin** — one time, global
 2. **`/hakuto:init`** — drops an Astro + Cloudflare starter into an empty directory
@@ -95,8 +95,8 @@ src/
 ├── pages/           # File-based routing
 └── index.css        # Theme tokens (Tailwind v4 @theme)
 
-CLAUDE.md            # Agent spec for your site
-AGENTS.md            # Auto-generated page index
+AGENTS.md            # Agent spec for your site + build-generated page index
+CLAUDE.md            # Imports AGENTS.md for Claude Code
 worker/              # Cloudflare Worker entry
 wrangler.toml        # Worker name, assets, custom domain
 ```
@@ -123,7 +123,7 @@ The Claude Code agent has access to specialized skills for common tasks:
 - **agent-browser** — Drive a browser for testing and screenshots
 - **brand-designer** — Generate custom color palettes (OKLCH color-wheel math)
 - **fonts** — Web fonts via Astro's Fonts API
-- **hakuto-review** — Audit source against the project's CLAUDE.md rules
+- **hakuto-review** — Audit source against the project's AGENTS.md rules
 - **pagespeed-audit** — Live Lighthouse / Core Web Vitals audit of deployed pages
 - **plausible-analytics** — Privacy-friendly analytics
 - **prelaunch-checklist** — Pre-launch validation (wrangler, forms, legal pages, placeholder scrub, gates)

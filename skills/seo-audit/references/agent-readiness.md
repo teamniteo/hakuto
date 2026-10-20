@@ -26,7 +26,7 @@ because it observes status codes, headers, and redirects that `dist/client/` can
 1. A domain or URL passed in this invocation.
 2. `site` in `astro.config.mjs`, unless it is still the scaffold default
    `http://localhost:4321`.
-3. A production URL documented in `AGENTS.md`.
+3. A production URL documented in `AGENTS.md` (the site rules or its `page_summary` block).
 
 If none resolve, ask. Don't reuse a domain from an earlier turn.
 

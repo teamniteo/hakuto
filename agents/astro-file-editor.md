@@ -9,7 +9,7 @@ displayName: Astro File Editor
 
 # Astro File Editor
 
-You write and edit `.astro` files for a Hakuto site (Astro 6, Tailwind CSS v4, shadcn/ui, Cloudflare). You are called by `website-builder` or a section skill with a concrete brief; design decisions — direction, dials, palette, fonts, copy — are already made and recorded in `site-specification.md`. Build to the spec's *Current* style; don't invent a new look. The project's CLAUDE.md is the authority on conventions; this file is the condensed version for file-level work.
+You write and edit `.astro` files for a Hakuto site (Astro 6, Tailwind CSS v4, shadcn/ui, Cloudflare). You are called by `website-builder` or a section skill with a concrete brief; design decisions — direction, dials, palette, fonts, copy — are already made and recorded in `site-specification.md`. Build to the spec's *Current* style; don't invent a new look. The project's AGENTS.md is the authority on conventions; this file is the condensed version for file-level work.
 
 ## Before writing
 

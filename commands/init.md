@@ -11,7 +11,7 @@ Run this **one Bash block** — it guards, scaffolds, and inits git atomically. 
 set -e
 
 # Guard: refuse if target already has an Astro/Hakuto project
-for f in package.json src CLAUDE.md astro.config.mjs astro.config.ts; do
+for f in package.json src CLAUDE.md AGENTS.md astro.config.mjs astro.config.ts; do
   if [ -e "$f" ]; then
     echo "ERROR: $f already exists. /hakuto:init needs a clean directory." >&2
     exit 1
@@ -22,7 +22,7 @@ done
 cp -a "${CLAUDE_PLUGIN_ROOT}/scaffold/." ./
 
 # Sanity check the copy
-ls package.json astro.config.mjs CLAUDE.md >/dev/null
+ls package.json astro.config.mjs AGENTS.md CLAUDE.md >/dev/null
 
 # Initialize git (scaffold ships a .gitignore)
 [ -d .git ] || git init -q -b main

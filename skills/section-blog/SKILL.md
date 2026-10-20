@@ -30,7 +30,8 @@ Blog Integration:
 
 ### Step 1: Read Site Design
 
-Read `src/index.css`, `src/layouts/Layout.astro` and `AGENTS.md` for:
+Read `src/index.css`, `src/layouts/Layout.astro` and `AGENTS.md` (site rules, plus the page index in its
+`page_summary` block) for:
 - Brand colours, typography, and the gradient/shadow utilities (`bg-gradient-hero`,
   `shadow-medium`) the templates use
 - The width of `<main>`'s content box. The templates' image `width`/`sizes` assume the
