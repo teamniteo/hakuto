@@ -10,10 +10,13 @@ import { problem } from './problem.js';
 /**
  * Route handlers map
  * Key: route prefix, Value: { handler, description }
+ * Each handler is called as handler(request, env, ctx) and returns a Response.
+ * `env` carries wrangler.toml [vars], secrets and bindings; `ctx.waitUntil()`
+ * schedules work that outlives the response.
  *
- * No routes are wired up by default. Uncomment or add entries to enable them:
+ * No routes are wired up by default. Add entries to enable them, e.g.:
  *
- *   import { handleHey } from './hey.js';
+ *   import { handleHey } from './hey.js';  // export async function handleHey(request, env, ctx) { … }
  *   '/~/hey':   { handler: handleHey,       description: 'Hello World' },
  *   '/~/pla':   { handler: handlePlausible, description: 'Plausible Analytics Proxy' },
  *   '/~/form-': { handler: handleForm,      description: 'Form Handler' },
@@ -33,7 +36,7 @@ export default {
     if (route) {
       const [, { handler, description }] = route;
       try {
-        return await handler(request, ctx);
+        return await handler(request, env, ctx);
       } catch (error) {
         console.error(`Error in ${description}:`, error);
         return problem({

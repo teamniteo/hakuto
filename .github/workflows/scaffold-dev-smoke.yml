@@ -7,7 +7,7 @@ on:
 
 jobs:
   dev-smoke:
-    name: bun run dev — worker + static smoke
+    name: bun run preview — worker + static smoke
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -32,6 +32,6 @@ jobs:
         working-directory: scaffold
         run: bun i --frozen-lockfile
 
-      - name: Run dev-server smoke tests
+      - name: Run preview-server smoke tests
         working-directory: scaffold
         run: bun test test/dev-smoke.test.ts
