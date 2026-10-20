@@ -1,6 +1,6 @@
 # AI Tells in Website Copy
 
-Patterns that make copy read as machine-written. Read this before the Final Anti-AI Pass,
+Patterns that make copy read as machine-written. Read this before the Final anti-AI pass,
 then read the draft as a visitor would.
 
 Adapted for marketing and website copy from [tropes.fyi](https://tropes.fyi) by
@@ -149,7 +149,7 @@ as history.
 "seamlessly", "effortlessly", "actually". Delete them and see if anything was lost.
 
 **Inflated nouns.** Landscape, tapestry, ecosystem, paradigm, synergy, realm, journey,
-game-changer, interplay, intricacies, load-bearing, gated. Name the actual thing.
+game-changer, interplay, intricacies. Name the actual thing.
 
 **Stock AI vocabulary.** Delve, leverage (verb), utilize, harness, robust, streamline,
 elevate, unlock, unleash, empower, supercharge, enhance, bolster, garner, showcase,

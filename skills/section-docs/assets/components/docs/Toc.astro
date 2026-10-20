@@ -1,0 +1,25 @@
+---
+// src/components/docs/Toc.astro — "On this page" list built from the H2/H3
+// headings that render() returns. Renders nothing for pages with fewer than two
+// headings, where a table of contents is just noise.
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+  headings: MarkdownHeading[];
+}
+
+const items = Astro.props.headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{items.length >= 2 && (
+  <nav aria-label="On this page" class="docs-toc">
+    <p class="docs-sidebar-heading">On this page</p>
+    <ul>
+      {items.map((h) => (
+        <li class:list={[h.depth === 3 && "docs-toc-sub"]}>
+          <a href={`#${h.slug}`}>{h.text}</a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}

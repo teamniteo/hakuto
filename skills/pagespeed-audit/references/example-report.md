@@ -20,11 +20,13 @@ Desktop → Performance: 96 ✅ | A11y: 95 ✅ | Best Practices: 92 ✅ | SEO: 1
 - TBT: 340ms ⚠️ (target ≤ 200ms)
 - FCP: 1.6s ✅
 - Speed Index: 3.1s ✅
+- TTFB: 0.3s ✅
 
 ### Field Data (real users, p75 — last 28 days)
 - LCP: 3.1s ⚠️
 - CLS: 0.04 ✅
 - INP: 180ms ✅
+- TTFB: 0.6s ✅
 
 ### Top Opportunities
 1. Eliminate render-blocking resources — save ~480ms
@@ -62,16 +64,16 @@ Field data unavailable for this URL.
 
 ## Suggested Fixes
 
-Edit source files in `src/` to address findings:
+Edit source files in `src/` to address findings (run `hakuto-review` for the source-side cause):
 - "Add `loading=\"lazy\"` to below-the-fold images in src/components/Features.astro"
-- "Convert hero.jpg to <Picture> with widths={[800, 1200, 1920]}"
+- "Right-size the hero <Picture> in src/components/Hero.astro: width={800} widths={[800, 1600]} sizes=\"(min-width: 1024px) 800px, 100vw\""
 - "Move blocking <script> tags from Layout.astro head to the end of body"
 - "Tree-shake unused imports flagged in main bundle"
 
-## Expected (intentional)
+## Expected (ℹ️ intentional)
 
 Findings filtered out per "Known False Positives" — keep as-is:
-- `robots-txt` "Unknown directive" on `Content-Signal: …` — shipped by Hakuto on purpose. See SKILL.md for context.
+- ℹ️ `robots-txt` "Unknown directive" on `Content-Signal: …` — every Hakuto site emits it from `src/pages/robots.txt.ts` by design. Keep it.
 
 📎 Full reports:
 - Mobile:  https://pagespeed.web.dev/report?url=https%3A%2F%2Fexample.com&form_factor=mobile

@@ -6,6 +6,11 @@ file grows with every release and reading it end to end is wasted context.
 
 Entries are listed oldest first.
 
+Every **Detect:** block answers one question: *has this migration been applied?* It exits 0
+(all markers present) only when the site is in the post-migration state. Guard every negated
+grep with `test -f` — `! grep -q … missing-file` succeeds, which would report a migration as
+applied on a site that never had the file.
+
 ## Contents
 
 - [0.1.2 — Unpic/WebP image service](#012-unpicwebp-image-service)
@@ -13,6 +18,7 @@ Entries are listed oldest first.
 - [0.4.0 — Drop Unpic, return to Astro's sharp service](#040-drop-unpic-return-to-astros-sharp-service)
 - [0.7.0 — SEO/agent-surface fixes (three live defects)](#070-seoagent-surface-fixes-three-live-defects)
 - [0.10.0 — WebMCP on by default, backed by Pagefind](#0100-webmcp-on-by-default-backed-by-pagefind)
+- [0.16.0 — Worker passes `env` to handlers; CLAUDE.md restructure](#0160-worker-passes-env-to-handlers-claudemd-restructure)
 
 ---
 
@@ -82,7 +88,8 @@ this migration is applied.
 
 **Detect:**
 ```sh
-! grep -q '"@unpic/astro"' package.json &&
+test -f package.json &&
+  ! grep -q '"@unpic/astro"' package.json &&
   grep -q 'imageService: *"custom"' astro.config.mjs
 ```
 
@@ -112,6 +119,13 @@ Manual edits for customized sites:
   crops (`object-cover`) — sharp resizes with `fit: cover`, so a mismatch crops
 - if a rehype plugin right-sizes markdown images, give it a `widths` ladder too
 
+`wrangler.toml` defaults changed in the same release (commit `cdc738b`) — review by hand, since
+`wrangler.toml` is always customized (`name`, routes):
+- `compatibility_flags = ["nodejs_compat"]` was **removed**. Nothing in the scaffold worker
+  imports Node built-ins. Drop the flag unless the site's own worker code (or a dependency it
+  bundles) needs `node:*` modules — removing it there breaks the worker at runtime.
+- `compatibility_date` bumped to `2026-06-24`, and `workers_dev = true` added explicitly.
+
 After applying:
 - run `bun run build`, then grep `dist/` for `style="[object Object]"`, `url=` and
   `format=` on `<img>` — all three should be gone
@@ -128,7 +142,9 @@ deploy error — so nothing surfaces them except an audit.
 ```sh
 test -f worker/problem.js &&                    # typed worker errors
   test -f src/pages/robots.txt.ts &&            # Sitemap line from context.site
+  test -f package.json &&
   ! grep -q '"astro-seo-schema"' package.json &&  # JSON-LD not entity-escaped
+  test -f public/_headers &&
   ! grep -qE '^/$' public/_headers              # no rule scoped to the bare `/`
 ```
 
@@ -192,10 +208,12 @@ site's `astro.config.mjs`, so `astro build` always writes `dist/client/pagefind/
 or not. The tools also returned bare objects instead of MCP `CallToolResult`s, and only looked
 at `navigator.modelContext` — the spec has since moved to `document.modelContext`.
 
-**Detect:** both must hold.
+**Detect:** either marker means the migration is applied — the flag is on, or the block was
+updated to the new registry lookup (sites that deliberately keep tools off still get the
+`document.modelContext` code).
 ```sh
-grep -q 'ENABLE_WEBMCP = false' src/layouts/Layout.astro &&  # tools never register
-  grep -q 'pagefind()' astro.config.mjs                      # index is being built anyway
+grep -q 'ENABLE_WEBMCP = true' src/layouts/Layout.astro ||
+  grep -q 'document.modelContext' src/layouts/Layout.astro
 ```
 
 Apply from scaffold when not heavily customized:
@@ -226,3 +244,54 @@ After applying:
   deploy preview
 
 ---
+
+### 0.16.0 — Worker passes `env` to handlers; CLAUDE.md restructure
+
+Before 0.16.0, `worker/index.js` called route handlers as `handler(request, ctx)`, so no
+handler could reach `wrangler.toml` `[vars]`, secrets or bindings. It now calls
+`handler(request, env, ctx)`. The shipped `worker/README.md` and `CLAUDE.md` also claimed
+`bun run dev` runs the worker "1:1 with production" — it doesn't: dev is plain `astro dev`
+with the Cloudflare adapter disabled, so `/~/*` routes 404 there. Worker routes run under
+`bun run preview` (build + `wrangler dev` on `127.0.0.1:8787`) and in production.
+
+**Detect:** the entry point passes `env` through.
+```sh
+test -f worker/index.js &&
+  grep -q 'handler(request, env, ctx)' worker/index.js
+```
+
+Apply from scaffold when not heavily customized:
+- `worker/index.js` — only if `ROUTES` is still empty; otherwise edit by hand (below)
+- `worker/README.md`
+- `CLAUDE.md`
+
+Manual edits for customized sites:
+
+1. **Update the call in `worker/index.js`** to `return await handler(request, env, ctx);`.
+2. **Update every registered handler's signature** in the same change — `(request, ctx)` →
+   `(request, env, ctx)`. A handler left on the old signature receives `env` in its `ctx`
+   parameter, so `ctx.waitUntil(…)` throws `TypeError: ctx.waitUntil is not a function` and
+   the route returns a 500. Grep for them:
+   `grep -rnE 'export (async )?function \w+\(request, ctx\)' worker/`. Handlers declared as
+   `(request)` alone need no change.
+3. **`worker/README.md`** — replace with the scaffold copy unless the site documented its own
+   routes there; at minimum, correct any "`bun run dev` runs the worker" / "don't use
+   `wrangler dev`" text to point at `bun run preview`.
+4. **`CLAUDE.md`** was restructured and roughly halved — image internals, the agent-readiness
+   table, unshallow deploy steps and adapter internals moved into the `hakuto-review`,
+   `seo-audit` and `prelaunch-checklist` skill references. An uncustomized copy fast-forwards
+   cleanly. If the site's copy is customized, port at least these corrections:
+   - `bun run dev` has no worker or adapter; test `/~/` routes with `bun run preview`.
+   - `.tsx` is correct for interactive islands (compound components, forms); pages, layouts
+     and static sections stay `.astro`. Static shadcn use needs no client directive.
+   - `AGENTS.md` is regenerated by every build — never hand-edit it.
+   - Prerendered constants live in `src/lib/site.ts`, not `src/config.ts`.
+5. **Project Plan** — if `CLAUDE.md` still ends with a `## Project Plan` section, move it to
+   `site-specification.md` under `## Project Plan` before taking the new `CLAUDE.md`, or the
+   replace deletes it.
+
+After applying:
+- run `bun run preview` and request each `/~/` route — expect the handler's response, not a
+  `route_not_found` problem body or a 500
+- for a handler that uses `ctx.waitUntil`, check the `bun run preview` terminal for
+  `ctx.waitUntil is not a function`

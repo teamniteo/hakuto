@@ -1,11 +1,14 @@
 ---
 name: section-blog
-description: Adds multi-page blog system to existing websites with listing page, post templates, author archives, and category pages. Supports flexible content layouts beyond single-column text. Use when user requests "add blog", "add articles section", "add news", or mentions blog functionality. Skip for headless CMS integrations (Contentful, Sanity, Strapi), single one-off articles embedded in existing pages, or sites already using a different content collection setup.
+description: Adds a multi-page blog to an existing Hakuto site — listing, post pages, category archives and RSS feed. Use for "add a blog", "add articles", "add a news section", "add a changelog". Skip for documentation or help centres (`section-docs`), writing post or marketing copy (`professional-copywriter`), building a whole new site (`website-builder`), headless CMS blogs (Contentful, Sanity, Strapi), or one article inside an existing page.
 ---
 
 # Blog Section
 
-Adds professional blog system to existing websites with listing pages, post templates, and author boxes. Requires existing site with `src/index.css` theme variables.
+Adds a blog built on an Astro content collection. Every file it needs is a working template
+in `assets/`, generalised from a production blog — copy them and adapt, do not rewrite from
+memory. Requires an existing site with `src/index.css` theme variables and the scaffold's
+`Layout.astro` (`feedUrl`, `socialImageUrl` and `schema` props).
 
 ---
 
@@ -15,294 +18,268 @@ Copy this checklist and track progress:
 
 ```
 Blog Integration:
-- [ ] Step 1: Read index.css and AGENTS.md
+- [ ] Step 1: Read site design
 - [ ] Step 2: Assess content needs
-- [ ] Step 3: Create blog pages
+- [ ] Step 3: Install dependencies
+- [ ] Step 4: Copy and adapt the templates
+- [ ] Step 5: Wire astro.config.mjs
+- [ ] Step 6: Scope the search index in Layout.astro
+- [ ] Step 7: Navigation link and llms.txt entry
+- [ ] Step 8: Verify
 ```
 
 ### Step 1: Read Site Design
 
-Read `src/index.css` and `AGENTS.md` to extract:
-- Brand colors and typography from `@theme {}` block
-- Custom CSS variables from `@layer base {}`
+Read `src/index.css`, `src/layouts/Layout.astro` and `AGENTS.md` for:
+- Brand colours, typography, and the gradient/shadow utilities (`bg-gradient-hero`,
+  `shadow-medium`) the templates use
+- The width of `<main>`'s content box. The templates' image `width`/`sizes` assume the
+  scaffold's `max-w-6xl px-4` (1120px content); re-measure if the site differs
 - Existing navigation structure
 
 ### Step 2: Assess Content Needs
 
-> **Why no `professional-copywriter` for blog posts?** Blog content is the user's own voice — case studies, release notes, opinion pieces. Generated marketing copy would flatten that voice and force the user to rewrite from scratch. A neutral placeholder is faster to replace than polished prose pointing in the wrong direction.
+> **Don't invoke `professional-copywriter` for blog posts.** Blog content is the user's own
+> voice — case studies, release notes, opinion pieces. Generated marketing copy would flatten
+> that voice and force the user to rewrite from scratch. A neutral placeholder is faster to
+> replace than polished prose pointing in the wrong direction.
 
-**No articles exist:**
-- Create 1 placeholder post with generic text
-- Do NOT invoke `professional-copywriter` (see note above)
-- Tell user: "Created a sample post. Replace with your content."
+Placeholders in the templates start with `TODO:` (sample post author, bio and description;
+`BLOG_DESCRIPTION`; the feed description) so `prelaunch-checklist` Check 6 flags any that
+survive to launch. Write new placeholders the same way.
 
-**Existing articles provided:**
-- Format according to design language
+**No articles exist:** copy `assets/content/blog/welcome.md` as-is and tell the user:
+"Created a sample post. Replace with your content."
 
-**User wants new post:**
-- Ask for: Title, slug, date, author, authorEmail
-- Optional: authorBio, category, featured image, description
-- Use generic placeholder text if no content provided
-- Do NOT invoke `professional-copywriter` (see note above)
+**Existing articles provided:** use the text verbatim; only convert it to Markdown with the
+frontmatter below.
 
-### Step 3: Create Blog Pages
+**User wants a new post:** ask for title, slug, date, author, category, description.
+Optional: authorEmail (Gravatar avatar and RSS author), authorBio, authorUrl, featured image.
+`TODO:` placeholder text if no content.
 
-Generate pages matching site's design using Astro content collections:
+### Step 3: Install Dependencies
 
-**Required files:**
-- `src/content.config.ts` - Add blog collection (preserve existing collections)
-- `src/content/blog/*.md` - Blog post markdown files (NO `layout` frontmatter)
-- `src/pages/blog/index.astro` - Blog listing (uses `getCollection()`)
-- `src/pages/blog/[...slug].astro` - Dynamic post pages with layout, author box, and content styling
-
-Update navigation with Blog link at appropriate position.
-
----
-
-## Astro Content Layer API (gotchas)
-
-A few Astro 5+ content-layer behaviors that bite if you assume the older `getEntryBySlug` API:
-
-- **`layout` frontmatter is ignored** by the content-layer glob loader. Apply all layout + styling directly in `src/pages/blog/[...slug].astro` rather than creating per-post layout files.
-- **`post.render()` no longer exists.** Import `render` from `astro:content` and call `render(post)`:
-
-  ```astro
-  ---
-  import { getCollection, render } from "astro:content";
-
-  const { post } = Astro.props;
-  const { Content } = await render(post);
-  ---
-  <Content />
-  ```
-
-- **Stale collection cache** after adding/removing posts can leave routes 404ing. Clear it with `rm -f .astro/data-store.json` and restart the dev server.
-
----
-
-## Typography: Use Site Theme Variables, NOT Tailwind Prose
-
-**Do NOT use `@tailwindcss/typography` or `.prose` classes.** They produce poor contrast on dark themes and fight with the site's design system.
-
-Instead, style blog content with custom CSS using the site's own CSS variables from `index.css`. This ensures blog posts match the rest of the site exactly.
-
-**Style blog content using a `.blog-content` wrapper with `is:global` styles.** The full stylesheet lives in `assets/blog-content.css` — copy it verbatim into a `<style is:global>` block on `[...slug].astro`, or import it as a global stylesheet. Wrap the rendered `<Content />` in an element with `id="blog-content"` and `class="blog-content"`.
-
-The stylesheet is plain CSS using the site's HSL theme variables (`--heading`, `--foreground`, `--primary`, `--muted-foreground`, `--secondary`, `--accent-foreground`, `--border`), so it adapts automatically to the site's light/dark theme without changes.
-
-**Key theme variables used:**
-- `--heading` for headings, bold, table headers
-- `--foreground` for body text
-- `--primary` for links, accents
-- `--muted-foreground` for secondary text, blockquotes
-- `--secondary` for code backgrounds
-- `--border` for borders, dividers
-
----
-
-## Content Collection Schema
-
-Add blog collection to existing `src/content.config.ts` (preserve any existing collections like docs):
-
-```typescript
-import { defineCollection, z } from "astro:content";
-import { glob } from "astro/loaders";
-
-const blog = defineCollection({
-  loader: glob({ pattern: "**/*.md", base: "./src/content/blog" }),
-  schema: z.object({
-    title: z.string(),
-    slug: z.string(),
-    date: z.coerce.date(),
-    author: z.string(),
-    authorEmail: z.string().email(),
-    authorBio: z.string().optional(),
-    category: z.string(),
-    description: z.string(),
-    image: z.string().optional(),
-    draft: z.boolean().optional().default(false),
-  }),
-});
-
-export const collections = { /* ...existing collections, */ blog };
+```sh
+bun add @astrojs/rss rehype-external-links
 ```
 
-## Blog Post Frontmatter
+`astro-pagefind` and `schema-dts` are already in the scaffold. The plugins import types from
+`mdast`/`hast`, which arrive with Astro; if `astro check` cannot resolve them, add
+`@types/mdast @types/hast` as dev dependencies.
 
-**Do NOT include `layout` in frontmatter.** It does not work with the content layer.
+### Step 4: Copy and Adapt the Templates
 
-```markdown
----
-title: "Article Title"
-slug: "article-title"
-date: "2025-01-20"
-author: "Author Name"
-authorEmail: "author@example.com"
-authorBio: "Short author bio for the author box."
-category: "Category"
-description: "Meta description for SEO"
-draft: false
----
+| Asset | Destination |
+|---|---|
+| `assets/content.config.ts` | `src/content.config.ts` — **merge**, keep existing collections |
+| `assets/content/blog/welcome.md` | `src/content/blog/welcome.md` (sample post only) |
+| `assets/lib/blog.ts` | `src/lib/blog.ts` |
+| `assets/lib/image-fallback.ts` | `src/lib/image-fallback.ts` — skip if present |
+| `assets/lib/remark-blog-headings.ts` | `src/lib/remark-blog-headings.ts` |
+| `assets/lib/rehype-content-images.ts` | `src/lib/rehype-content-images.ts` |
+| `assets/blog-content.css` | `src/styles/blog-content.css` |
+| `assets/components/blog/*.astro` | `src/components/blog/` |
+| `assets/pages/blog/**` | `src/pages/blog/` — keep the structure (`page/`, `category/`) |
 
-Content here...
-```
+Then adapt to the site:
+- **Visual design.** The templates use the shadcn tokens and scaffold utilities only. Restyle
+  headings, cards and spacing to match the site's existing pages — the structure, data flow
+  and image attributes are what must stay.
+- **Intro copy.** `BLOG_DESCRIPTION` in `pages/blog/index.astro` and the feed description in
+  `rss.xml.ts` are `TODO:` placeholders; ask the user for one sentence and use it in both.
+- **Optional parts.** Search: pass `search={false}` to `BlogToolbar` (and skip Step 6's
+  dialog note) if the user does not want it. Older/newer links and related posts are
+  self-contained blocks at the end of `[...slug].astro`; delete either if unwanted.
+- **Headings colour.** `blog-content.css` uses `--heading` with a `--foreground` fallback.
+  Define `--heading` in `index.css` if headings should carry a brand colour.
 
----
-
-## Author Box with Gravatar
-
-Every blog post includes an author box at the bottom with a Gravatar avatar. Use `node:crypto` to MD5 hash the email at build time.
-
-> **Why a plain `<img>` instead of `<Picture>`?** Gravatar URLs are external CDN-served images outside Astro's asset pipeline. `<Picture>`/`<Image>` only optimize local imports (`@/assets/...`); for external URLs they pass through unchanged, so using `<img>` directly keeps the markup simpler without losing optimization.
-
-> **Size `s=` to the slot — it is the only right-sizing control you have.** Astro cannot
-> resize an external image, so whatever `s=` asks for is what ships. Set it to **2× the
-> rendered CSS size** for retina and no more: a 64px author box is `s=128`, a 32px byline
-> avatar is `s=64`. A fixed `s=160` on a 32px byline is 25× the necessary pixel area, and
-> repeated once per post it becomes the largest image cost on the site. Never mark an avatar
-> `loading="eager"` — it competes with the LCP element for no benefit.
-
-> **Gravatar is a third-party request on every page that renders a byline**, which exposes
-> each reader's IP to an external host. On a site whose positioning is privacy, prefer
-> self-hosting the handful of author avatars through the Astro image pipeline
-> (`@/assets/authors/*.jpg` + `<Picture>`) and drop the dependency entirely.
-
-```astro
----
-import { createHash } from "node:crypto";
-
-const emailHash = createHash("md5")
-  .update(post.data.authorEmail.trim().toLowerCase())
-  .digest("hex");
-// 2x the 64px box below. A 32px byline variant would use s=64.
-const AVATAR_PX = 64;
-const gravatarUrl = `https://gravatar.com/avatar/${emailHash}?s=${AVATAR_PX * 2}`;
----
-
-<!-- Author box -->
-<div class="mt-16 pt-8 border-t border-border">
-  <div class="flex items-start gap-4">
-    <img
-      src={gravatarUrl}
-      alt={post.data.author}
-      width={AVATAR_PX}
-      height={AVATAR_PX}
-      loading="lazy"
-      class="rounded-full shrink-0"
-    />
-    <div>
-      <p class="font-mono font-semibold text-heading text-sm">{post.data.author}</p>
-      {post.data.authorBio && (
-        <p class="text-sm text-muted-foreground mt-1 leading-relaxed">{post.data.authorBio}</p>
-      )}
-    </div>
-  </div>
-</div>
-```
-
----
-
-## External Links in New Tab
-
-Markdown does not support `target="_blank"`. Two options:
-
-**Preferred — `rehype-external-links` (build-time, no JS shipped):**
+### Step 5: Wire `astro.config.mjs`
 
 ```js
-// astro.config.mjs
 import rehypeExternalLinks from "rehype-external-links";
+import { remarkBlogHeadings } from "./src/lib/remark-blog-headings";
+import { rehypeContentImages } from "./src/lib/rehype-content-images";
 
 export default defineConfig({
   markdown: {
+    remarkPlugins: [remarkBlogHeadings],
     rehypePlugins: [
       [rehypeExternalLinks, { target: "_blank", rel: ["noopener", "noreferrer"] }],
+      rehypeContentImages,
     ],
   },
 });
 ```
 
-This rewrites links during MDX/Markdown compile, so no client JS runs and external behaviour is correct on first paint. Add the plugin to your dependencies.
+`rehypeContentImages` must be a **user** rehype plugin — see its file header for why the
+ordering matters.
 
-**Fallback — runtime script (if you can't add a build dep):**
+`markdown.*Plugins` apply to **every** Markdown file in the site, including a `section-docs`
+collection and Markdown pages:
+- `remarkBlogHeadings` and `rehypeContentImages` check the file path and only touch files
+  under `src/content/blog/`. If posts live elsewhere, change `BLOG_DIR` in both files. Docs
+  and other Markdown do not get the 768px image sizing; a docs column needs its own measured
+  numbers.
+- `rehypeExternalLinks` is unscoped on purpose: every external Markdown link on the site
+  opens in a new tab with `rel="noopener noreferrer"`. Tell the user if the site already has
+  Markdown content, since its links change behaviour too.
 
-```html
-<script>
-  document.querySelectorAll("#blog-content a").forEach((a) => {
-    if (a instanceof HTMLAnchorElement && a.hostname !== location.hostname) {
-      a.target = "_blank";
-      a.rel = "noreferrer";
-    }
-  });
-</script>
-```
+### Step 6: Scope the Search Index in `Layout.astro`
 
-Give the content wrapper an `id="blog-content"` for the selector. Note: this ships JS for one DOM operation and runs after hydration, so links briefly behave as same-tab links until the script executes.
-
----
-
-## RSS Feed and Autodiscovery
-
-A blog without a feed is missing the cheapest distribution it will ever get, and a feed
-without an autodiscovery `<link>` is a feed no reader can find — aggregators only look at
-the `<head>`. Ship both or neither.
-
-Add `@astrojs/rss` and create the endpoint:
-
-```ts
-// src/pages/blog/rss.xml.ts
-import rss from "@astrojs/rss";
-import { getCollection } from "astro:content";
-import type { APIRoute } from "astro";
-
-export const GET: APIRoute = async (context) => {
-  const posts = (await getCollection("blog"))
-    .filter((p) => !p.data.draft)
-    .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
-
-  return rss({
-    title: "…",           // match SITE_NAME in Layout.astro
-    description: "…",
-    site: context.site!,
-    items: posts.map((post) => ({
-      title: post.data.title,
-      description: post.data.description,
-      pubDate: post.data.pubDate,
-      link: `/blog/${post.id}/`,
-    })),
-  });
-};
-```
-
-Then pass `feedUrl` from every blog route so the autodiscovery link is emitted — `Layout.astro`
-already has the prop and renders nothing when it is absent:
+The scaffold's `pagefind()` integration indexes every built page, and the WebMCP
+`search-site` tool reads that index. Listing, category and pagination pages would surface as
+noise next to the posts, so they pass `pagefindIgnore`. Add the prop to `Layout.astro`:
 
 ```astro
-<Layout title="Blog" feedUrl="/blog/rss.xml">
+interface Props {
+  // ...existing props
+  /** Exclude this page from the Pagefind search index (blog listings and archives). */
+  pagefindIgnore?: boolean;
+}
+const { /* ...existing */ pagefindIgnore = false } = Astro.props;
+---
+<main class="…existing classes…" data-pagefind-body={pagefindIgnore ? undefined : true}>
 ```
 
-Set it on `/blog/`, on each post, and on any tag or category index. Leave it off the rest of
-the site.
+> **Put `data-pagefind-body` on `<main>` in Layout, never on `<article>` in the post
+> template.** Once any page carries the attribute, Pagefind drops every page that does not —
+> tagging only posts silently removes the rest of the site from search. Pages that do not
+> use `Layout.astro` will drop out the same way; check for them.
+
+### Step 7: Navigation and llms.txt
+
+Add a Blog link (`href="/blog/"`, trailing slash) where the user specifies, or after Docs.
+
+Add the blog under `## Key Pages` in `public/llms.txt`, so agents reading the file know it
+exists — one line saying what it covers:
+
+```markdown
+- [Blog](/blog/) — release notes and lessons from building the product
+```
+
+### Step 8: Verify
+
+From the site root: `bun run check`, then `bun run build`. Then confirm in `dist/client/`:
+- `blog/<slug>/index.html` has one `<h1>`, a `BlogPosting` JSON-LD block, `og:image` when the
+  post has a cover, and `<link rel="alternate" type="application/rss+xml">`
+- `blog/rss.xml` lists every non-draft post, and no draft appears on any route
+- In-article `<img>` tags carry a `srcset` (proves `rehypeContentImages` ran)
+- `blog/index.html` has no `data-pagefind-body`; a post page has it on `<main>`
 
 ---
 
-## Author Identity
+## Gotchas
 
-A byline that is plain text tells a crawler nothing. Give each author a resolvable identity
-so the name connects to whatever credentials exist elsewhere on the site.
+- **Never pass collection entries through `getStaticPaths` props.** Props strip the
+  `image()` asset binding: the cover and every body image break, on the post *and* on
+  category/pagination grids. Pass the slug (or page number / category) and re-fetch with
+  `getPosts()` in the page body — every template does this; keep it when editing.
+- **Always go through `getPosts()`** (`src/lib/blog.ts`). It is the only place drafts are
+  filtered and posts sorted, so routes, archives and RSS cannot disagree.
+- **`slug` is the entry id.** The glob loader keys entries by the `slug` frontmatter field. A
+  duplicate slug does not fail the build — the later post silently replaces the earlier one.
+  Check for an existing file with the same slug before creating a post.
+- **Category names must stay distinct after slugging.** `categorySlug()` lowercases and
+  strips punctuation, so `News`/`news` or `C++`/`C` share one URL. The build passes with
+  only a "conflicts with higher priority route" warning, and one category's posts lose their
+  archive. Reuse existing category names exactly.
+- **`featuredImage` needs an `ImageMetadata` cast.** `image().optional()` types `format` as
+  optional, so passing it straight to `<Picture>` fails `astro check` with ts(2322).
+- **Post images live next to the posts** (`src/content/blog/_images/`) and are referenced
+  relatively (`./_images/x.jpg`), in frontmatter and body alike. Never use `/src/...` paths.
+- **`layout` frontmatter is ignored** by the content-layer glob loader. All layout lives in
+  `[...slug].astro`.
+- **`post.render()` no longer exists.** `import { render } from "astro:content"` and call
+  `render(post)`.
+- **Stale collection cache** after adding/removing posts can leave routes 404ing:
+  `rm -f .astro/data-store.json` and restart the dev server.
+- **Search finds nothing in `bun run dev`.** The Pagefind index is written by `astro build`;
+  test search against `bun run preview` or a deploy.
 
-- Link the visible byline to an author page (`/authors/jane-doe/`) or an anchor on `/about/`.
-- Emit `author` in the post's JSON-LD as a `Person` with that `url` — **not** a bare string:
+---
 
-```ts
-author: {
-  "@type": "Person",
-  name: post.data.author,
-  url: new URL(`/authors/${post.data.authorSlug}/`, Astro.site).href,
-},
+## Typography: Site Theme Variables, Not Tailwind Prose
+
+Post bodies are styled by `src/styles/blog-content.css` (from `assets/blog-content.css`),
+not `@tailwindcss/typography` or `.prose` classes — those produce poor contrast on dark
+themes and fight the site's design system. The stylesheet uses only the site's HSL theme
+variables, so it follows light/dark themes without changes; keep hex colours out of it for
+the same reason.
+
+---
+
+## Frontmatter
+
+Schema and field notes live in `assets/content.config.ts`. A post:
+
+```markdown
+---
+title: "Article Title"
+slug: "article-title"
+date: "2026-01-20"
+author: "Author Name"
+authorEmail: "author@example.com"     # optional — Gravatar avatar and RSS author
+authorBio: "Short author bio for the author box."
+authorUrl: "/about/#author-name"
+category: "Category"
+description: "One or two sentences — meta description, card preview, RSS and JSON-LD."
+featuredImage: "./_images/article-title.jpg"
+draft: false
+---
 ```
 
-- Put a one-line bio under the byline as well as in the author box. `authorBio` is already in
-  the frontmatter schema.
+No `layout` field. Use `##` and below in the body; `remarkBlogHeadings` demotes a stray `#`
+so the title stays the page's only `<h1>`.
+
+---
+
+## Images and Performance
+
+- **Covers** go through `<Picture>` with `formats={["webp"]}`, `fallbackFormat(img)` (a webp or
+  avif source otherwise ships a PNG fallback several times its size) and a measured `width`.
+- **The LCP image is the only eager one.** The featured post's cover on `/blog/` and the
+  cover on a post page are `loading="eager" fetchpriority="high"`; every card and avatar is
+  lazy.
+- **Body images** are right-sized centrally by `rehypeContentImages`, following the content
+  image rule in the scaffold's image right-sizing guidance (`hakuto-review` checks it). The
+  plugin's numbers (`width` 768, `widths` 384/768/1536) match the `max-w-3xl` article column
+  in `[...slug].astro`; if that column changes, change them together. Don't annotate
+  individual posts.
+
+### Gravatar
+
+Avatars appear only when the post sets `authorEmail`. They are `<img>`, not `<Picture>` —
+Astro cannot resize an external image, so `s=` is the only sizing control. Request **2× the rendered size and no more** (32px byline → `s=64`,
+64px author box → `s=128`); the template's `gravatar(px)` helper does this. Never mark an
+avatar `loading="eager"`.
+
+Gravatar is a third-party request on every post, which exposes each reader's IP to an
+external host. On a site whose positioning is privacy, self-host the few author avatars under
+`src/assets/authors/` with `<Picture>` and drop the dependency.
+
+---
+
+## SEO, Feed and Author Identity
+
+- **JSON-LD.** Each post emits `BlogPosting` (headline, description, datePublished, image,
+  articleSection, publisher) via Layout's `schema` prop. `publisher` carries the same `@id`
+  as the homepage `Organization` node from `src/lib/schema.ts` (`<site>#organization`), so
+  the two merge into one entity. `author` is a `Person`, not a bare
+  string, with a `url` whenever `authorUrl` is set.
+- **Author identity.** Give each author a resolvable `authorUrl` — an author page, an
+  `/about/` anchor, or a profile. The byline and author box link to it with `rel="author"`,
+  which connects the name to whatever credentials exist elsewhere on the site.
+- **RSS.** `/blog/rss.xml` plus a visible RSS link in the toolbar. Item `<author>` is
+  `email (Name)` when `authorEmail` is set and omitted otherwise — RSS 2.0 requires an email
+  there, so a bare name is invalid. Every blog route passes
+  `feedUrl="/blog/rss.xml"` so Layout emits the autodiscovery `<link>` — aggregators only
+  look at the `<head>`, so a feed without it is a feed no reader finds. Leave `feedUrl` off
+  the rest of the site.
+- **Unique titles.** Pagination and category pages each have their own title and
+  description; keep them distinct when restyling.
+- **`og:type` stays `website`.** The scaffold Layout hardcodes it; `article` would need a new
+  Layout prop, which this skill does not add.
 
 ---
 
@@ -310,15 +287,15 @@ author: {
 
 Before completing:
 
-- Read `src/index.css` and `AGENTS.md` for site context
-- Blog content styled with site theme variables (NOT Tailwind prose) — use `hsl(var(--heading))`, `hsl(var(--foreground))`, etc., never hardcode hex colors
-- Brand colors and typography from `index.css` respected
-- Navigation updated with blog link (placement: where user specifies, or after Docs if unspecified)
-- Author box with Gravatar on post pages (every post has `authorEmail`, optional `authorBio`)
-- External links open in new tab (preferred: `rehype-external-links`; fallback: runtime script)
-- Used `render(post)` from `astro:content` (NOT `post.render()`)
-- No `layout` frontmatter in markdown files (content layer glob loader ignores it — layout lives in `[...slug].astro`)
-- User-provided content used verbatim; generic placeholders only when content missing; never invoke `professional-copywriter` for blog posts
-- `AGENTS.md` updated with blog pages
-- SEO meta tags included
+- Templates copied from `assets/`, not rewritten; structure and image attributes intact
+- Visual design matches the site; theme variables only, no `.prose`, no hardcoded hex
+- All routes read posts through `getPosts()`; no entries passed through `getStaticPaths` props
+- `astro.config.mjs` registers `remarkBlogHeadings`, `rehypeExternalLinks`, `rehypeContentImages`
+- `Layout.astro` has `pagefindIgnore` and `data-pagefind-body` on `<main>`; listings opt out
+- Every blog route passes `feedUrl`; `/blog/rss.xml` builds
+- Navigation has a Blog link with a trailing slash
+- `public/llms.txt` lists `- [Blog](/blog/) — …` under Key Pages
+- User-provided content used verbatim; `TODO:` placeholders only where content is missing;
+  `professional-copywriter` not invoked for posts
+- `bun run check` and `bun run build` pass; Step 8 checks done on `dist/client/`
 - Mobile responsive

@@ -1,345 +1,209 @@
 ---
 name: section-docs
-description: Adds technical documentation section with sidebar navigation to existing websites. Creates /docs home page with search, nested category pages, and minimal content-focused design. Use when user requests "add documentation", "add docs", "add API docs", "add developer docs", "add a help center", or "add a knowledge base". Skip for single one-off help articles that fit inside an existing page, headless doc platforms (Mintlify, GitBook, ReadMe, Docusaurus) where the docs live in a separate codebase, or sites that just need a FAQ section rather than a structured multi-page reference.
+description: Adds a multi-page documentation section to an existing Hakuto site — /docs/ home with search, sidebar navigation generated from a content collection, per-page table of contents and previous/next links, in a minimal reading-first design. Use for "add documentation", "add docs", "add API docs", "add developer docs", "add a help center", "add a knowledge base". Skip for blog, news or changelog content (`section-blog`), a FAQ block on an existing page (`website-builder`), single help articles, or docs hosted on Mintlify/GitBook/ReadMe/Docusaurus.
 ---
 
 # Documentation Section
 
-Adds technical documentation with sidebar navigation to existing websites. Uses minimal content-focused design regardless of main site aesthetic. Complex multi-page system requiring existing site with `site-specification.md`.
+Adds a docs section with sidebar navigation to an existing Hakuto site. The docs use one
+minimal design whatever the main site looks like, because long technical reading wants
+plain text and a single accent colour. Requires an existing site with `site-specification.md`.
 
----
+The working templates are in `assets/` — copy them and adapt; do not rewrite them from
+scratch. For what each page type should contain, the API-reference layout and optional
+components (copy buttons, callouts), read `references/page-anatomy.md` when the user asks
+for more than the templates render.
 
-## Integration Workflow
-
-Copy this checklist and track progress:
+## Workflow
 
 ```
 Documentation Integration:
-- [ ] Step 1: Read site-specification.md
-- [ ] Step 2: Determine documentation structure
-- [ ] Step 3: Apply minimal design system
-- [ ] Step 4: Create documentation pages
-- [ ] Step 5: Use technical placeholders
-- [ ] Step 6: Update site-specification.md and AGENTS.md
+- [ ] Step 1: Read site-specification.md and the site's Layout
+- [ ] Step 2: Agree the docs structure
+- [ ] Step 3: Give Layout a `wide` prop
+- [ ] Step 4: Copy the templates
+- [ ] Step 5: Write placeholder pages
+- [ ] Step 6: Wire navigation and llms.txt
+- [ ] Step 7: Build and verify
+- [ ] Step 8: Record and report
 ```
 
-### Step 1: Read Site Specification
+### Step 1: Read the site
 
-Read `site-specification.md` (project root) to extract:
-- Site type (SaaS or General)
-- Theme (light or dark - docs will match)
-- Existing navigation structure
-- User customizations
+Read `site-specification.md` (site type: SaaS or general; theme; navigation) and
+`src/layouts/Layout.astro` (header nav, current `<main>` markup). Check whether
+`src/content.config.ts` already exists and which collections it defines.
 
-### Step 2: Determine Documentation Structure
+### Step 2: Agree the docs structure
 
-**Ask user**: "What docs sections do you need? (Getting Started, API Reference, Guides, etc.)"
+Ask: "What docs sections do you need? (Getting Started, API Reference, Guides, …)"
+If the user has no preference, use:
 
-If no answer provided, create default structure:
+| SaaS | General |
+|---|---|
+| Getting Started (Installation, Authentication, Quick Start) | Getting Started (Account Setup, Walkthrough) |
+| Guides (Basic Concepts, Best Practices) | How-To Guides (task-focused) |
+| API Reference (one page per resource) | Features (explanations, use cases) |
+| FAQ / Troubleshooting | FAQ / Support |
 
-**For SaaS sites:**
-- Getting Started (Installation, Authentication, Quick Start)
-- Guides (Basic Concepts, Best Practices)
-- API Reference (Endpoints, Parameters, Examples)
-- FAQ / Troubleshooting
+Each section becomes a folder under `src/content/docs/` and an entry in `CATEGORIES` in
+`src/lib/docs.ts`, which sets the sidebar order and display name.
 
-**For General sites:**
-- Getting Started (Account Setup, Walkthrough)
-- How-To Guides (Task-focused)
-- Features (Explanations, Use Cases)
-- FAQ / Support
+### Step 3: Give Layout a `wide` prop
 
-### Step 3: Apply Minimal Design System
+`Layout.astro` already wraps every page in `<main class="flex-1 mx-auto max-w-6xl px-4 py-8">`.
+The docs templates must not add a second `<main>` (one main landmark per page), and three
+columns — sidebar, 800px article, table of contents — need more than `max-w-6xl`. So add an
+opt-in prop to the site's own `src/layouts/Layout.astro` instead of duplicating its `<head>`
+in a separate docs layout (a copy would drift from the canonical, schema and WebMCP setup):
 
-Docs prioritize legibility for long-form technical reading, so all design languages (Minimalist, Technology, Dark, Corporate, Brutalist, Colorful, Elegant) converge to the same minimal system. Brand color and decoration belong on marketing pages, not in reference material.
-
-**Design Principles:**
-- NO brand colors: No gradients, accent colors, colorful badges, category colors
-- Blue links as ONLY color accent
-- Generous whitespace (2-3x more than main site)
-- Flat design throughout
-
-**Color Palette (CSS custom properties):**
-
-Define docs colors as CSS custom properties in `index.css` so themes can override them. Hardcoding hex values inline locks the docs to a single appearance and breaks dark-mode toggles.
-
-```css
-@layer base {
-  :root {
-    --docs-bg: #ffffff;
-    --docs-fg: #000000;
-    --docs-fg-muted: #333333;
-    --docs-accent: #0066ff;     /* links — the ONLY color accent */
-    --docs-border: #e5e5e5;
-    --docs-code-bg: #f5f5f5;
-  }
-
-  [data-theme="dark"] {
-    --docs-bg: #0a0a0a;
-    --docs-fg: #ffffff;
-    --docs-fg-muted: #e0e0e0;
-    --docs-accent: #0066ff;
-    --docs-border: #2a2a2a;
-    --docs-code-bg: #1a1a1a;
-  }
+```astro
+interface Props {
+	// ...existing props
+	/** Full-width <main> for docs-style pages (sidebar + content + table of contents). */
+	wide?: boolean;
 }
+
+const {
+	// ...existing props
+	wide = false,
+} = Astro.props;
 ```
 
-Then reference via `var(--docs-bg)`, `var(--docs-accent)`, etc. in docs styles.
-
-**Typography:**
-- Reuse the site's font tokens: `font-family: var(--font-sans)` for body text, `var(--font-mono)` for code blocks. The docs intentionally drop the rest of the brand palette to maximize legibility, but reusing the site's chosen fonts keeps it visually coherent. (Falling back to a generic system stack like `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto` contradicts CLAUDE.md's "avoid generic fonts" rule and produces inconsistent rendering between docs and the rest of the site.)
-- Body: 16px, line-height 1.8
-- Code: 14–15px (font-family supplied by `--font-mono`)
-- Max content width: 800px
-
-**Do NOT use `@tailwindcss/typography` / `.prose` classes.** They produce poor contrast on dark themes and fight with the docs' minimal design system. Style content with the CSS custom properties above instead.
-
-### Step 4: Create Documentation Pages
-
-Use Astro content collections — they give a typed schema, dynamic routing, and automatic TOC generation, which a flat directory of pages cannot match.
-
-**Step 4a: Create collection configuration** (`src/content.config.ts`):
-
-```typescript
-import { defineCollection, z } from 'astro:content';
-import { glob } from 'astro/loaders';
-
-const docs = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/docs' }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    category: z.string(),
-    order: z.number().optional(),
-    sidebar: z.object({
-      label: z.string().optional(),
-      order: z.number().optional(),
-    }).optional(),
-    draft: z.boolean().optional().default(false),
-  }),
-});
-
-export const collections = { docs };
+```astro
+<main class:list={["flex-1 mx-auto px-4 py-8", wide ? "w-full max-w-[88rem]" : "max-w-6xl"]}>
 ```
 
-**Step 4b: Organize content structure** (`src/content/docs/`):
+Every other page renders exactly as before. The docs templates pass `wide`.
 
-```
-src/content/docs/
-├── getting-started/
-│   ├── installation.md
-│   ├── authentication.md
-│   └── quick-start.md
-├── guides/
-│   ├── basic-concepts.md
-│   └── best-practices.md
-├── api/
-│   ├── endpoints.md
-│   └── parameters.md
-└── faq.md
-```
+### Step 4: Copy the templates
 
-**Step 4c: Create documentation pages** (`src/content/docs/getting-started/installation.md`):
+| From `assets/` | To |
+|---|---|
+| `content.config.ts` | `src/content.config.ts` — add the `docs` collection; if the file exists, merge it in and keep every existing collection (e.g. `blog`); create the file only if absent |
+| `lib/docs.ts` | `src/lib/docs.ts` — set `CATEGORIES` to the structure from Step 2 |
+| `components/docs/*.astro` | `src/components/docs/` (Sidebar, Toc, PrevNext) |
+| `pages/docs/index.astro` | `src/pages/docs/index.astro` |
+| `pages/docs/[...slug].astro` | `src/pages/docs/[...slug].astro` |
+| `docs.css` | `src/styles/docs.css` (imported by both pages) |
+| `content/docs/getting-started/introduction.md` | starting point for each page in Step 5 |
+
+How the pieces fit:
+
+- **One route.** `[...slug].astro` serves every page at `/docs/<category>/<page>/`. There is
+  no separate `/docs/api` route; API reference pages are the `api/` folder.
+- **Category = folder.** `getting-started/installation.md` is in category `getting-started`.
+  There is no `category` frontmatter field, so the URL and sidebar group cannot disagree.
+- **One ordering field.** `order` sorts pages inside a category; `CATEGORIES` sorts the
+  categories. Pages without `order` follow the numbered ones, by title.
+- **Drafts.** `getDocs()` filters `draft: true` and every route goes through it, so a draft
+  gets no URL, no sidebar entry and no previous/next link.
+- **Search.** `pagefind()` is already in `astro.config.mjs` (astro-pagefind is installed), so
+  every build writes the index; the docs home renders the search box. Don't touch the
+  adapter. The index only exists after `bun run build` — search finds nothing in
+  `bun run dev` and that is expected (see the site's CLAUDE.md). Do not add
+  `data-pagefind-body` anywhere: it would drop every other page from the index, including
+  what the site's WebMCP `search-site` tool relies on. The templates use
+  `data-pagefind-ignore` on navigation instead.
+- **Schema.** The page template passes a `TechArticle` object to `Layout`'s `schema` prop,
+  which renders it through `src/components/Schema.astro`.
+- **Zod.** Import `z` from `astro/zod`; `import { z } from 'astro:content'` is deprecated and
+  goes away in Astro 7.
+
+### Step 5: Write placeholder pages
+
+Create one Markdown file per page from Step 2. Frontmatter: `title`, `description`, `order`,
+optional `sidebarLabel` and `draft`. The template renders `title` as the page's `<h1>`, so
+start body sections at `##`.
+
+Write placeholders, not copy, and don't invoke `professional-copywriter`: marketing tone
+("Transform your workflow…") is wrong for reference docs, and accurate technical content has
+to come from someone with the product in front of them. Every placeholder line starts with
+`TODO:` so `prelaunch-checklist` flags anything left unfilled:
 
 ```markdown
----
-title: "Installation"
-description: "How to install the product"
-category: "getting-started"
-order: 1
-sidebar:
-  label: "Installation"
-  order: 1
----
-
-# Installation
-
-Install via your package manager...
+TODO: Explain the authentication methods the API accepts and when to use each.
 ```
 
-**Step 4d: Query collections in pages**:
+The docs home's description and lede are placeholders too.
 
-```astro
----
-// src/pages/docs/index.astro
-import { getCollection } from 'astro:content';
+**Existing documentation:** if the user has docs already, import them instead of writing
+placeholders — keep every technical detail, map their sections onto category folders and
+`order`, and restyle only through the docs CSS.
 
-const allDocs = await getCollection('docs', ({ data }) => !data.draft);
+### Step 6: Wire navigation and llms.txt
 
-// Group by category
-const docsByCategory = allDocs.reduce((acc, doc) => {
-  const category = doc.data.category;
-  if (!acc[category]) acc[category] = [];
-  acc[category].push(doc);
-  return acc;
-}, {});
----
-```
+- Add a link to `/docs/` in the site header nav in `Layout.astro`: "Docs" next to Pricing on
+  SaaS sites, "Help" (or a footer link) on general sites. Keep every existing link.
+- Add the docs to `public/llms.txt` under `## Key Pages`, so agents know where reference
+  material lives:
 
-**Step 4e: Generate dynamic routes** (`src/pages/docs/[...slug].astro`):
-
-In Astro 5+ with the content layer, `doc.render()` no longer exists — import `render` from `astro:content` and call `render(doc)` instead. Same change applies whenever you migrate older Astro 4 docs code.
-
-```astro
----
-import { getCollection, render } from 'astro:content';
-
-export async function getStaticPaths() {
-  const docs = await getCollection('docs');
-  return docs.map(doc => ({
-    params: { slug: doc.id },
-    props: { doc }
-  }));
-}
-
-const { doc } = Astro.props;
-const { Content, headings } = await render(doc);
----
-
-<Layout title={doc.data.title}>
-  <aside>
-    <!-- Auto-generated sidebar from collection -->
-  </aside>
-  <main>
-    <h1>{doc.data.title}</h1>
-    <!-- Auto-generated TOC from headings -->
-    <Content />
-  </main>
-</Layout>
-```
-
-**Routes created:**
-- `/docs` - Documentation home page
-- `/docs/[...slug]` - Dynamic nested documentation pages
-- `/docs/api` - API reference (if applicable for SaaS)
-
-**Navigation integration:**
-- SaaS: Home | Features | Pricing | **Docs** | Login
-- General: Home | Product | **Help** | About (or footer link)
-
-**Preserve existing pages** - docs use separate design system.
-
-**Docs Home** (`/docs`):
-- Hero: Title + search bar + quick links grid
-- Category cards (simple, text-based, no colors)
-- Getting started section with first steps
-- Resources links (GitHub, Support, Status)
-
-**Doc Page** (`/docs/[category]/[page]`):
-- Sidebar (fixed left):
-  - Logo / Docs home link
-  - Search bar
-  - Navigation tree (collapsible sections)
-  - Secondary links (GitHub, Status, Support)
-- Main content:
-  - Breadcrumbs
-  - Page title
-  - Auto-generated table of contents (from H2/H3)
-  - Content area (800px max width)
-  - Footer navigation (Previous/Next)
-
-**API Reference** (`/docs/api`) (for SaaS):
-- API overview and authentication
-- Endpoints organized by resource
-- Parameters table with types
-- Code examples (multiple languages)
-- Response examples
-- Language selector with copy buttons
-
-### Step 5: Use Technical Placeholders
-
-Do NOT invoke `professional-copywriter`. Marketing copy ("Transform your workflow…") is the wrong tone for reference docs — users want literal, accurate descriptions of how the product works, written by someone with the product in front of them. Generic technical placeholders give the user a clean canvas to fill in.
-
-**Placeholder approach:**
-- Generic but technically correct
-- Example: "This section covers authentication methods. Add your content here."
-- Keep brief - user will replace
-- Mark as placeholder clearly
-
-### Step 6: Update site-specification.md and AGENTS.md
-
-Record what was added so future agents and humans have an accurate map of the site:
-
-- **`site-specification.md`** — append a "Documentation" section listing the docs structure (categories, top-level pages, theme used) and any user-supplied customizations. Tell the user explicitly: "I've scaffolded the docs with placeholders — fill in the technical content under `src/content/docs/`."
-- **`AGENTS.md`** — add the new `/docs` routes (home + each category page) with their intended titles and descriptions, matching the format used for other pages. This keeps the SEO and routing context in sync with the rest of the site.
-
-**Sidebar Navigation Structure:**
-```
-[Logo / Docs Home Link]
-[Search Bar]
-
-Getting Started
-├─ Installation
-├─ Quick Start
-└─ Authentication
-
-Guides
-├─ Basic Concepts
-└─ Best Practices
-
-API Reference          (SaaS only)
-├─ Users
-└─ Webhooks
-```
-
----
-
-## Technical Features
-
-**SEO:**
-- Meta tags for each page
-- TechArticle schema markup
-- Canonical URLs
-- Sitemap integration
-
-**Search:**
-- Add search bar in header.
-- For searching use:
+  ```markdown
+  - [Documentation](/docs/): TODO: what the docs cover, in one line
   ```
-  ---
-  import Search from "astro-pagefind/components/Search";
-  ---
-  <Search id="search" className="pagefind-ui" uiOptions={{ showImages: false }} />
-  ```
-- **Cloudflare adapter stays gated to production; pagefind is prod-only.** Verify `astro.config.mjs` keeps `adapter:` wrapped in `process.env.NODE_ENV === "production" ? cloudflare({...}) : undefined`. The prod build writes the index to `dist/client/pagefind/` via Astro's default `build.client` (`./client/`, relative to `outDir`) — do not override it. **Do NOT remove the `NODE_ENV` guard to make pagefind work in dev** — on `@astrojs/cloudflare` 13+, an adapter loaded in dev breaks every `<Image>` / `<Picture>` (workerd image-transform-endpoint needs Cloudflare runtime bindings). Test pagefind search on a deploy preview, not localhost. Reject any `ln -sfn client/pagefind dist/pagefind` postbuild symlink — stale workaround.
-- Pagefind's index is only generated by `astro build`. The first deploy preview after wiring the search component is what proves it works end-to-end.
 
-**Components:**
-- Code blocks: Syntax highlighting, copy button, language tabs
-- Callouts:
-  - Note (blue border)
-  - Tip (green border)
-  - Warning (yellow border)
-  - Danger (red border)
-- Tables: Responsive, monospace for code values
-- Links: Always blue, no underline until hover
+  If its "How to get an answer" line is still a placeholder, point it at `/docs/`.
 
----
+### Step 7: Build and verify
 
-## Handling Existing Documentation
+From the site root run `bun run check`, then `bun run build`. Then check `dist/client/`:
 
-If user has existing documentation:
-1. Import content structure
-2. Reformat with minimal design system
-3. Maintain technical accuracy
-4. Update navigation to match new structure
-5. Preserve all technical details
+- `dist/client/docs/index.html` and one `index.html` per page under
+  `dist/client/docs/<category>/<page>/`; no page for any draft
+- Each page has exactly one `<main>` and one `<h1>`
+- Titles and meta descriptions are the real strings you wrote — read them from
+  `dist/client/`, because the build regenerates `AGENTS.md` and its description extraction
+  truncates at the first apostrophe
+- `dist/client/pagefind/` exists
+- Contrast and underlines: body links are underlined in both themes; if you changed any
+  `--docs-*` colour, re-check it against the contrast notes at the top of `docs.css`
 
----
+`AGENTS.md` is regenerated on every build — don't edit it by hand.
 
-## Quality Checklist
+### Step 8: Record and report
 
-Before completing:
+Append a "Documentation" section to `site-specification.md`: categories, page list, and any
+user customisations.
 
-✅ Read `site-specification.md` and matched its theme (light/dark)
-✅ Asked user for doc structure or used the defaults above
-✅ Created `/docs` home + nested category pages with sidebar + search
-✅ Used minimal design system via CSS custom properties (`--docs-bg`, `--docs-accent`, etc.) — no hardcoded hex values
-✅ Reused site's `--font-sans` / `--font-mono` tokens — did NOT introduce a generic system-font stack
-✅ Did NOT use `@tailwindcss/typography` / `.prose` classes
-✅ Used technical placeholders — did NOT invoke `professional-copywriter`
-✅ Added "Docs" (SaaS) or "Help" (General) to main nav, preserving existing pages
-✅ Included SEO meta tags, mobile responsive layouts
-✅ Updated `site-specification.md` with the new docs structure and told the user to fill in technical content
-✅ `AGENTS.md` updated with docs pages (titles, descriptions, routes)
+Then report to the user:
+
+```
+Docs added at /docs/ — <N> categories, <M> pages.
+Files: src/content.config.ts (docs collection), src/lib/docs.ts, src/components/docs/,
+       src/pages/docs/, src/styles/docs.css, src/content/docs/…, Layout.astro (`wide` prop, nav link),
+       public/llms.txt
+Placeholders: <count> TODO: lines across <files> — fill in the technical content under src/content/docs/.
+Search: works on `bun run preview` and deployed builds; finds nothing in `bun run dev`.
+Checks: bun run check ✓, bun run build ✓
+```
+
+## Design rules
+
+The full stylesheet is `assets/docs.css`; these are the decisions behind it.
+
+- **One accent.** Links are the only colour; no brand colours, gradients, coloured badges or
+  category colours. Brand colour belongs on marketing pages.
+- **Theme via custom properties.** `--docs-fg`, `--docs-fg-muted`, `--docs-accent`,
+  `--docs-border`, `--docs-code-bg` are set on `:root` and overridden on `.dark` — the class
+  the site's `@custom-variant dark (&:is(.dark *))` uses. Don't hardcode hex values in
+  templates; that locks the docs to one theme.
+- **Contrast.** Light links `#0066ff` on white (4.8:1); dark links `#4d94ff` on near-black
+  (6.6:1). `#0066ff` on dark backgrounds is only ~4.1:1 and fails AA.
+- **Not colour alone.** Body links are underlined; the current sidebar page uses weight and a
+  left rule.
+- **Fonts.** Reuse the site's `--font-sans` and `--font-mono` so the docs still look like the
+  same site; a generic system stack breaks the "avoid generic fonts" rule.
+- **Type.** 16px body at line-height 1.8, 14px code, 800px max reading width, generous
+  whitespace, flat surfaces.
+- **No `.prose`.** `@tailwindcss/typography` gives poor dark-theme contrast and fights the
+  docs palette; `docs.css` styles the Markdown output directly.
+
+## Quality checklist
+
+- Structure agreed (or defaults used); `CATEGORIES` matches the folders
+- `Layout.astro` has the `wide` prop; docs pages have one `<main>` and one `<h1>`
+- `src/content.config.ts` keeps every pre-existing collection
+- Every placeholder starts with `TODO:`; no `professional-copywriter` copy in the docs
+- Nav link added without removing existing pages; `/docs/` listed in `public/llms.txt`
+- `bun run check` and `bun run build` pass; Step 7 checks done on `dist/client/`
+- `site-specification.md` updated and the Step 8 report given

@@ -1,6 +1,8 @@
 # Font Provider Reference
 
-Detailed configuration options for each font provider. Jump to the provider you need rather than reading straight through — the providers are independent of each other.
+Read when the Google example in `SKILL.md` isn't enough: another provider (Fontsource, Bunny, Adobe, Fontshare, npm), local brand files, icon fonts, or advanced options. Jump to the provider you need — they are independent of each other.
+
+Every example follows the SKILL.md naming rule: the Astro `cssVariable` is named after the family (`--font-inter`), never after a Tailwind theme key (`--font-sans`, `--font-display`, `--font-mono`). Map family → role in `@theme inline`.
 
 ## Contents
 
@@ -10,6 +12,7 @@ Detailed configuration options for each font provider. Jump to the provider you 
 - [Adobe Fonts](#adobe-fonts)
 - [Fontshare](#fontshare)
 - [Local Fonts](#local-fonts)
+- [npm Packages](#npm-packages)
 - [Google Icons](#google-icons)
 - [Advanced Configuration](#advanced-configuration)
 - [Custom Provider](#custom-provider)
@@ -88,7 +91,7 @@ Open-source fonts with granular control. Self-hosted from npm packages.
 {
   provider: fontProviders.fontsource(),
   name: "JetBrains Mono",
-  cssVariable: "--font-mono"
+  cssVariable: "--font-jetbrains-mono"
 }
 ```
 
@@ -97,8 +100,8 @@ Open-source fonts with granular control. Self-hosted from npm packages.
 ```javascript
 {
   provider: fontProviders.fontsource(),
-  name: "Source Sans Pro",
-  cssVariable: "--font-source",
+  name: "Source Sans 3",
+  cssVariable: "--font-source-sans-3",
   weights: [400, 600, 700],
   styles: ["normal", "italic"],
   subsets: ["latin", "cyrillic"],
@@ -138,20 +141,28 @@ Requires Adobe subscription and project ID.
 
 ### Configuration
 
+`astro.config.mjs` runs before Vite's env handling, so `import.meta.env` is not available there and `.env` is not loaded into `process.env` automatically. Load it with Vite's `loadEnv`:
+
 ```javascript
-{
-  provider: fontProviders.adobe({ id: process.env.ADOBE_FONTS_ID }),
-  name: "proxima-nova",
-  cssVariable: "--font-proxima"
-}
+import { defineConfig, fontProviders } from "astro/config";
+import { loadEnv } from "vite";
+
+const { ADOBE_FONTS_ID } = loadEnv(process.env.NODE_ENV ?? "development", process.cwd(), "");
+
+export default defineConfig({
+  fonts: [{
+    provider: fontProviders.adobe({ id: ADOBE_FONTS_ID }),
+    name: "proxima-nova",
+    cssVariable: "--font-proxima-nova"
+  }]
+});
 ```
 
 ### Setup
 
-1. Create project at fonts.adobe.com
-2. Get project ID
-3. Store in `.env`: `ADOBE_FONTS_ID=abc123`
-4. Import in config: `import.meta.env.ADOBE_FONTS_ID`
+1. Create a web project at fonts.adobe.com and copy its project ID
+2. Store it in `.env` (`ADOBE_FONTS_ID=abc123`) and in the CI/Cloudflare build environment
+3. Read it in the config via `loadEnv` as above (or plain `process.env.ADOBE_FONTS_ID` when the variable is set in the shell)
 
 ## Fontshare
 
@@ -292,7 +303,22 @@ src/
         └── BrandFont-Italic.woff2
 ```
 
-**Important:** Never put fonts in `public/` - Astro copies them there automatically, causing duplicates.
+**Keep fonts out of `public/`** — Astro already processes and serves files referenced from `src/assets/fonts/`, so a copy in `public/` ships twice.
+
+## npm Packages
+
+`fontProviders.npm()` resolves a font from a package already installed in `node_modules` (by default it looks for `@fontsource/<family>`), falling back to the jsDelivr CDN. Useful when the font is a dependency you already pin.
+
+```javascript
+{
+  provider: fontProviders.npm(),
+  name: "Inter Tight",
+  cssVariable: "--font-inter-tight",
+  options: { package: "@fontsource-variable/inter-tight" }  // optional; also `file`, `version`
+}
+```
+
+Pass `fontProviders.npm({ remote: false })` to resolve only from local packages.
 
 ## Google Icons
 
@@ -339,8 +365,8 @@ For Material Symbols icons as fonts.
 
 ```javascript
 {
-  name: "Display Font",
-  cssVariable: "--font-display",
+  name: "Fraunces",
+  cssVariable: "--font-fraunces",
   display: "swap"  // swap | block | fallback | optional | auto
 }
 ```
@@ -370,14 +396,14 @@ Download only specific weight/style combinations by specifying the same font mul
 fonts: [
   {
     name: "Roboto",
-    cssVariable: "--roboto",
+    cssVariable: "--font-roboto",
     provider: fontProviders.google(),
     weights: [400, 500, 600],
     styles: ["normal"]
   },
   {
     name: "Roboto",
-    cssVariable: "--roboto",
+    cssVariable: "--font-roboto",
     provider: fontProviders.google(),
     weights: [400],
     styles: ["italic"]
@@ -387,67 +413,4 @@ fonts: [
 
 ## Custom Provider
 
-Build your own provider for private registries or custom CDNs.
-
-### Implementation
-
-```typescript
-import type { FontProvider } from "astro";
-
-export function myProvider(): FontProvider {
-  return {
-    name: "my-provider",
-    async init(context) {
-      // context.storage for caching
-      // context.root for resolving local paths
-    },
-    async resolveFont({ familyName, ...rest }) {
-      // Fetch font data from your API/CDN
-      // Return { fonts: FontFaceData[] } or undefined
-    },
-    async listFonts() {
-      // Return available font names
-      return ["Font A", "Font B"];
-    }
-  };
-}
-```
-
-### Usage
-
-```javascript
-import { myProvider } from "./font-provider";
-
-export default defineConfig({
-  fonts: [{
-    provider: myProvider(),
-    name: "Private Font",
-    cssVariable: "--font-private"
-  }]
-});
-```
-
-### Using a unifont Provider
-
-```typescript
-import type { FontProvider } from "astro";
-import type { InitializedProvider } from "unifont";
-import { acmeProvider } from "@acme/unifont-provider";
-
-export function acmeFontProvider(): FontProvider {
-  const provider = acmeProvider();
-  let initializedProvider: InitializedProvider | undefined;
-  return {
-    name: provider._name,
-    async init(context) {
-      initializedProvider = await provider(context);
-    },
-    async resolveFont({ familyName, ...rest }) {
-      return await initializedProvider?.resolveFont(familyName, rest);
-    },
-    async listFonts() {
-      return await initializedProvider?.listFonts?.();
-    },
-  };
-}
-```
+For a private registry or CDN, implement Astro's `FontProvider` interface (`name`, `init`, `resolveFont`, optional `listFonts`) — or wrap an existing unifont provider — and pass it as `provider`. This is rare for a marketing site; see the Astro font provider reference (docs.astro.build/en/reference/font-provider-reference/) before writing one.

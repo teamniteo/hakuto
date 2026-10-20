@@ -7,53 +7,56 @@ SEO Test Results for [scope]
 ============================
 
 📊 Summary:
-✅ Passed: X | ❌ Critical: X | ⚠️ Warnings: X | Pages: X
+✅ Passed: X | ❌ Critical: X | ⚠️ Warnings: X | ℹ️ Notes: X | Pages: X
 
-Scope: [All pages | Single page: index.html | Pages: pricing.html, contact.html]
+Scope: [All pages | Single page: /about/ | Pages: /pricing/, /contact/]
 
 ---
 
 ## Critical Issues (❌)
 
 1. Missing meta title
-   File: _dist/pricing.html
+   File: dist/client/pricing/index.html:4
 
-2. Title too short: "About" (5 chars, need 50-60)
-   File: _dist/about.html
+2. Multiple H1 tags (found 2)
+   File: dist/client/about/index.html:38, :112
 
-3. Multiple H1 tags (found 2)
-   File: _dist/about.html
+3. Broken internal link: /pricng/ (target missing in dist/client)
+   File: dist/client/index.html:57
 
-4. Broken heading hierarchy (line 45): H1→H3 (skipped H2)
-   File: _dist/pricing.html
-
-5. Broken internal link: /pricng (target missing in _dist)
-   File: _dist/index.html
-
-6. Oversized image: /assets/hero.png (3.4 MB) — will tank LCP
-   File: _dist/index.html
+4. Oversized image: /_astro/hero.Bx3k.png (3.4 MB) — will tank LCP
+   File: dist/client/index.html:41
 
 ---
 
 ## Warnings (⚠️)
 
-1. Title length: 45 chars (optimal: 50-60)
-   File: _dist/contact.html
+1. Title too short: "About" (5 chars, optimal: 50-60)
+   File: dist/client/about/index.html:6
 
-2. Missing og:image
-   Files: _dist/pricing.html, _dist/contact.html
+2. Broken heading hierarchy: H1→H3 (skipped H2)
+   File: dist/client/pricing/index.html:45
 
-3. Duplicate title "Features" in:
-   Files: _dist/features.html, _dist/product-features.html
+3. Missing og:image
+   Files: dist/client/pricing/index.html:9, dist/client/contact/index.html:9
 
-4. Orphaned page (unreachable from homepage)
-   File: _dist/old-page.html
+4. Duplicate title "Features" in:
+   Files: dist/client/features/index.html:6, dist/client/product-features/index.html:6
 
-5. Missing `<html lang>` attribute
-   File: _dist/index.html
+5. Orphaned page (unreachable from homepage)
+   File: dist/client/old-page/index.html
 
-6. Large image: /assets/team.jpg (1.4 MB) — consider compressing
-   File: _dist/about.html
+6. Missing `<html lang>` attribute
+   File: dist/client/index.html:2
+
+7. Large image: /_astro/team.Dk2a.jpg (1.4 MB) — consider compressing
+   File: dist/client/about/index.html:74
+
+---
+
+## Notes (ℹ️)
+
+- No explicit AI-crawler policy recorded in robots.txt (src/pages/robots.txt.ts)
 
 ---
 
@@ -68,7 +71,7 @@ Scope: [All pages | Single page: index.html | Pages: pricing.html, contact.html]
 
 ---
 
-To fix issues, edit the source .astro files in src/pages/ directory:
+To fix issues, edit the source files in src/ (and src/pages/robots.txt.ts, public/llms.txt):
 "Add meta description to src/pages/pricing.astro"
 "Fix heading hierarchy in src/pages/pricing.astro"
 "Fix all critical SEO issues"
@@ -76,10 +79,10 @@ To fix issues, edit the source .astro files in src/pages/ directory:
 
 ---
 
-## Agent Readiness (only when Step 8 ran)
+## Agent Readiness (only when the scan ran)
 
 Append this section **after** the static results — never merge the two. The
-static audit grades `_dist/`; this grades the live deploy at the moment of the
+static audit grades `dist/client/`; this grades the live deploy at the moment of the
 scan.
 
 ```markdown
@@ -113,7 +116,7 @@ Score: 78 / 100 — Solid, with gaps
    Fix: Add Product or SoftwareApplication JSON-LD to /pricing.
    → src/pages/pricing.astro
 
-### Opportunities — Recommended partials and Bonus signals
+### Opportunities (ℹ️) — Recommended partials and Bonus signals
 
 - Expose an OpenAPI description for the public API (bonus)
 - Serve canonical Markdown via Accept negotiation (bonus)

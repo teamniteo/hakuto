@@ -1,16 +1,17 @@
 /**
- * EXAMPLE - DO NOT COPY DIRECTLY
- * Adapt ProxyScript URL to your Plausible site ID.
- *
  * Plausible Analytics Proxy Handler
  * Routes: /~/pla/js/script.js and /~/pla/api/event
  * Based on: https://plausible.io/docs/proxy/guides/cloudflare
+ *
+ * Copy to worker/plausible.js, then replace ProxyScript with the site's
+ * script URL from Plausible → Site Settings → Site Installation.
  */
 
-// IMPORTANT: Replace with your Plausible script URL from Site Settings
+import { problem } from './problem.js';
+
 const ProxyScript = 'https://plausible.io/js/pa-XXXXX.js';
 
-export async function handlePlausible(request, ctx) {
+export async function handlePlausible(request, env, ctx) {
   const pathname = new URL(request.url).pathname;
 
   if (pathname.endsWith('/js/script.js')) {
@@ -18,7 +19,13 @@ export async function handlePlausible(request, ctx) {
   } else if (pathname.endsWith('/api/event')) {
     return postData(request);
   }
-  return new Response(null, { status: 404 });
+  return problem({
+    status: 404,
+    code: 'route_not_found',
+    title: 'Not Found',
+    detail: `The Plausible proxy has no endpoint at ${pathname}.`,
+    resolution: 'Use /~/pla/js/script.js for the script or /~/pla/api/event for events.',
+  });
 }
 
 async function getScript(request, ctx) {

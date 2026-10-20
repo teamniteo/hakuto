@@ -40,7 +40,7 @@ export default {
     if (route) {
       const [, { handler, description }] = route;
       try {
-        return await handler(request, ctx);
+        return await handler(request, env, ctx);
       } catch (error) {
         console.error(\`Error in \${description}:\`, error);
         return problem({

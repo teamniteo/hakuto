@@ -1,0 +1,35 @@
+---
+// src/components/blog/Pagination.astro
+import { pageHref } from "@/lib/blog";
+
+interface Props {
+  page: number;
+  total: number;
+}
+
+const { page, total } = Astro.props;
+---
+
+{total > 1 && (
+  <nav class="flex items-center justify-center gap-3" aria-label="Pagination">
+    {page > 1 && (
+      <a
+        href={pageHref(page - 1)}
+        rel="prev"
+        class="text-sm font-medium px-4 py-2 rounded-full border border-border hover:border-primary/50 hover:text-primary transition-colors"
+      >
+        ← Newer posts
+      </a>
+    )}
+    <span class="text-sm text-muted-foreground">Page {page} of {total}</span>
+    {page < total && (
+      <a
+        href={pageHref(page + 1)}
+        rel="next"
+        class="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+      >
+        Older posts →
+      </a>
+    )}
+  </nav>
+)}

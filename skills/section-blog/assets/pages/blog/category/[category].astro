@@ -1,0 +1,68 @@
+---
+// src/pages/blog/category/[category].astro
+import Layout from "@/layouts/Layout.astro";
+import PostCard from "@/components/blog/PostCard.astro";
+import BlogToolbar from "@/components/blog/BlogToolbar.astro";
+import type { GetStaticPaths } from "astro";
+import { categories, categoryHref, categorySlug, getPosts } from "@/lib/blog";
+
+export const getStaticPaths = (async () => {
+  return categories(await getPosts()).map((category) => ({
+    params: { category: categorySlug(category) },
+    props: { category },
+  }));
+}) satisfies GetStaticPaths;
+
+const { category } = Astro.props;
+
+// Re-fetch here rather than passing entries through getStaticPaths props —
+// props strip the `image()` asset binding and every cover would break.
+const allPosts = await getPosts();
+const posts = allPosts.filter((p) => p.data.category === category);
+const others = categories(allPosts).filter((c) => c !== category);
+---
+
+<Layout
+  title={`${category} — Blog`}
+  description={`Posts in the ${category} category.`}
+  feedUrl="/blog/rss.xml"
+  pagefindIgnore
+>
+  <section class="pt-12 pb-10 text-center">
+    <p class="text-xs uppercase tracking-widest font-semibold text-primary mb-3">Category</p>
+    <h1 class="text-4xl font-bold tracking-tight mb-4">{category}</h1>
+    <p class="text-lg text-muted-foreground mb-8">
+      {posts.length} {posts.length === 1 ? "post" : "posts"} in this category.
+    </p>
+
+    <div class="flex flex-col items-center gap-4">
+      <ul class="flex flex-wrap items-center justify-center gap-2" aria-label="Other categories">
+        <li>
+          <a
+            href="/blog/"
+            class="text-sm font-medium px-3 py-1 rounded-full bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            All posts
+          </a>
+        </li>
+        {others.map((cat) => (
+          <li>
+            <a
+              href={categoryHref(cat)}
+              class="text-sm font-medium px-3 py-1 rounded-full bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              {cat}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <BlogToolbar postCount={allPosts.length} />
+    </div>
+  </section>
+
+  <section class="pb-16">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      {posts.map((post) => <PostCard post={post} showCategory={false} />)}
+    </div>
+  </section>
+</Layout>

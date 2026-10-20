@@ -1,0 +1,29 @@
+---
+// src/components/docs/PrevNext.astro — previous/next links in sidebar order,
+// crossing category boundaries so a reader can go front to back.
+import { docHref, sidebarLabel, type Doc } from "@/lib/docs";
+
+interface Props {
+  prev?: Doc;
+  next?: Doc;
+}
+
+const { prev, next } = Astro.props;
+---
+
+{(prev || next) && (
+  <nav aria-label="Previous and next page" class="docs-prevnext">
+    {prev ? (
+      <a href={docHref(prev)} rel="prev">
+        <span class="docs-prevnext-label">Previous</span>
+        <span>{sidebarLabel(prev)}</span>
+      </a>
+    ) : <span></span>}
+    {next && (
+      <a href={docHref(next)} rel="next" class="docs-prevnext-next">
+        <span class="docs-prevnext-label">Next</span>
+        <span>{sidebarLabel(next)}</span>
+      </a>
+    )}
+  </nav>
+)}

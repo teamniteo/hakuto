@@ -33,7 +33,7 @@ Named patterns to compose pages from. Pick per section based on content and dial
 
 Pairing/scale rules live with the `fonts` skill — don't duplicate its pairing table. At composition time enforce:
 
-- Weight contrast hard (300–400 body vs 700–900 display); size jumps ≥ 3× between H1 and body.
+- Weight contrast per the base language file (elegant runs light, brutalist runs heavy); size jumps ≥ 3× between H1 and body.
 - One display voice per page. A second typeface is an accent (labels, code, quotes), not a second lead.
 - **Eyebrow restraint:** small caps/label-above-heading at most once per 3 sections.
 
@@ -104,3 +104,23 @@ Run before declaring a page done (Workflow A step 6 and every Workflow B page):
 - [ ] Images are real, seeded placeholders, or labeled TODO slots — no div-fakes
 - [ ] Internal links use the site's trailing-slash convention; anchor targets exist
 - [ ] `bun run check` passes
+
+## Aesthetic Intent
+
+Models converge on "on-distribution" output — the generic look users call AI slop. Aim for
+frontends that are distinctive and specific to the brand; the direction and dials set the
+frame, these set the ambition inside it:
+
+- **Typography** — pick families that are beautiful and characterful for this brand. Generic
+  defaults (Inter, Roboto, Arial, a bare system stack used out of habit rather than as a
+  brutalist choice) read as unconsidered. The `fonts` skill owns pairing rules and wiring.
+- **Color & theme** — commit to a cohesive palette expressed as CSS tokens. A dominant color
+  with sharp accents beats a timid, evenly distributed palette; IDE themes and cultural
+  aesthetics are good inspiration. `brand-designer` owns the palette math.
+- **Motion** — spend it on high-impact moments: one orchestrated page load with staggered
+  reveals (`animation-delay`) delights more than scattered micro-interactions. CSS first;
+  the Motion library only inside React islands that already exist.
+- **Backgrounds** — build atmosphere and depth (layered gradients, geometric patterns,
+  contextual texture) instead of defaulting to flat fills — within the paint budget above.
+- **Context over formula** — layouts and component patterns should come from what this brand
+  needs to say, not from the last site built.

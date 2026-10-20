@@ -1,115 +1,95 @@
 ---
 name: brand-designer
-description: Generate custom brand color palettes using color theory (complementary, triadic, analogous) — built around a 60/30/10 dominant/accent/highlight ratio with hue rotation computed directly in OKLCH. Use when user provides hex codes, requests "customize colors", "generate color palette", "create color palette", "pick brand colors", "design a palette", "what colors should I use", or asks to extract colors from a logo. A bare logo upload alone does NOT trigger this skill — wait for an explicit color-extraction or palette request.
+description: Generates brand color palettes from color-wheel theory with a 60/30/10 dominant/secondary/accent split and WCAG contrast checks, then applies them to the site's theme. Use for "use my brand colors #3B82F6", "generate a color palette", "pick brand colors", "design a palette", "what colors should I use", "extract colors from my logo". Skip for typography (`fonts`), vibe restyles or a new site's direction (`website-builder`, which calls this skill itself), one-off color fixes on a single element, and a bare logo upload with no color request.
 ---
 
 # Designing Brand Colors
 
-Generate custom brand color palettes using color theory (complementary, triadic, analogous schemes).
+Generate a custom palette from color-wheel theory, check every text pair for contrast, and write it into the shadcn theme tokens the scaffold already uses.
+
+**Role names used everywhere** (matching website-builder's spec template):
+- **dominant** (~60%) — backgrounds and large surfaces, usually a tinted neutral
+- **secondary** (~30%) — supporting surfaces, panels, muted areas
+- **accent** (~10%) — the brand hue: CTAs, links, key emphasis
+
+Timid, evenly-distributed palettes read as generic; commit to the hierarchy.
 
 ## Workflow
 
-### 1. Check Prerequisites
-- Read `site-specification.md` for the design direction (base language, dials) and existing colors. During a new-site build (website-builder Workflow A style preview), the spec may not exist yet — take the base language from the chosen direction instead.
+### 1. Check prerequisites
 
-### 2. Get Colors
-Accept: hex codes, color names, descriptions, or logo analysis (identify 1-3 dominant colors). When invoked from website-builder's style preview with no user colors, take the seed from the direction's palette strategy instead — pick a concrete base hue matching its stated hue family and temperature, and vary that pick per project.
+Read `site-specification.md` for the design direction (base language, dials) and existing colors. During a new-site build (website-builder Workflow A style preview) the spec does not exist yet — take the base language from the chosen direction, and return results to website-builder instead of writing the spec (step 5).
 
-### 3. Generate Palette
+If the user says "use my brand colors" and colors already exist in `src/index.css`, they mean those — read them, don't regenerate. If they provide new hex codes and a palette already exists, confirm before replacing, since the existing palette may be intentional.
 
-**Compute hue rotation directly in OKLCH** — no external API. OKLCH is Tailwind v4's native color space, and rotating hue there preserves perceived lightness, so schemes come out balanced (HSL rotation makes yellows glare and blues muddy).
+### 2. Get the seed
 
-1. Convert the base hex to OKLCH (`oklch(L C H)`).
-2. Rotate H by the scheme angle, keeping L and C:
-   - **Complementary**: +180°
-   - **Triadic**: ±120°
-   - **Analogous**: ±30° (spread to ±60° for a wider family)
-   - **Split-complementary**: 180° ± 30°
+Accept hex codes, color names, descriptions ("warm earthy" → suggest a hex and confirm), or a logo (identify 1–3 dominant colors, confirm them). When invoked from website-builder's style preview with no user colors, take the seed from the direction's palette strategy — pick a concrete base hue matching its hue family and temperature, and vary that pick per project.
+
+A bare logo upload is not a palette request: it goes in the header and the project palette stays as generated. Extract only when asked.
+
+### 3. Generate the palette
+
+Compute in **OKLCH** — rotating hue there preserves perceived lightness, so schemes come out balanced (HSL rotation makes yellows glare and blues muddy). No external API.
+
+1. Convert the seed to OKLCH (`oklch(L C H)`).
+2. Pick the scheme from the design language and rotate H, keeping L and C:
+
+| Language | Scheme | Why | Applying the accent | If the seed clashes |
+|---|---|---|---|---|
+| Minimalist | Complementary (+180°) | Two hues keep the page calm | Sparingly; ~80% whitespace | Bright seed → limit to accents |
+| Corporate | Complementary (+180°) | Disciplined, high contrast | Conservative, strategic | Vibrant seed → mute, use conservatively |
+| Elegant | Complementary (+180°) | Restraint | Refined, rare | Saturated seed → mute |
+| Technology | Triadic (±120°) | Energetic tension without flatness | Bold, high contrast | Pastel seed → boost chroma |
+| Dark | Triadic (±120°) | Bright elements carry hierarchy | Bright for visibility | Dark seed → raise L |
+| Brutalist | Monochrome + one complementary accent | Exactly one violent accent on black/white | Stark, high-impact | Subtle seed → push contrast |
+| Colorful | Analogous (±30°, up to ±60°) | Adjacent hues stay coherent at high chroma | Liberal throughout | Muted seed → boost chroma |
+
+   Split-complementary (180° ± 30°) is a valid alternative where two accents are wanted.
 3. Derive the neutral ramp from the dominant hue at very low chroma (C ≈ 0.005–0.02) so neutrals harmonize instead of reading as generic gray.
-4. Adjust L per role — backgrounds near the extremes (L ≥ 0.97 light / L ≤ 0.22 dark), text at the opposite end, accents in the vivid middle (L 0.55–0.75, C 0.15–0.25).
-5. **Verify WCAG contrast** (4.5:1 body text, 3:1 large text ≥18.66px or ≥14px bold) for every text/background pair; nudge L until it passes.
-6. **Check the stock Tailwind neutrals the site will actually use, not only the generated tokens.** Contrast failures overwhelmingly come from off-palette utilities reached for during page authoring — `text-slate-400` is 2.56:1 on white and fails at every size, and `text-sky-600` is 4.10:1, which passes only as large text. Both look fine in a mockup and both ship as body copy. For each neutral and accent utility the design intends for text, compute its ratio and record the verdict in `site-specification.md`:
+4. Set L per role — dominant backgrounds near the extremes (L ≥ 0.97 light / L ≤ 0.22 dark), text at the opposite end, accent in the vivid middle (L 0.55–0.75, C 0.15–0.25).
+5. Produce a `.dark` variant: swap the L extremes, keep the hues, and re-check contrast.
 
-   ```
-   contrast vs #ffffff
-     text-slate-400  #94a3b8   2.56:1   ✗ fails AA at every size — decorative/icons only
-     text-slate-500  #64748b   4.76:1   ✓ passes, marginally
-     text-slate-600  #475569   7.58:1   ✓
-     text-sky-600    #0284c7   4.10:1   ✗ large text only (≥18.66px)
-   ```
+If the user's color clashes with the design language (neon on Elegant, pastels on Brutalist), say *what* clashes and *why*, then offer: (1) a tweaked value that fits, (2) keep it for accents/CTAs only, or (3) keep it as-is and record the aesthetic shift in the spec.
 
-   Any token that clears only the large-text bar must be labelled **large-text-only** in the spec, so a later "small eyebrow label" doesn't quietly reuse it at 12px.
+Do the math inline or via a short Bun script (`bun -e` with culori, or manual conversion) — what matters is the OKLCH space and checked output.
 
-Do the math inline or via a short Bun script (`bun -e` with culori, or manual conversion) — either is fine; what matters is the OKLCH space and the checked output. Emit final values as hex or `oklch()` strings for the `@theme` block.
+### 4. Check contrast
 
-**Compose with a 60/30/10 ratio** — one dominant color (~60% of UI, usually the neutral or background tone), one accent (~30%, the brand's primary hue), one highlight (~10%, used for CTAs and key emphasis). Timid, evenly-distributed palettes read as generic; commit to a hierarchy.
+WCAG AA: **4.5:1** for body text, **3:1** for large text — **≥24px regular or ≥18.66px bold**. Check every foreground/background token pair, in both `:root` and `.dark`, and nudge L until it passes.
 
-**Design language scheme selection:**
-- Minimalist/Corporate/Elegant → Complementary (180°) — high contrast with only two hues keeps the page calm and disciplined
-- Technology/Dark → Triadic (±120°) — three vibrant hues in tension, energetic without monochromatic flatness
-- Brutalist → Monochrome + one complementary accent — the language allows exactly one violent accent against a black/white base
-- Colorful → Analogous (±30°, spread to ±60° for a wider family) — adjacent hues blend smoothly, supporting saturation without visual chaos
-
-### 4. Check Compatibility
-
-| Design | Best With | Adaptation |
-|--------|-----------|------------|
-| Minimalist | Any | Bright → use sparingly |
-| Technology | Saturated | Pastels → boost saturation |
-| Dark | Bright | Dark → increase brightness |
-| Corporate | Muted | Vibrant → use conservatively |
-| Brutalist | Bold | Subtle → increase contrast |
-| Colorful | Vibrant | Muted → boost saturation |
-| Elegant | Sophisticated | Saturated → mute |
-
-If the chosen color clashes with the design language (e.g. neon colors on Elegant, pastels on Brutalist), tell the user *what* clashes and *why*, then offer three concrete options:
-1. **Adjust the hue/saturation** — show a tweaked hex that fits (e.g. "shift to a deeper #3A6BC8 to keep the corporate restraint")
-2. **Apply strategically** — keep the color but limit to accents/CTAs only, leaving body palette neutral
-3. **Keep as-is** — apply verbatim, accepting the aesthetic shift, and update `site-specification.md` with the new direction
-
-### 5. Apply to Site
-
-If approved:
-1. Update `site-specification.md` — the **Palette** line in the Design Direction section (dominant/secondary/accent hexes + scheme), and note the source ("user provided" / "logo extracted") in Design Evolution
-2. Update color definitions in `src/index.css` within the `@theme {}` block
-
-## Logo Scenarios
-
-**Initial build, bare logo upload:** Add to header, keep the project's generated palette, do NOT invoke this skill. Reason: a logo upload alone isn't a request to redesign the palette. Wait for an explicit color-extraction ask.
-
-**Initial build, user supplied colors or asked for extraction:** website-builder DOES invoke this skill during its style-preview step (Workflow A) — generate the palette from the user's colors so the preview is built on the real brand.
-
-**Color extraction:** User says "extract colors from logo" → analyze, confirm, generate palette.
-
-## Common Examples
+**Also check the stock utilities the site will actually use for text, not only the generated tokens.** Contrast failures overwhelmingly come from off-palette utilities reached for during page authoring, and from `text-muted-foreground` — check that one against `background` and `muted` explicitly. Reference ratios on white (hex values are Tailwind v3 approximations; v4 ships OKLCH equivalents that land within a few hundredths):
 
 ```
-"Use #3B82F6" → generate_palette("#3B82F6", design_language)
-"Primary #3B82F6, secondary #F59E0B" → generate_palette("#3B82F6", design_language, "#F59E0B")
-"Warm earthy colors" → suggest hex, confirm, generate
-"Extract from logo" → analyze, get hex, confirm, generate
-"Use brand colors" + colors exist → DON'T invoke, read from CSS
+contrast vs #ffffff
+  text-slate-400  #94a3b8   2.56:1   fail — decorative/icons only
+  text-slate-500  #64748b   4.76:1   pass, marginally
+  text-slate-600  #475569   7.58:1   pass
+  text-sky-600    #0284c7   4.10:1   large-only (≥24px, or ≥18.66px bold)
 ```
 
-## Decision Matrix
+Any token that clears only the large-text bar is labelled **large-only**, so a later "small eyebrow label" doesn't quietly reuse it at 12px.
 
-| Request | Colors Exist? | Action |
-|---------|---------------|--------|
-| Provides hex | No | ✅ Generate |
-| Provides hex | Yes | ⚠️ Confirm before replacing — existing palette may be intentional |
-| "Extract from logo" | No | ✅ Generate |
-| "Use brand colors" | Yes | ❌ Read existing CSS — the user is referring to colors already in `index.css`, not asking for a regen |
+### 5. Present, then apply
 
-## Color Application by Design
+Present this table for approval (it is also what website-builder copies into the spec):
 
-- **Minimalist**: Sparingly (80% white space)
-- **Technology**: Bold, high contrast
-- **Dark**: Bright colors for visibility
-- **Corporate**: Conservative, strategic
-- **Brutalist**: Stark, high-impact
-- **Colorful**: Liberal throughout
-- **Elegant**: Refined, restrained
+| Role | Hex | OKLCH | HSL triplet | Token | Contrast vs background |
+|---|---|---|---|---|---|
+| dominant | #f7f8fa | oklch(0.979 0.003 265) | 220 23% 97% | `--background` | — |
+| text | #11151a | oklch(0.194 0.012 254) | 213 21% 8% | `--foreground` | 17.2:1 pass |
+| secondary | … | … | … | `--secondary`, `--muted` | … |
+| accent | … | … | … | `--primary` | … |
+| muted text | … | … | … | `--muted-foreground` | … |
 
-## Success Criteria
+Verdicts are **pass**, **large-only**, or **fail**. Add a row per `-foreground` and per extra text utility from step 4, and a second block for `.dark`.
 
-✅ Colors applied, design maintained, 4.5:1 contrast (including the stock utilities used for text), large-text-only tokens labelled, user approved, site-specification.md updated
+On approval:
+
+1. **Write the HSL triplets into the shadcn base variables** in `src/index.css` — `@layer base` `:root` and `.dark`. The scaffold stores them as bare channel triplets (`--primary: 222.2 47.4% 11.2%`) and `@theme` wraps them (`--color-primary: hsl(var(--primary))`), so an `oklch()` or hex value there breaks every utility. Update `background`, `foreground`, `primary`, `secondary`, `accent`, `muted`, each `-foreground`, plus `card`/`popover` (usually = background), `border`/`input`/`ring`, and the scaffold's `brand-primary` / `brand-accent` pair. Leave the `@theme` wrappers alone.
+2. Map roles onto tokens: **dominant** → `background`, `card`, `popover`; **secondary** → `secondary`, `muted`; **accent** → `primary` (the default Button fill), `ring`, `brand-accent`. Note shadcn's own `--accent` is a subtle hover surface, not the brand accent — keep it near the secondary tone.
+3. **Spec:** if `site-specification.md` exists, update the Design Direction **Palette** line (dominant/secondary/accent hexes + scheme), write the contrast table under `### Contrast`, and note the source ("user provided" / "logo extracted" / "generated") in Design Evolution. If it does not exist yet, return the table to website-builder — it creates the spec at preview approval.
+
+## Done when
+
+Palette applied in `:root` and `.dark` as HSL triplets, every text pair (including `text-muted-foreground` and stock utilities used for text) at 4.5:1 or labelled large-only, the user approved, and the spec updated — or the table handed back to website-builder.

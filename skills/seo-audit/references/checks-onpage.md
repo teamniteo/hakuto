@@ -1,6 +1,6 @@
 # On-Page Checks
 
-Per-page checks against built HTML in `_dist/`. Run these for every file in scope.
+Per-page checks against built HTML in `dist/client/`. Run these for every file in scope.
 Cross-page aggregation (duplicate titles/descriptions/H1s, orphans) happens in
 Step 7 of `SKILL.md`.
 
@@ -10,14 +10,15 @@ Step 7 of `SKILL.md`.
 
 **Title:** `<title>` in `<head>`
 - Missing → ❌ critical
-- <30 chars → ❌ critical: "Title too short: X chars (need 50-60)"
+- <30 chars → ⚠️ warning: "Title too short: X chars (optimal: 50-60)" — Google rewrites
+  thin titles, but the page still indexes
 - 30-49 or 61+ chars → ⚠️ warning: "Title X chars (optimal: 50-60)"
 - 50-60 chars → ✅ pass
 - Track in `titles{}` for duplicates
 
 **Meta Description:** `<meta name="description">` in `<head>`
 - Missing → ❌ critical
-- <100 chars → ❌ critical: "Description too short: X chars (need 150-160)"
+- <100 chars → ⚠️ warning: "Description too short: X chars (optimal: 150-160)"
 - 100-149 or 161+ chars → ⚠️ warning: "Description X chars (optimal: 150-160)"
 - 150-160 chars → ✅ pass
 - Track in `descriptions{}` for duplicates
@@ -29,8 +30,8 @@ Step 7 of `SKILL.md`.
   "Cross-canonical: page X canonicals to Y (silently de-indexes X)"
 - Absolute, self-referencing → ✅ pass
 
-To check self-reference: derive expected URL from file path (e.g. `_dist/about/index.html`
-→ `/about/` or `/about`) and compare against canonical href path. Account for
+To check self-reference: derive expected URL from file path (e.g. `dist/client/about/index.html`
+→ `/about/`) and compare against canonical href path. Account for
 trailing-slash variants.
 
 **Open Graph:** check for og:title, og:description, og:image, og:url
@@ -69,7 +70,8 @@ Distinct-per-page-count H1s can still be site-wide duplicates. Evaluated in Step
 - Normalize whitespace before recording (collapse runs of spaces/newlines, trim).
 
 **Hierarchy:** check H1→H2→H3→H4→H5→H6 sequence
-- If any skip (e.g., H1→H3) → ❌ critical: "Broken hierarchy at line X: H1→H3 (skipped H2)"
+- If any skip (e.g., H1→H3) → ⚠️ warning: "Broken hierarchy at line X: H1→H3 (skipped H2)" —
+  hurts screen-reader navigation and outline parsing, but doesn't block indexing
 - No skips → ✅ pass
 
 **Flat structure:** a page can have a valid H1 and plenty of prose and still be
@@ -120,7 +122,7 @@ hurting Cumulative Layout Shift.
 ## Image Asset Health (local files)
 
 For each `<img src="...">` and `<source srcset="...">` referencing a **local** path (starts
-with `/` or relative, not `http://`/`https://`), `stat` the resolved file in `_dist/`:
+with `/` or relative, not `http://`/`https://`), `stat` the resolved file in `dist/client/`:
 
 - > 2 MB → ❌ critical: "Oversized image: [src] (X MB) — will tank LCP"
 - 1–2 MB → ⚠️ warning: "Large image: [src] (X MB) — consider compressing"
@@ -149,15 +151,13 @@ Report:
 
 - Largest candidate **> 2× the largest declared slot** → ❌ critical: "Oversized: [file] is
   Npx for an Mpx slot (N/M×)".
-- Tag has a `sizes` attribute but **only one candidate** → ⚠️ warning: "`sizes` is inert on
-  [src] — no `srcset` emitted". Astro's `getSrcSet` returns `[]` unless `widths`/`densities`
-  is set, so the markup looks right-sized but ships a single file.
-- A candidate's **aspect ratio differs from the fallback's by > 1%** → ⚠️ warning: "Aspect
-  drift on [file]: WxH (AR a) vs fallback AR b". Usually a `width`+`height` pair that
-  disagrees with the source ratio, making sharp crop with `fit: cover`. Allow rounding noise
-  — a 1px difference on a short image is not a finding.
 - A literal `style="[object Object]"` on any `<img>` → ❌ critical. Something in the image
   pipeline is stringifying an object into an attribute; the tag's styling is silently dead.
+
+Source-side causes are `hakuto-review`'s (`references/checks-images.md`): a `sizes`
+attribute with no `widths` (one candidate, inert `sizes`) and a `width`/`height` pair that
+crops the image. Don't report those here — if this check finds an oversized candidate, name
+the source tag so the user can run `hakuto-review` on it.
 
 Skip SVG here — it's vector, so pixel width says nothing about delivery weight and every
 logo would false-positive.
@@ -242,9 +242,10 @@ Extract all `<a href="...">` tags:
 - Track in `links{}`: current_page → [linked_pages]
 
 **Target validation:** for each internal href, confirm the target resolves to a file in
-`_dist/`:
-- `/about` → `_dist/about.html` or `_dist/about/index.html`
-- `/blog/post-name/` → `_dist/blog/post-name/index.html`
+`dist/client/`:
+- `/about/` → `dist/client/about/index.html` (a bare `/about` resolves to the same file, but
+  301s on Cloudflare — `hakuto-review` grades the slash form in source)
+- `/blog/post-name/` → `dist/client/blog/post-name/index.html`
 - `#section-id` (in-page anchor) → confirm an element with `id="section-id"` exists on the
   current page
 - `/page#section` → confirm both the file exists AND the id exists on that page
@@ -253,7 +254,7 @@ Strip query strings (`?utm_source=...`) before resolving. Ignore `mailto:`, `tel
 `javascript:` schemes.
 
 - Target file not found → ❌ critical: "Broken internal link: [href] on [page] (target
-  missing in _dist)"
+  missing in dist/client)"
 - In-page anchor with no matching id → ❌ critical: "Broken anchor: [href] on [page] (no
   element with id=[fragment])"
 - Resolves correctly → ✅ pass

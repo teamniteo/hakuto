@@ -1,0 +1,80 @@
+---
+// src/pages/docs/[...slug].astro — every docs page: sidebar, breadcrumb, body,
+// previous/next and an "On this page" table of contents.
+// Needs the `wide` prop on Layout (see SKILL.md) for the three-column grid.
+import Layout from "@/layouts/Layout.astro";
+import Sidebar from "@/components/docs/Sidebar.astro";
+import Toc from "@/components/docs/Toc.astro";
+import PrevNext from "@/components/docs/PrevNext.astro";
+import { render } from "astro:content";
+import type { InferGetStaticPropsType } from "astro";
+import type { TechArticle, WithContext } from "schema-dts";
+import { categoryLabel, categoryOf, docHref, getDocs } from "@/lib/docs";
+import { SITE_NAME } from "@/lib/site";
+import "@/styles/docs.css";
+
+export async function getStaticPaths() {
+  // getDocs() drops drafts, so a draft never gets a URL.
+  const docs = await getDocs();
+  return docs.map((doc) => ({ params: { slug: doc.id }, props: { id: doc.id } }));
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { id } = Astro.props;
+
+const docs = await getDocs();
+const idx = docs.findIndex((d) => d.id === id);
+const doc = docs[idx];
+if (!doc) throw new Error(`Docs page not found for id: ${id}`);
+
+const { Content, headings } = await render(doc);
+const prev = idx > 0 ? docs[idx - 1] : undefined;
+const next = docs[idx + 1];
+const category = categoryOf(doc);
+
+const schema: WithContext<TechArticle> = {
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  headline: doc.data.title,
+  description: doc.data.description,
+  articleSection: categoryLabel(category),
+  mainEntityOfPage: new URL(docHref(doc), Astro.site).href,
+  publisher: { "@type": "Organization", name: SITE_NAME, url: Astro.site?.href },
+};
+---
+
+<Layout title={doc.data.title} description={doc.data.description} schema={schema} wide>
+  <div class="docs docs-grid">
+    <!-- Plain divs, not <aside>: the <nav> inside is already a named landmark,
+         and unnamed complementary landmarks fail axe's landmark-unique rule. -->
+    <div class="docs-aside" data-pagefind-ignore>
+      <Sidebar docs={docs} currentId={doc.id} />
+    </div>
+
+    <details class="docs-mobile-nav" data-pagefind-ignore>
+      <summary>Documentation menu</summary>
+      <Sidebar docs={docs} currentId={doc.id} />
+    </details>
+
+    <article class="docs-article">
+      <nav aria-label="Breadcrumb" class="docs-breadcrumb" data-pagefind-ignore>
+        <ol>
+          <li><a href="/docs/">Docs</a></li>
+          <li>{categoryLabel(category)}</li>
+        </ol>
+      </nav>
+      <h1 class="docs-title">{doc.data.title}</h1>
+      <p class="docs-lede">{doc.data.description}</p>
+      <div class="docs-content">
+        <Content />
+      </div>
+      <div data-pagefind-ignore>
+        <PrevNext prev={prev} next={next} />
+      </div>
+    </article>
+
+    <div class="docs-toc-aside" data-pagefind-ignore>
+      <Toc headings={headings} />
+    </div>
+  </div>
+</Layout>

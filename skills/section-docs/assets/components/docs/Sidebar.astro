@@ -1,0 +1,35 @@
+---
+// src/components/docs/Sidebar.astro — navigation tree generated from the docs
+// collection: one group per category folder, pages ordered by `order`.
+// Pass the list from getDocs() so the sidebar and previous/next always agree.
+import { docHref, groupDocs, sidebarLabel, type Doc } from "@/lib/docs";
+
+interface Props {
+  docs: Doc[];
+  /** Entry id of the page being shown; marked with aria-current. */
+  currentId?: string;
+}
+
+const { docs, currentId } = Astro.props;
+const groups = groupDocs(docs);
+---
+
+<nav aria-label="Documentation" class="docs-sidebar">
+  <a href="/docs/" class="docs-sidebar-home" aria-current={currentId ? undefined : "page"}>
+    Docs home and search
+  </a>
+  {groups.map((group) => (
+    <div class="docs-sidebar-group">
+      <p class="docs-sidebar-heading">{group.label}</p>
+      <ul>
+        {group.docs.map((doc) => (
+          <li>
+            <a href={docHref(doc)} aria-current={doc.id === currentId ? "page" : undefined}>
+              {sidebarLabel(doc)}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</nav>

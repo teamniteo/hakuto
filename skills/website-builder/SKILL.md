@@ -1,6 +1,6 @@
 ---
 name: website-builder
-description: Core orchestrator for generating production-ready Astro websites through conversational design — runs the design interview, proposes directions, builds a style preview for approval, then the full site, delegating to the copy, brand, font and section skills as it goes. Use for "build a SaaS site", "make me a landing page", "create a website", "I need a portfolio site", "build a marketing site", and for adding or reworking pages ("add a features page", "build the pricing page", "create about"). Not for single-property tweaks on an existing page — copy-only edits go to `professional-copywriter`, palette-only changes to `brand-designer`, and adding a blog, docs or form section to the matching `section-*` skill.
+description: Core orchestrator for building Astro websites through conversational design — runs the design interview, proposes directions, builds a style preview for approval, then the full site. Use for "build a SaaS site", "make me a landing page", "create a website", "add a pricing page", and for restyling by feel ("make it warmer", "more premium", "redesign the homepage"). Skip for copy-only edits (`professional-copywriter`), palette-only changes (`brand-designer`), font swaps (`fonts`), and blog, docs or form sections (`section-blog`, `section-docs`, `section-form`).
 ---
 
 # Website Builder
@@ -11,22 +11,11 @@ Generate production-ready websites through a design interview: read the brief, a
 
 ## Working Alongside CLAUDE.md
 
-This skill is the orchestrator referenced by Hakuto's CLAUDE.md. **Follow CLAUDE.md's "Mandatory Workflow" (the 7-step `index.css` → `Layout.astro` → Project Plan → Components flow) alongside this skill's design workflows.** CLAUDE.md is always loaded; this skill adds the conversational, design-aware layer on top of that mechanical sequence.
+This skill is the orchestrator referenced by Hakuto's CLAUDE.md. Follow CLAUDE.md's "Mandatory Workflow" (`index.css` → `Layout.astro` → Project Plan → Components) alongside this skill's design workflows. CLAUDE.md owns the *how* (which files to touch, what conventions to follow); this skill owns the *what* (which direction, which content strategy, when to invoke siblings).
 
-When the two overlap, CLAUDE.md owns the *how* (which files to touch, what conventions to follow) and this skill owns the *what* (which direction, which content strategy, when to invoke siblings).
+Two deliberate differences from older CLAUDE.md copies: the Project Plan lives in `site-specification.md` under `## Project Plan`, not in CLAUDE.md (so CLAUDE.md stays clean for `scaffold-sync`), and the spec is created at style-preview approval rather than while writing `index.css`.
 
----
-
-## Technical Constraints
-
-These rules are enforced by CLAUDE.md and apply to every page this skill produces. See CLAUDE.md for full details.
-
-- **Tailwind CSS v4** — config lives in `src/index.css` via `@theme {}`, not `tailwind.config.mjs` (delete that file if present).
-- **`className` (not `class`) on React/shadcn components** — `<Button className="...">` is correct; `<Button class="...">` is a TypeScript error. Native HTML in `.astro` keeps `class`.
-- **Astro Fonts API for custom fonts** — `experimental.fonts` (5.x) or top-level `fonts` (6+) in `astro.config.mjs`. Never use `@import` or `@font-face` for custom fonts. ALWAYS invoke the `fonts` skill when custom fonts are involved.
-- **Cloudflare adapter `imageService: "custom"`** with no `image.service` key, so Astro's sharp default survives. Both `"compile"` and `"passthrough"` replace sharp — `"compile"` does so despite the name.
-- **`<Picture>` for local images, `<img>` for external URLs** — local assets go through `astro:assets` for WebP/responsive widths. Unsplash and other external URLs use plain `<img>`.
-- **Right-size every local image** — `width={W} widths={[W, W * 2]} sizes="…"`, all three: without `widths` Astro emits no `srcset` and the `sizes` is inert. Omit `height` unless a crop is intended — a pair that disagrees with the source ratio makes sharp crop.
+CLAUDE.md's Technical Requirements (Tailwind v4 in `src/index.css`, `className` on React components, Fonts API, Cloudflare `imageService: "custom"`, `<Picture>` with `width`/`widths`/`sizes`) apply to every page this skill produces.
 
 ---
 
@@ -45,7 +34,9 @@ Design languages are **principles, not menus** — each project generates its ow
 2. User provides direction → Adapt the chosen design direction (dials live here)
 3. User provides no input → Derive from the Design Read and design-language principles
 
-**Why this order:** explicit user intent always wins because the user knows their context better than any default can model. Direction comes second because it's a real signal of preference. Principles sit last so the model never blocks on a blank canvas — they're scaffolding, not constraints. Users always have the final word.
+**Why this order:** explicit user intent always wins because the user knows their context better than any default can model. Direction comes second because it's a real signal of preference. Principles sit last so the model never blocks on a blank canvas — they're scaffolding, not constraints.
+
+**Prove before building:** the style preview is the cheapest point to change direction, and the approved preview is the shipped foundation — no drift.
 
 ---
 
@@ -57,7 +48,7 @@ Three dials, 1–10, set from the Design Read + interview and recorded in `site-
 - **MOTION_INTENSITY** — animation sophistication (hover-only → orchestrated stagger → scroll choreography)
 - **VISUAL_DENSITY** — spacing scale (maps to `@theme` spacing tokens)
 
-Full band mechanics, the vibe-word inference table, and dial-change rules: **`references/design-dials.md`** — load it when proposing directions or changing dials. Never interview the user about dial numbers; derive them and surface them inside direction proposals.
+Full band mechanics, the vibe-word inference table, and dial-change rules: **`references/design-dials.md`** — load it when proposing directions or changing dials. Don't interview the user about dial numbers; derive them and surface them inside direction proposals.
 
 ---
 
@@ -80,58 +71,53 @@ User says: "Build me a SaaS site", "Create a website", "I need a landing page"
 7. Content availability (assess from what was pasted — rarely ask)
 8. Pages needed beyond homepage + production domain
 
-Use AskUserQuestion **only for gaps** — max 4 questions per call, a second round only if more than 4 genuine gaps exist. A rich brief gets zero questions. **Confidently inferable ≠ gap: do not ask, surface the inference in the Design Read and direction proposals where correcting it is cheap.** Never ask about layout, motion, or density — the dials decide those.
+Use AskUserQuestion **only for gaps** — max 4 questions per call, a second round only if more than 4 genuine gaps exist. A rich brief gets zero questions. Confidently inferable is not a gap: surface the inference in the Design Read and direction proposals, where correcting it is cheap. Don't ask about layout, motion, or density — the dials decide those.
 
 **Step 3 — Propose 2–3 design directions.** Load `references/design-dials.md`, `references/design-craft.md` (source of the pattern and recipe names below), and the 2–3 candidate `references/design-languages/[language].md` files (never all 7). Directions must be genuinely distinct — differing on at least two of: base language, light/dark, dial band, hue temperature, type-contrast strategy. Each direction brief contains:
 
 - **Name** (evocative, ≤2 words) + one-line concept — why it fits this brand
 - **Base language** (may blend two)
 - **Dials**: VARIANCE / MOTION / DENSITY with a one-clause reason
-- **Palette strategy**: hue family + temperature + light/dark + 60/30/10 roles (no hexes yet)
-- **Type pairing**: two named fonts + contrast rationale
+- **Palette strategy**: hue family + temperature + light/dark + 60/30/10 roles (dominant / secondary / accent; no hexes yet)
+- **Type**: one decisive family or a contrast pairing, or the system stack where the language calls for it (brutalist often does) — with a one-clause rationale
 - **Signature move**: one named layout pattern; **motion recipe**: one named recipe
 
 Print the full briefs in the chat message, then a single-select AskUserQuestion ("Which direction?") with one option per direction. A "mix A's palette with B's layout" answer is legitimate — synthesize a merged direction and confirm it.
 
 **Step 4 — Style preview.** Build the smallest thing that proves the chosen direction, with real tokens (the approved preview IS the shipped foundation):
 
-1. Generate the palette fresh: INVOKE **brand-designer** — with the user's colors/logo if provided, otherwise seeded from the direction's palette strategy (hue family + temperature + wheel scheme). Brand-designer owns the OKLCH wheel math and contrast checks in both cases.
-2. Invoke the **fonts** skill for the pairing. Then tell the user — mandatory, every time fonts change: *"Restart your dev server so the new fonts load, then open the preview."*
-3. Write `src/index.css` `@theme {}`: palette tokens, font variables, radius scale, section-spacing tokens derived from DENSITY.
+1. Generate the palette fresh: invoke **brand-designer** — with the user's colors/logo if provided, otherwise seeded from the direction's palette strategy (hue family + temperature + wheel scheme). Brand-designer owns the wheel math and contrast checks; since no spec exists yet, it returns the palette and contrast table to you.
+2. If the direction uses a web font, invoke the **fonts** skill to wire it. A system stack needs no skill — write it straight into the `--font-*` tokens.
+3. Write `src/index.css`: palette tokens, font variables, radius scale, section-spacing tokens derived from DENSITY.
 4. Build `src/pages/branding.astro`: palette swatches with role labels, type specimen (H1–H3, body, weights), button/card/input samples — **plus one full sample hero** using the direction's signature move and motion recipe.
-5. Point the user to `http://localhost:4321/branding/`. Never run `bun run dev` yourself; validate with `bun run check`.
+5. Validate with `bun run check`, then point the user to `http://localhost:4321/branding/`. If no dev server is running and port 4321 is free, start `bun run dev`; if 4321 is taken, the user already has one running — don't start a second. Astro restarts itself when `astro.config.mjs` changes; if the preview still shows fallback fonts, ask the user to restart `bun run dev`.
 
-**Step 5 — Iterate.** Apply feedback to `index.css` + `branding.astro` only — the cheap loop. Map vibe-level feedback to dial changes and echo them ("Dropping MOTION to 3"). Font swaps re-invoke the fonts skill + another restart notice, so lock fonts early. Loop until approved.
+**Step 5 — Iterate, then lock the spec.** Apply feedback to `index.css` + `branding.astro` only — the cheap loop. Map vibe-level feedback to dial changes and echo them ("Dropping MOTION to 3"). Font swaps re-run the fonts skill and can need a dev-server restart, so lock fonts early. On approval, create `site-specification.md` from **`references/site-specification-guide.md`** — direction, dials, palette, contrast table, fonts, tone, and the `## Project Plan` listing every page and shared component.
 
-**Step 6 — Lock spec, build the site.**
-1. Write `site-specification.md` (template below) recording direction, dials, palette, fonts.
-2. **Rewrite `public/llms.txt` from the spec, in the same breath** — site name, one-line description, overview, and contact. The scaffold ships a raw template and it is served **live** at `/llms.txt`: left untouched it publishes "Site Name", `hello@example.com`, and a link to `/docs/` that 404s on a site with no docs section. As soon as the spec exists, the real values exist — write them. Key Pages must list only routes that actually build.
+**Step 6 — Build the site.**
+1. **Rewrite `public/llms.txt` from the spec, in the same breath.** The scaffold ships a raw template that is served **live** at `/llms.txt`: left untouched it publishes "Site Name", `hello@example.com`, and bracketed placeholders. As soon as the spec exists, the real values exist — write site name, one-line description, overview, and contact. Key Pages must list only routes that actually build.
    **Cover route *families*, not just the marketing pages.** An `llms.txt` that lists five top-level pages on a site with a blog, docs and a templated hub omits exactly the body of content an agent wants. For every route family the site builds, add a category-level entry with a count — `- [Blog](/blog/) — 37 posts on …`, `- [Docs](/docs/) — 30 pages covering …` — rather than enumerating URLs. Every route in the main nav needs an entry too.
-   **Write the `## When to use this` section** — the scaffold ships it as a prompt, and it is
-   the single thing agent-readiness scanners look for to decide whether a site tells agents
-   when to reach for it. Name the concrete jobs this site is the right answer for, and at
-   least one adjacent job it is *not*. Generic marketing copy does not read as guidance and
-   scores as absent.
-3. Load `references/design-craft.md` + `references/site-types/[type].md`, then follow CLAUDE.md's Mandatory Workflow steps 3–7. Site-type files define content *jobs*; section composition and order come from the direction, dials, and craft patterns.
-4. Content per Content Strategy below — pass the copywriter the direction name and tone.
-5. Set `site` in `astro.config.mjs` to the production URL if the user provided a domain (drives sitemap/canonicals/JSON-LD); otherwise leave the scaffold default and note it must be updated before deploy.
-6. Keep `branding.astro` as the living style guide — exclude it from nav.
-7. Re-check `public/llms.txt` against the pages that actually got built — routes and contact only — before declaring done. Confirm every route family with 5+ pages has a category entry, and that no listed route 404s.
-8. Run the **pre-flight check** (end of `design-craft.md`) before declaring done, and tell the user about the spec file and customization flexibility.
+   **Write the `## When to use this` section** — the scaffold ships it as a prompt, and it is the single thing agent-readiness scanners look for to decide whether a site tells agents when to reach for it. Name the concrete jobs this site is the right answer for, and at least one adjacent job it is *not*. Generic marketing copy does not read as guidance and scores as absent.
+2. Load `references/design-craft.md` + `references/site-types/[type].md`, then follow CLAUDE.md's Mandatory Workflow steps 3–7, ticking items off the spec's Project Plan. Site-type files define content *jobs*; section composition and order come from the direction, dials, and craft patterns.
+3. Content per Content Strategy below.
+4. Set `site` in `astro.config.mjs` to the production URL if the user provided a domain (drives sitemap/canonicals/JSON-LD); otherwise leave the scaffold default and list it as an open TODO in the final report.
+5. Keep `branding.astro` as the living style guide — exclude it from nav.
+6. Re-check `public/llms.txt` against the pages that actually got built — routes and contact only. Confirm every route family with 5+ pages has a category entry, and that no listed route 404s.
+7. Run the **pre-flight check** (end of `design-craft.md`) and the Before Declaring Done list below, then send the final report.
 
 ### B) Add Standard Page
 
 User says: "Build the features page", "Add pricing", "Create about page"
 
 **Steps:**
-1. Read `site-specification.md` — extract direction, dials, palette, fonts, and which layout patterns existing pages use. **If the spec predates the dial system, infer dials from the built pages and backfill them into the spec.**
+1. Read `site-specification.md` — extract direction, dials, palette, fonts, and which layout patterns existing pages use. If the spec predates the dial system or is missing, migrate or create it per `references/site-specification-guide.md`.
 2. Load `references/design-craft.md` + site-type file.
-3. Assess content: missing/partial → INVOKE professional-copywriter; complete → use verbatim.
+3. Content per Content Strategy below.
 4. Build the page to the spec's *Current* style and dial mechanics — prefer layout families the site hasn't led with yet, while keeping the established visual system.
 5. Add the new route to `public/llms.txt` Key Pages if it's a page agents should find (skip utility pages). If the route joins an existing family, update that family's count instead of adding a URL.
-6. Run the pre-flight check; update `site-specification.md`.
+6. Run the pre-flight check; add/tick the page in the Project Plan, and update the Design sections only if a new pattern was introduced.
 
-**Note:** Workflow B does not re-run the interview or re-consult defaults — the spec is the authoritative source. Apply Current; don't re-derive.
+Workflow B does not re-run the interview or re-consult defaults — the spec is the authoritative source. Apply Current; don't re-derive.
 
 ### C) Brand Colors
 
@@ -139,24 +125,24 @@ User says: "Use my brand colors #3B82F6", "Match my logo", "Extract colors"
 
 **Steps:**
 1. Verify site exists (minimum homepage)
-2. **INVOKE brand-designer** (handles the entire workflow: reads spec → generates palette via color-wheel rules → presents → applies if approved)
+2. Invoke **brand-designer** — it handles the whole flow: reads spec → generates palette via color-wheel rules → presents → applies if approved
 3. Result: pages regenerated with new colors only
-4. Update the spec's **Design Direction palette line** and note the change in Design Evolution
+4. Confirm the spec's Design Direction palette line and Design Evolution reflect the change
 
-### D) User Customization Requests
+### D) Restyle by Feel
 
-User says: "Make it warmer", "Use rounder buttons", "Try purple instead", "Make it livelier"
+User says: "Make it warmer", "Make it more premium", "Make it livelier", "Redesign the homepage"
 
 **Steps:**
 1. Read `site-specification.md` for current state
-2. **Literal requests** (specific colors, fonts, radius, spacing) → apply directly, regardless of the original direction
-3. **Vibe-level requests** → translate to dial changes per `references/design-dials.md` ("livelier" → MOTION +2), echo the change, and regenerate the affected mechanics consistently — not just one section
+2. Translate vibe-level requests to dial changes per `references/design-dials.md` ("livelier" → MOTION +2), echo the change, and regenerate the affected mechanics consistently — not just one section
+3. Literal values that come bundled with the restyle (a radius, a spacing step) → apply directly, regardless of the original direction. A new palette goes through `brand-designer`; a font swap through `fonts`.
 4. Update `site-specification.md`; significant deviations update the Design Direction itself, not just Evolution
 
 ### E) Logo Upload
 
-**During initial build:** add to header; the project palette is still generated from the direction (Workflow A step 4) — a bare logo upload is NOT a request to extract colors from it
-**With color extraction request:** INVOKE brand-designer with the logo as the color source (Workflow C)
+**During initial build:** add to header; the project palette is still generated from the direction (Workflow A step 4) — a bare logo upload is not a request to extract colors from it.
+**With color extraction request:** invoke brand-designer with the logo as the color source (Workflow C).
 
 ---
 
@@ -166,58 +152,25 @@ User says: "Make it warmer", "Use rounder buttons", "Try purple instead", "Make 
 |------|------|
 | Skill invoked | (this file only) |
 | Workflow A step 3 — directions | `design-dials.md` + `design-craft.md` + 2–3 candidate `design-languages/*.md` |
+| Creating or migrating a spec (A step 5, B/C/D on an old or missing spec) | `site-specification-guide.md` |
 | Workflow A step 6 / Workflow B — build | `design-craft.md` (already loaded in A) + `site-types/[type].md` |
 | Workflow C/D | spec; `design-dials.md` only if dials change |
 
-Never load all 7 design languages.
+All paths are under `references/`. Never load all 7 design languages.
 
 ---
 
 ## Content Strategy
 
-**Before generating any page:**
+Before generating any page:
 
-1. Content complete (full sentences)? → Use verbatim (preserve user content)
-2. Content partial (bullets/headlines)? → INVOKE professional-copywriter to expand
-3. Content missing? → INVOKE professional-copywriter to generate
-4. Edit requested? → INVOKE professional-copywriter
+1. Content complete (full sentences)? → Use verbatim
+2. Content partial (bullets/headlines) or missing? → invoke **professional-copywriter** to expand or generate
+3. User asks for copy edits ("improve this", "rewrite the hero")? → invoke **professional-copywriter**
 
-**Critical rule:** User-provided content is sacred. Generate only when missing/partial or explicitly requested.
+Pass the copywriter the direction name and the spec's Tone so the copy matches the design. Placeholder copy you write yourself starts with `TODO:` so the prelaunch checklist catches it.
 
-**Why:** Users provide copy because they know their product, audience, voice, and factual claims better than a generative model can. Rewriting verbatim copy silently — even to "polish" it — risks introducing inaccuracies, eroding the user's voice, and breaking the trust contract. When unsure whether to rewrite, default to verbatim.
-
----
-
-## State Management
-
-### site-specification.md
-
-Create at style-preview approval (Workflow A step 6); read before every subsequent page; update after every change.
-
-```markdown
-# Site Specification
-
-## Configuration
-- **Site Type**: [SaaS or General]
-- **Target Audience**: [who]
-- **Primary Goal**: [conversion/credibility/leads/signups]
-- **Tone**: [from interview dimension 6, e.g. "warm, plain-spoken" or "technical, no fluff"]
-
-## Design Direction
-- **Direction**: "[Name]" — [one-line concept]
-- **Base Language**: [language] (see `references/design-languages/`)
-- **Dials**: VARIANCE n · MOTION n · DENSITY n
-- **Palette** (60/30/10): dominant #… · secondary #… · accent #… — [scheme, e.g. triadic]
-- **Fonts**: [Display font + weights] / [Body font + weights] — via Astro Fonts API
-- **Signature patterns**: [named patterns in use]
-- **Motion recipes**: [named recipes in use]
-
-## Design Evolution
-- **User customizations**: [dated list of deviations and dial changes, or "None yet"]
-- **Current style**: [concise prose description of the actual aesthetic in use]
-```
-
-**See `site-specification-guide.md`** (in this skill folder) for the full lifecycle — when to create, read, and update; the rule "always build to *Current*, not the original direction"; and the backfill rule for pre-dial specs.
+**User-provided content is sacred.** Users provide copy because they know their product, audience, voice, and factual claims better than a generative model can. Rewriting verbatim copy silently — even to "polish" it — risks introducing inaccuracies, eroding the user's voice, and breaking the trust contract. When unsure whether to rewrite, default to verbatim.
 
 ---
 
@@ -225,62 +178,13 @@ Create at style-preview approval (Workflow A step 6); read before every subseque
 
 The website-builder is the orchestrator. Other skills own their domains; invoke them when the user's intent crosses into one.
 
-### Professional-Copywriter
+- **brand-designer** — any project palette: Workflow A's style preview and any later color request. Not needed when reusing colors already in `index.css`. Returns hex/OKLCH/HSL values plus a contrast table; writes them into the spec when one exists.
+- **fonts** — whenever a web font is chosen or changed. The Astro Fonts API is the only correct wiring; never `@import` or `@font-face`.
+- **section-form / section-blog / section-docs** — interactive forms; blog/articles/news/changelog with listings and archives; `/docs` with sidebar and search. They bolt specialized areas onto the foundation this skill lays.
+- **plausible-analytics** — analytics on a Cloudflare Workers deploy. For Vercel/Netlify/static-only, paste Plausible's standard `<script>` tag instead.
+- **Audits (post-build)** — `seo-audit` (built HTML), `hakuto-review` (source), `pagespeed-audit` (deployed URL), `prelaunch-checklist` (final gate). Suggest them once all pages are built or when the user says "ready to ship".
 
-**Invoke when:** content missing/partial for a page or section; user requests "write copy", "improve this".
-**DON'T invoke when:** user provides complete copy; no edit requested.
-**How it works:** benefit-driven, conversion-optimized copy; follows site-type content jobs; matches the direction's tone (pass direction name + tone from the spec); preserves the user's core message when expanding.
-
-### Brand-Designer
-
-**Invoke when:** generating any project palette — Workflow A's style preview (with user colors/logo if provided, otherwise seeded from the direction's palette strategy) and any later color request ("use my brand colors", "use #3B82F6", logo extraction).
-**DON'T invoke:** the user asks to reuse colors that already exist in `index.css`.
-**How it works:** reads spec → generates palette via OKLCH color-wheel rules (complementary/triadic/analogous per design language) → checks direction compatibility → presents for approval → applies → updates the spec's Design Direction palette.
-
-### Fonts
-
-**Always invoke** whenever any custom font is used (CLAUDE.md mandate) — including Workflow A step 4. The Astro Fonts API is the only correct wiring; never `@import` or `@font-face`. **Every font change requires telling the user to restart their dev server.**
-
-### Section-Form / Section-Blog / Section-Docs
-
-**Section-Form:** any interactive form ("contact form", "newsletter", "waitlist"). Skip for mailto:, third-party-hosted, or visual-only forms.
-**Section-Blog:** blog/articles/news/changelog with listing pages and archives.
-**Section-Docs:** `/docs` area with sidebar navigation and search.
-
-These bolt specialized areas onto the foundation this skill lays.
-
-### Plausible-Analytics
-
-**Invoke when:** user requests analytics/tracking *and* the project deploys to Cloudflare Workers. Skip for Vercel/Netlify/static-only (standard Plausible `<script>` tag there).
-
-### Audit Skills (post-build handoffs)
-
-- **seo-audit** — meta tags, headings, canonicals, schema, sitemap, alt text. Run before every launch.
-- **pagespeed-audit** — live Lighthouse via PageSpeed Insights for deployed pages.
-- **hakuto-review** — Hakuto-specific source audit against CLAUDE.md rules.
-- **prelaunch-checklist** — final pre-launch verification.
-
-Suggest these proactively when the user says "ready to ship", "going live", or once all pages are built.
-
----
-
-## Quality Checklist
-
-✅ Design Read stated before any questions or code
-✅ Interview asked only about genuine gaps (≤4 questions per round)
-✅ 2–3 genuinely distinct directions proposed; user picked or merged one
-✅ Style preview built with real tokens and approved before the full build
-✅ Dials + direction + palette + fonts recorded in site-specification.md
-✅ `public/llms.txt` written from the spec — no `Site Name`, no `hello@example.com`, no links to routes that don't exist
-✅ User content preserved (not overwritten); copywriter invoked only when needed
-✅ Site-type content jobs all covered; structure driven by dials + craft patterns
-✅ Pre-flight check (design-craft.md) run on every built page
-✅ Logo handled correctly (visual vs color extraction)
-✅ Told user about the spec file and customization flexibility
-
----
-
-## Skill Invocation Quick Reference
+### Quick Reference
 
 | Situation | Skill to invoke |
 |-----------|-----------------|
@@ -290,7 +194,8 @@ Suggest these proactively when the user says "ready to ship", "going live", or o
 | "Use my brand colors", "use #3B82F6" | `brand-designer` |
 | "Extract colors from my logo" | `brand-designer` |
 | Logo upload, no color request | (none — header + project palette) |
-| Any custom font | `fonts` (always — CLAUDE.md mandate) |
+| Web font chosen or changed | `fonts` |
+| System font stack | (none — write `--font-*` tokens directly) |
 | "Add a contact / newsletter / inquiry form" | `section-form` |
 | "Add a blog / articles / news section" | `section-blog` |
 | "Add docs / API docs" | `section-docs` |
@@ -303,16 +208,28 @@ Suggest these proactively when the user says "ready to ship", "going live", or o
 
 ---
 
-## Key Principles
+## Before Declaring Done
 
-**Interview, don't assume:** the Design Read + gap questions replace guessing. But never re-ask what the brief already answers.
+- Design Read stated before any questions or code; interview asked only about genuine gaps (≤4 per round)
+- 2–3 genuinely distinct directions proposed; user picked or merged one
+- Style preview built with real tokens and approved before the full build
+- `site-specification.md` holds direction, dials, palette, fonts, tone, and a Project Plan with every built item ticked
+- `public/llms.txt` written from the spec — no `Site Name`, no `hello@example.com`, no bracketed placeholders, no links to routes that don't exist
+- User content preserved; copywriter invoked only when needed; any self-written placeholder starts with `TODO:`
+- Site-type content jobs all covered; structure driven by dials + craft patterns
+- Pre-flight check (design-craft.md) run on every built page; `bun run check` and `bun run build` pass
+- Logo handled correctly (visual vs color extraction)
 
-**Prove before building:** the style preview is the cheapest point to change direction. The approved preview is the shipped foundation — no drift.
+## Final Report
 
-**Principles, not menus:** design languages give attitude and constraints; every project generates its own palette, type, and structure. Two sites, same language, different look.
+End a build (Workflow A, or a multi-page B) with a short report:
 
-**Content:** user's words are sacred. Generate only when missing/partial or requested.
-
-**State:** everything lives in site-specification.md — direction, dials, palette, fonts, evolution. Always read it before building; always build to *Current*.
-
-**Skills:** website-builder orchestrates; each sibling owns its domain; dial-level customizations are handled directly.
+```markdown
+**Built:** [pages, e.g. / · /pricing/ · /about/] + branding.astro style guide (not in nav)
+**Direction:** "[Name]" — VARIANCE n · MOTION n · DENSITY n
+**Spec:** site-specification.md — read before every change; edit it to steer future work
+**Open TODOs:**
+- [ ] Production domain → `site` in astro.config.mjs (if not provided)
+- [ ] Placeholders to replace: [list `TODO:` copy, stock images, SITE_CONTACT nulls]
+- [ ] Run `seo-audit` and `hakuto-review` now; `pagespeed-audit` after deploy; `prelaunch-checklist` before launch
+```

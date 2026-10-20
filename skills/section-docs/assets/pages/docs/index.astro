@@ -1,0 +1,62 @@
+---
+// src/pages/docs/index.astro — docs home: title, search, one card per category
+// listing its pages. Text-only cards, no colour: the minimal docs system.
+import Layout from "@/layouts/Layout.astro";
+import Search from "astro-pagefind/components/Search";
+import { docHref, getDocs, groupDocs, sidebarLabel } from "@/lib/docs";
+import "@/styles/docs.css";
+
+const groups = groupDocs(await getDocs());
+const firstDoc = groups[0]?.docs[0];
+---
+
+<Layout
+  title="Documentation"
+  description="TODO: one sentence on what these docs cover and who they are for."
+  wide
+>
+  <div class="docs docs-home">
+    <header class="docs-home-header">
+      <h1 class="docs-title">Documentation</h1>
+      <p class="docs-lede">TODO: one sentence on what these docs cover and who they are for.</p>
+      <!-- Pagefind searches the whole site, so a docs query can surface marketing
+           pages too. The index exists only after `bun run build`; in `bun run dev`
+           this box loads but finds nothing. -->
+      <div class="docs-search" data-pagefind-ignore>
+        <Search id="docs-search" className="pagefind-ui" uiOptions={{ showImages: false }} />
+      </div>
+      {firstDoc && (
+        <p>
+          <a href={docHref(firstDoc)} class="docs-start">Start with {sidebarLabel(firstDoc)} →</a>
+        </p>
+      )}
+    </header>
+
+    <div class="docs-home-grid">
+      {groups.map((group) => (
+        <section class="docs-card" aria-labelledby={`cat-${group.slug}`}>
+          <h2 id={`cat-${group.slug}`}>{group.label}</h2>
+          <ul>
+            {group.docs.map((doc) => (
+              <li>
+                <a href={docHref(doc)}>{sidebarLabel(doc)}</a>
+                <p>{doc.data.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+
+    <!-- Resources: uncomment and point at real URLs, or delete.
+    <section class="docs-resources" aria-labelledby="docs-resources">
+      <h2 id="docs-resources">Resources</h2>
+      <ul>
+        <li><a href="https://github.com/ORG/REPO">GitHub</a></li>
+        <li><a href="/contact/">Support</a></li>
+        <li><a href="https://status.example.com">Status</a></li>
+      </ul>
+    </section>
+    -->
+  </div>
+</Layout>
