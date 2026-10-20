@@ -2,16 +2,18 @@
 
 Run these once per audit, not per page.
 
-Read `public/_headers`, `public/robots.txt` (or `src/pages/robots.txt.ts`) and
-`astro.config.mjs` **from source**, not from `_dist/`. The built copies are byte-identical
-and the fix always lands in source, so reporting the source path saves the user a hop.
+Read `public/_headers` and `astro.config.mjs` **from source**, not from `dist/client/`. The
+built `_headers` is byte-identical and the fix always lands in source, so reporting the source
+path saves the user a hop. `robots.txt` is different: Hakuto generates it from
+`src/pages/robots.txt.ts`, so read the built `dist/client/robots.txt` and point fixes at the
+`.ts` route.
 
 ---
 
 ## Sitemap
 
-Read `_dist/sitemap.xml` (or `_dist/sitemap-index.xml` if present; follow the index to its
-child sitemaps).
+Read `dist/client/sitemap-index.xml` (or `dist/client/sitemap.xml` if present); follow the
+index to its child sitemaps.
 
 - Missing → ❌ critical
 - Present, list all URLs → ✅ pass
@@ -32,14 +34,14 @@ child sitemaps).
 
 ## robots.txt
 
-Read `_dist/robots.txt`.
+Read `dist/client/robots.txt`. Fixes land in `src/pages/robots.txt.ts`.
 
 - Missing → ❌ critical
 - Present, no `Sitemap:` line → ⚠️ warning
 - Present, has `Sitemap:` → confirm each `Sitemap:` URL actually resolves to a file in
-  `_dist/`. A dead or misspelled sitemap reference wastes crawl budget and is invisible to a
+  `dist/client/`. A dead or misspelled sitemap reference wastes crawl budget and is invisible to a
   naive "has Sitemap:" check.
-  - `Sitemap:` URL with no matching file in `_dist/` → ❌ critical: "robots.txt points to
+  - `Sitemap:` URL with no matching file in `dist/client/` → ❌ critical: "robots.txt points to
     missing sitemap: [url]".
   - Multiple `Sitemap:` lines where the real sitemap is an index → ⚠️ warning:
     "Multiple/redundant Sitemap: lines — list only the sitemap index".
@@ -76,8 +78,8 @@ puts it in `robots.txt`; Cloudflare also emits it as an HTTP header.
 
 ## `_headers` — crawler signals only
 
-**`hakuto-review` owns `public/_headers`.** Its sections M (static-asset caching) and N
-(security headers) already grade `Content-Security-Policy`, `Permissions-Policy`, HSTS,
+**`hakuto-review` owns `public/_headers`.** Its `references/checks-headers.md` (static-asset
+caching and security headers) already grades `Content-Security-Policy`, `Permissions-Policy`, HSTS,
 `Referrer-Policy`, `X-Content-Type-Options`, the `/_astro/*` immutable cache and the
 favicon/pagefind cache caps — including the "security headers on a path-specific rule
 instead of `/*`" case. Do not re-grade any of that here; point the user at `hakuto-review`
@@ -119,15 +121,21 @@ one `llms.txt`; advertising them from every page is the intent.
 Static hosts serve a directory's `index.html` at *both* `/` and `/index.html`, creating a
 duplicate-content pair unless one 301-redirects.
 
-- For each `_dist/**/index.html`, flag if the site has no `_redirects` (or host config) rule
-  sending `/index.html → /` (and nested `/<dir>/index.html → /<dir>/`) → ⚠️ warning:
+**Skip this check** on Cloudflare static assets when `wrangler.toml`'s `[assets]` block sets
+`html_handling = "auto-trailing-slash"` or `"force-trailing-slash"` (the Hakuto scaffold ships
+`force-trailing-slash`), or omits the key (`auto-trailing-slash` is the default): Cloudflare
+already redirects `/index.html` to `/`, so the duplicate never exists. Run it only for
+`html_handling = "none"` or a non-Cloudflare host.
+
+- Otherwise, for each `dist/client/**/index.html`, flag if the site has no `_redirects` (or
+  host config) rule sending `/index.html → /` (and nested `/<dir>/index.html → /<dir>/`) → ⚠️ warning:
   "`/index.html` reachable as a duplicate of `/` — add a 301 in `public/_redirects`".
 
 ---
 
 ## llms.txt
 
-Read `_dist/llms.txt`. Hints to LLM crawlers which content is canonical and how to summarize
+Read `dist/client/llms.txt`. Hints to LLM crawlers which content is canonical and how to summarize
 the site.
 
 - Missing → ⚠️ warning
@@ -136,7 +144,7 @@ the site.
   → ❌ critical: "llms.txt is the unedited scaffold template — it's live and tells crawlers
   the site is 'Site Name' at hello@example.com". Present-but-placeholder is worse than
   absent: it publishes wrong facts instead of none.
-- Present, and a Key Pages link resolves to no file in `_dist/` → ❌ critical: "llms.txt links
+- Present, and a Key Pages link resolves to no file in `dist/client/` → ❌ critical: "llms.txt links
   to [route] which isn't built (the scaffold's `/docs/` is the usual leftover)".
 
 **Coverage** — a well-formed, accurate `llms.txt` that describes only the top-level marketing
@@ -162,16 +170,16 @@ confirmed production use of it, so the upside is modest — but it is close to f
 - `<link rel="apple-touch-icon">` → recommended, missing = ⚠️ warning
 - `<link rel="manifest">` (web app manifest) → recommended, missing = ⚠️ warning
 
-*File checks* (in `_dist`, site-wide):
+*File checks* (in `dist/client/`, site-wide):
 - `favicon.ico` → required, missing = ❌ critical
 - `favicon.svg` OR `favicon-32x32.png` (or similar PNG fallback) → required, missing =
   ❌ critical
 - `apple-touch-icon.png` (or `apple-touch-icon-180x180.png`) → recommended, missing =
   ⚠️ warning
-- `manifest.webmanifest` (or `site.webmanifest`) → recommended, missing = ⚠️ warning
+- `manifest.webmanifest` (`astro-favicons` output; older sites may use `site.webmanifest`) → recommended, missing = ⚠️ warning
 
 *Validation*: for each `<link rel="icon" href="...">`, confirm the referenced file exists in
-`_dist` → broken reference = ❌ critical.
+`dist/client/` → broken reference = ❌ critical.
 
 ---
 
@@ -180,11 +188,11 @@ confirmed production use of it, so the upside is modest — but it is close to f
 A feed nobody can find is a feed nobody reads, and readers/aggregators only look at the
 `<link>`.
 
-- A feed file exists in `_dist` (`rss.xml`, `feed.xml`, `atom.xml`, or any
+- A feed file exists in `dist/client/` (`rss.xml`, `feed.xml`, `atom.xml`, or any
   `application/rss+xml` / `application/atom+xml` output) but **no**
   `<link rel="alternate" type="application/rss+xml">` appears in any page's `<head>` →
   ⚠️ warning: "[feed] is live but has no autodiscovery link".
-- Autodiscovery link present but pointing at a file not in `_dist` → ❌ critical.
+- Autodiscovery link present but pointing at a file not in `dist/client/` → ❌ critical.
 - Hakuto sites: the link is emitted by `Layout.astro`'s `feedUrl` prop.
 
 ---
@@ -226,7 +234,7 @@ important question asked about most sites.
   `\d+ (USD|EUR|GBP)`) → ❌ critical: "[url] ships zero prices in server-rendered HTML".
   Show the evidence:
   ```sh
-  grep -oE '[$€£][0-9]+' _dist/pricing/index.html   # → (no matches)
+  grep -oE '[$€£][0-9]+' dist/client/pricing/index.html   # → (no matches)
   ```
   State the consequence plainly: any answer engine asked what the product costs will omit
   the price or invent one. The fix is to server-render a static "from $X per device / month"
@@ -235,5 +243,5 @@ important question asked about most sites.
 - If the site exposes an agent-facing markdown representation (`Accept: text/markdown`, or
   `.md` routes), check it for the same hole → ❌ critical if the site's own machine-readable
   format can't answer the question either.
-- More generally: a page whose `<main>` in `_dist` is near-empty while the route implies
+- More generally: a page whose `<main>` in `dist/client/` is near-empty while the route implies
   substantial content → ❌ critical: "[url] renders its main content client-side".

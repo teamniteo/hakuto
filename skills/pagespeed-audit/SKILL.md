@@ -1,6 +1,6 @@
 ---
 name: pagespeed-audit
-description: Live performance audit of a deployed public URL via the Google PageSpeed Insights API — Lighthouse scores for Performance, Accessibility, Best Practices and SEO, plus Core Web Vitals (LCP, INP, CLS, FCP, TTFB) and the top opportunities behind each. Report-only. Use for "run pagespeed", "test core web vitals", "check Lighthouse score", "audit performance", "how fast is the site". Requires a deployed URL — not for local or unbuilt work, static `_dist/` checks (`seo-audit`), or source-level findings (`hakuto-review`).
+description: Live performance audit of a deployed public URL via the Google PageSpeed Insights API — Lighthouse scores for Performance, Accessibility, Best Practices and SEO, Core Web Vitals (LCP, INP, CLS, FCP, TTFB), and the top opportunities behind each. Accessibility is the Lighthouse score only. Report-only. Use for "run pagespeed", "test core web vitals", "check Lighthouse score", "audit performance", "how fast is the site". Skip for local or unbuilt work, built-HTML SEO (`seo-audit`), source-level performance or deep accessibility review (`hakuto-review`), or ship-readiness (`prelaunch-checklist`).
 ---
 
 # PageSpeed Audit
@@ -77,8 +77,7 @@ done
   > 3. Save it to an environment file in the repo root:
   >
   >    ```bash
-  >    cp .env.example .env.local   # if .env.local doesn't exist yet
-  >    # then edit .env.local and paste your key after PAGESPEED_API_KEY=
+  >    echo 'PAGESPEED_API_KEY=your-key-here' >> .env.local
   >    ```
   >
   > 4. Re-run this skill. (`.env.local` is gitignored — safe for secrets.)
@@ -109,12 +108,16 @@ Install with `brew install jq` (macOS) or `apt install jq` (Linux), then
 re-run.
 
 For each URL × strategy (mobile, desktop), fetch raw JSON to a temp file.
-Run both strategies in **parallel** (one Bash call each, not chained):
+Run both strategies in **parallel** (one Bash call each, not chained). Name
+the file after the URL as well as the strategy, so multi-URL runs don't
+overwrite each other:
 
 ```bash
 KEY="<resolved key from Step 1>"
-URL_ENC="<URL-encoded target URL>"          # use bash printf '%s\n' "$URL" | jq -sRr @uri
-curl -sS -o "/tmp/psi-${strategy}.json" \
+URL_ENC=$(printf '%s' "$URL" | jq -sRr @uri)
+SLUG=$(printf '%s' "$URL" | sed -E 's#^https?://##; s#[^A-Za-z0-9]+#-#g; s#-+$##')
+OUT="${TMPDIR:-/tmp}/psi-${SLUG}-${strategy}.json"
+curl -sS -o "$OUT" \
   "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${URL_ENC}&strategy=${strategy}&category=performance&category=accessibility&category=best-practices&category=seo&key=${KEY}"
 ```
 
@@ -145,33 +148,46 @@ jq '{
     FCP: .lighthouseResult.audits["first-contentful-paint"].displayValue,
     FCP_ms: .lighthouseResult.audits["first-contentful-paint"].numericValue,
     SI:  .lighthouseResult.audits["speed-index"].displayValue,
-    SI_ms: .lighthouseResult.audits["speed-index"].numericValue
+    SI_ms: .lighthouseResult.audits["speed-index"].numericValue,
+    TTFB: .lighthouseResult.audits["server-response-time"].displayValue,
+    TTFB_ms: .lighthouseResult.audits["server-response-time"].numericValue
   },
   field: (
     if (.loadingExperience.metrics // {}) | length > 0 then {
       LCP_ms: .loadingExperience.metrics.LARGEST_CONTENTFUL_PAINT_MS.percentile,
       CLS:    ((.loadingExperience.metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile // 0) / 100),
       INP_ms: .loadingExperience.metrics.INTERACTION_TO_NEXT_PAINT.percentile,
+      FCP_ms: .loadingExperience.metrics.FIRST_CONTENTFUL_PAINT_MS.percentile,
+      TTFB_ms: .loadingExperience.metrics.EXPERIMENTAL_TIME_TO_FIRST_BYTE.percentile,
       origin_fallback: (.loadingExperience.origin_fallback // false)
     } else "unavailable" end
   ),
   opportunities: [
     .lighthouseResult.audits | to_entries[]
-    | select(.value.details.type == "opportunity" and (.value.numericValue // 0) > 0)
+    | select((.value.score // 1) < 0.9)
+    | select(
+        (.value.details.type == "opportunity" and (.value.numericValue // 0) > 0)
+        or ((.value.metricSavings // {}) | to_entries | any(.value > 0))
+      )
     | { id: .key, title: .value.title, savings: .value.displayValue,
-        numericValue: .value.numericValue,
+        metricSavings: .value.metricSavings,
+        rank: ((.value.metricSavings // {} | [.LCP // 0, .FCP // 0, .TBT // 0, ((.CLS // 0) * 1000)] | add)
+               + (if .value.details.type == "opportunity" then (.value.numericValue // 0) else 0 end)),
         urls: [.value.details.items[]?.url // empty] | .[0:2] }
-  ] | sort_by(-.numericValue) | .[0:5],
+  ] | sort_by(-.rank) | .[0:5],
   diagnostics: [
     .lighthouseResult.audits | to_entries[]
     | select(.value.details.type == "diagnostic" and .value.displayValue and .value.displayValue != "")
     | { id: .key, title: .value.title, value: .value.displayValue, score: .value.score }
   ] | sort_by(.score // 1) | .[0:5],
-  error: .error // null
-}' "/tmp/psi-${strategy}.json"
+  error: (.error // null)
+}' "$OUT"
 ```
 
-The shape is stable; categorise the output via Severity Rules in Step 5.
+Lighthouse 13 (current PSI) replaced most `opportunity` audits with
+*insight* audits that carry savings in `metricSavings` rather than
+`details.type == "opportunity"`; the filter accepts either, so it works on
+both report generations. Categorise the output via Severity Rules in Step 5.
 
 **Hand-off note (Step 6):** quote the exact `displayValue` strings from
 PSI in the user-facing report. Don't re-format them ("4.7 s" → "4.7s" is
@@ -179,9 +195,10 @@ fine, but don't recompute or paraphrase numbers).
 
 ### 5. Categorize Findings
 
-Apply Severity Rules below. A page is critical if any Core Web Vital is
-critical or the performance score is < 50. A page is warning if any metric
-is in the warning band. Otherwise pass.
+Apply Severity Rules below. A page is ❌ critical if any Core Web Vital is
+critical, the Performance score is < 50, or the Accessibility, Best
+Practices or SEO score is < 80. A page is ⚠️ warning if any metric or score
+is in the warning band. Otherwise ✅ pass.
 
 Before listing fixes, filter through **Known False Positives** (next
 section). Flag those separately as "expected" rather than as actionable
@@ -199,7 +216,7 @@ the user can verify in the browser.
 ## Known False Positives
 
 Hakuto-shipped defaults that trigger Lighthouse warnings by design. When
-you see one of these, surface it as **"Expected (intentional)"** in the
+you see one of these, surface it as **ℹ️ Expected (intentional)** in the
 report — do **not** recommend removing it.
 
 ### `robots.txt` — `Content-Signal: …` (SEO category)
@@ -213,14 +230,11 @@ report — do **not** recommend removing it.
   any unrecognised directive as an error.
 - **Cost:** a single SEO sub-score deduction (~15 points), pulling SEO
   into the 80–89 warning band.
-- **Hakuto default:** the scaffold ships `Content-Signal` as an **HTTP
-  response header** (`public/_headers`), *not* as a `robots.txt`
-  directive — so this audit should not fire on freshly-scaffolded sites.
-  If you see it, the site has likely re-introduced the line into
-  `public/robots.txt` (older scaffold versions did this). The fix is to
-  move it back to `_headers`. If the user *wants* it in `robots.txt` for
-  crawlers that read directives there, surface this audit as **expected
-  / intentional** and don't recommend removal.
+- **Hakuto default:** fires on every Hakuto site — the scaffold emits
+  `Content-Signal` in `src/pages/robots.txt.ts` by design (the spec puts
+  it in `robots.txt`), and also sends it as a header from
+  `public/_headers`. Report it as **Expected**; never recommend removing
+  it.
 
 When future false positives are confirmed (e.g. another non-standard but
 valid directive Hakuto ships), append them here with the same shape.
@@ -229,7 +243,8 @@ valid directive Hakuto ships), append them here with the same shape.
 
 ## Severity Rules
 
-Using Google's official Core Web Vitals thresholds.
+Using Google's official Core Web Vitals thresholds. Known false positives (below) are reported as
+ℹ️ Expected, never as warnings.
 
 | Metric | Pass (✅) | Warning (⚠️) | Critical (❌) |
 |---|---|---|---|
@@ -240,6 +255,7 @@ Using Google's official Core Web Vitals thresholds.
 | TBT (lab) | ≤ 200ms | 200–600ms | > 600ms |
 | FCP | ≤ 1.8s | 1.8–3s | > 3s |
 | Speed Index | ≤ 3.4s | 3.4–5.8s | > 5.8s |
+| TTFB (field p75, or lab `server-response-time`) | ≤ 800ms | 800–1800ms | > 1800ms |
 | Accessibility / Best Practices / SEO score | ≥ 90 | 80–89 | < 80 |
 
 ---
@@ -273,10 +289,8 @@ See `references/example-report.md` for the full template — match its shape and
 
 ## Tool Usage
 
-**Check API key:**
-```bash
-echo "${PAGESPEED_API_KEY:-}"
-```
+**Check API key:** the Step 1 snippet — it prints only `FOUND` /
+`MISSING`, never the key.
 
 **Fetch results:** `curl` to a temp file (NOT WebFetch — see Step 3 for
 why). **Parse:** `jq` against the saved file (see Step 4 for the script).
@@ -287,25 +301,16 @@ why). **Parse:** `jq` against the saved file (see Step 4 for the script).
 
 ## Notes
 
-- **Deployed URLs only.** PSI cannot reach `localhost` or private networks.
-- **Two calls per URL** (mobile + desktop). Each takes 10–30s. For 5 URLs
-  expect 1–3 minutes total — set user expectations before starting.
-- **`jq` is a hard dependency.** Pre-flight check in Step 3. WebFetch is
-  not safe for PSI responses — its summarisation layer fabricates
-  category scores and drops Core Web Vital fields.
-- **API key is REQUIRED.** Despite v5 docs implying otherwise, Google's
-  anonymous tier is now 0 req/day — every unauthenticated call returns
-  429. Skill reads `PAGESPEED_API_KEY` from env; if absent, it stops with
-  a "how to get a free key" message.
 - **Lab vs Field data.** Lab metrics are a single synthetic run from
   Google's lab; Field data is real-user p75 from the Chrome User
-  Experience Report (only available for sites with sufficient traffic).
+  Experience Report (only available for sites with enough traffic).
   Report both when present — they often disagree, and that disagreement is
   itself useful.
-- **TBT is a lab proxy for INP.** PSI doesn't run INP in the lab; only
+- **TBT is a lab proxy for INP.** PSI doesn't measure INP in the lab; only
   field data carries it. If field data is absent, surface TBT and note
   "INP unavailable (no field data yet)".
-- **Report only.** Never modify source files. Hand off to the user with
-  concrete fix suggestions naming the relevant `src/` paths.
+- **Report only.** Never modify source files. Hand off with concrete fix
+  suggestions naming the relevant `src/` paths; for the source-side cause
+  of a slow LCP or a low Accessibility score, suggest `hakuto-review`.
 - **Pairs well with `prelaunch-checklist`** — run after deploy to catch
   regressions before announcing the launch.

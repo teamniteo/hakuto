@@ -1,6 +1,6 @@
 ---
 name: professional-copywriter
-description: "Benefit-driven, conversion-focused copy for SaaS and company websites: heroes, headlines, taglines, feature and pricing sections, About pages, CTA and button text. Also strips AI-sounding patterns from existing site copy. Use when a page or section has missing or partial content, or the user asks to \"write the copy\", \"improve this headline\", \"give me headline options\", \"fix the section headings\", \"rewrite the hero\", \"punch up the CTAs\", or \"make this sound less AI-generated\". Skip when the user has supplied finished copy and asked for no edits (place it verbatim), and skip blog posts and docs pages (`section-blog` and `section-docs` use neutral placeholders by design)."
+description: "Benefit-driven, conversion-focused copy for SaaS and company websites: heroes, headlines, taglines, feature and pricing sections, About pages, CTAs and button text. Also strips AI-sounding patterns from existing copy. Use when a page or section lacks content, or for \"write the copy\", \"improve this headline\", \"give me headline options\", \"fix the section headings\", \"rewrite the hero\", \"punch up the CTAs\", \"make this sound less AI-generated\". Skip for finished copy the user wants placed verbatim, blog posts and docs pages (`section-blog`, `section-docs` use neutral placeholders), or building or adding pages or reordering sections (`website-builder`)."
 ---
 
 # Professional Copywriting
@@ -134,8 +134,7 @@ few words, or go unsaid when it's obvious to them.
   long page is fine when every line adds a fact. Lines that add nothing should go.
 - Mirror customer language: use the words customers use in reviews, support tickets and
   interviews. Don't invent marketing vocabulary for them.
-- One thing, one name: if it's the "dashboard" in the hero, it stays the "dashboard" in the
-  CTA. Visitors read a new word as a new thing.
+- One thing, one name: no synonym cycling (see Synonym cycling in `references/ai-tells.md`).
 
 ### Persuade with what's already in the visitor's mind
 - **Anchor new to familiar.** People take in something new only when it's tied to something
@@ -233,15 +232,12 @@ This covers the hero H1, section H2s and feature headings. Before drafting, read
 - **Fit the space.** No magic length, but an H1 of about 4-12 words that fits 2-4 lines on
   a phone is the usual range. Section headings fit one line where possible.
 
-**Subhead and eyebrow.** The subhead (1-2 sentences) says how the product delivers the
-H1's promise, which is what makes it believable, and who it's for if the H1 didn't say. It
-never restates the H1. An eyebrow is optional and carries what the H1 doesn't: usually the
-category or audience.
+**Subhead and eyebrow** carry what the H1 doesn't — how the promise is delivered, the
+category, the audience — and never restate it. Block-by-block lengths and jobs: Hero
+anatomy in `references/headlines.md`.
 
-**Section headings state the point.** "Features", "Integrations" and "Why us" are labels;
-"Works with the bank you already use" is a claim. Reading the H2s alone, top to bottom,
-should tell the pitch. Keep labels where visitors look things up instead of being
-persuaded: FAQ, Pricing, Docs, Contact.
+**Section headings state the point,** except where visitors look things up (FAQ, Pricing,
+Docs, Contact). Label-vs-claim examples: Section headings in `references/headlines.md`.
 
 ### How to write one
 
@@ -272,7 +268,8 @@ Each candidate passes all of these on its own:
   any other: the user's, or a `TODO:`. The verb counts too: a tool that warns about
   breaches doesn't "keep you compliant", and one that drafts doesn't "write" for you.
 - **No AI tells.** Headlines are where "not X, it's Y", performed cleverness, stock
-  vocabulary and question hooks collect. Run the headline checks in `references/ai-tells.md`.
+  vocabulary and question hooks collect. Run the "Headlines and subheads" search under
+  Mechanical checks in `references/ai-tells.md`.
 
 ## Page patterns
 

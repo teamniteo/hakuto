@@ -29,6 +29,11 @@ export function pageHref(page: number): string {
   return page === 1 ? "/blog/" : `/blog/page/${page}/`;
 }
 
+// Lossy: case and punctuation are dropped, so "C++" and "C" both become "c", and
+// "News" / "news" are two categories with one URL. getStaticPaths then emits
+// duplicate params; the build only warns ("conflicts with higher priority route")
+// and the other category's posts have no archive. Keep category names distinct
+// after slugging (and consistently cased) across posts.
 export function categorySlug(category: string): string {
   return category.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }

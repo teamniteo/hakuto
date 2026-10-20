@@ -1,147 +1,218 @@
 ---
 name: section-form
-description: Adds forms to Astro pages using React with Zod validation, submitting to a Cloudflare Workers handler. Use when user requests "add form", "contact form", "newsletter signup", "inquiry form", "booking form", "feedback form", "registration form", "waitlist", or any form functionality requiring client-side validation and server submission. Skip for pure mailto: links, static HTML forms posting to third-party services (Formspree, Netlify Forms), or display-only fake forms used as visual mockups.
+description: Adds a working form to a Hakuto site — a React island validated with Zod, posting to a Cloudflare Worker route that re-validates and delivers the submission. Use for "add a form", "contact form", "newsletter signup", "inquiry form", "booking form", "feedback form", "registration form", "waitlist". Skip for mailto: links, forms posting to Formspree or Netlify Forms, mock-up forms, testing an existing form (`agent-browser`), restyling one (`website-builder`), or rewriting its labels and button text (`professional-copywriter`).
 ---
 
 # Form Section
 
-Adds accessible, validated forms using React state + Zod. Forms work as React islands with `client:load`. Submits to `/~/form-{name}` worker endpoint.
+Adds an accessible, validated form as a React island that submits JSON to
+`/~/form-<name>`, where a worker handler validates it again and delivers it somewhere real.
+
+Pages and layouts stay `.astro`; the form island is the sanctioned exception to the site's
+"no `.tsx`" rule, because per-field validation state needs React. The rest of the page stays
+static HTML.
 
 ## Why this stack
 
-- **React island over native HTML form**: Zod schemas + reactive state give per-field error rendering, conditional fields, and on-blur validation that vanilla forms can't express without manual DOM wiring. The island is small (~5KB gzipped), hydrates only when the form is in scope, and the rest of the page stays static.
-- **Zod over native browser validation**: native `required`/`pattern`/`type=email` checks scatter rules across HTML attributes, give browser-localized error strings, and don't share types with the worker. Zod is a single typed source of truth for both client and server, with custom messages and composable schemas.
-- **Cloudflare Workers handler over `mailto:` or third-party services**: a worker route validates submissions server-side (mailto skips validation entirely), enables anti-spam (rate-limiting, honeypots, Turnstile), structures payloads for downstream systems (CRM, email, DB), and keeps secrets out of the client. mailto also leaks the recipient's address and depends on the user having a mail client configured.
+- **React island over a plain HTML form**: per-field errors, validate-on-blur and
+  conditional fields need state; vanilla forms need hand-written DOM wiring for the same.
+- **react-hook-form + shadcn `ui/form` over a hand-rolled field kit**: the scaffold already
+  ships `react-hook-form`, `@hookform/resolvers` and `src/components/ui/form.tsx`. Its
+  `<FormControl>` assigns each control an id, `aria-invalid` and `aria-describedby`, and
+  `<FormLabel>` points `htmlFor` at it — so label and error wiring is correct for inputs,
+  textareas and checkboxes without per-field bookkeeping. Don't add shadcn's separate `field`
+  component as well; two field systems in one site is the inconsistency to avoid.
+- **One Zod schema, used twice**: the schema lives in `src/lib/<name>-schema.ts`. The island
+  validates with it for instant feedback; the worker imports the same file and validates
+  again, because client checks can be bypassed with a single `curl`.
+- **Worker route over `mailto:` or third-party form services**: server-side validation,
+  room for anti-spam (rate limiting, Turnstile), structured delivery to email, storage or a
+  CRM, and secrets that never reach the browser.
 
 ## Workflow
 
-> **Skip redundant installs.** Steps 1–2 invoke `bun add` and `bunx shadcn`. Always check first: skip the install if the package is already in `package.json` (Step 1) or if the shadcn primitive already exists in `src/components/ui/` (Step 2).
+```
+Form Integration:
+- [ ] Step 1: Confirm dependencies
+- [ ] Step 2: Decide where submissions go
+- [ ] Step 3: Write the schema
+- [ ] Step 4: Write the form island
+- [ ] Step 5: Add the worker handler and route
+- [ ] Step 6: Place the island on the page
+- [ ] Step 7: Test on the preview server
+- [ ] Step 8: Verify and report
+```
 
-1. Install deps: `bun add zod sonner` — first read `package.json`; skip if both are already listed
-2. Install shadcn: `bunx --bun shadcn@latest add input textarea label button --overwrite` — first check `src/components/ui/`; only add the primitives that are missing
-3. Create `src/components/ui/field.tsx` (see `assets/field.tsx` - adapt styling)
-4. Create `worker/form.js` handler (see `assets/form.js` - adapt logic)
-5. Register route in `worker/index.js`
-6. Create form component (see `assets/ContactForm.tsx` - adapt fields)
-7. Add to page with `client:load` (above-the-fold) or `client:visible` (below-the-fold, e.g. footer newsletter — defers hydration until the form scrolls into view, saving initial JS work)
+### Step 1: Confirm dependencies
 
-## Worker Setup
+The scaffold already ships everything this skill uses: `zod` (v4), `sonner`,
+`react-hook-form`, `@hookform/resolvers`, and the shadcn primitives `form`, `input`,
+`textarea`, `label`, `button`, `select`, `checkbox` and `sonner` in `src/components/ui/`.
+Check `package.json` and `src/components/ui/`; install only what is genuinely missing on an
+older site (`bun add <pkg>`, `bunx --bun shadcn@latest add <component>`). Don't pass
+`--overwrite` — it replaces primitives the site may have customised.
 
-Create `worker/form.js` based on `assets/form.js`, then register in `worker/index.js`:
+### Step 2: Decide where submissions go
+
+Ask the user before writing the handler: "Where should submissions go — an email inbox, a
+spreadsheet or CRM, or stored for you to read later?" Common destinations:
+
+| Destination | How | Needs |
+|---|---|---|
+| Email | `fetch` to a transactional email API (Resend, Postmark, MailChannels) | API key as a secret: `wrangler secret put RESEND_API_KEY` |
+| Cloudflare KV | `env.FORMS_KV.put(...)` — see below | KV namespace + binding |
+| Cloudflare D1 | `env.DB.prepare('INSERT …').bind(…).run()` | D1 database + binding + table |
+| CRM / Zapier / Slack | `fetch` to the webhook URL | Webhook URL as a secret |
+
+If the user doesn't know yet, keep the logging stub, leave the `TODO:` comment at the top of
+the form component in `src/` (`prelaunch-checklist` flags it), and tell the user plainly:
+**submissions are not stored or sent anywhere yet** — worker logs are off in `wrangler.toml`,
+so anything submitted before a destination is wired is lost.
+
+**KV example.** Create the namespace with `bunx wrangler kv namespace create FORMS_KV`, then
+add the binding it prints to `wrangler.toml`:
+
+```toml
+[[kv_namespaces]]
+binding = "FORMS_KV"
+id = "<id printed by the create command>"
+```
+
+In `worker/form.js`, replace the `console.log` with:
+
+```js
+await env.FORMS_KV.put(
+  `${formName}:${submission.receivedAt}:${crypto.randomUUID()}`,
+  JSON.stringify(submission),
+);
+```
+
+List what arrived with `bunx wrangler kv key list --binding FORMS_KV --remote`.
+
+### Step 3: Write the schema
+
+Copy `assets/lib/contact-schema.ts` to `src/lib/<name>-schema.ts` and adapt the fields.
+Zod 4 syntax:
+
+- `z.email("…")`, not the deprecated `z.string().email()`
+- Errors are on `result.error.issues`; `.errors` no longer exists
+- Import from `"zod"` (not `astro/zod` — the worker bundle has no Astro)
+
+### Step 4: Write the form island
+
+Copy `assets/ContactForm.tsx` to `src/components/<Name>Form.tsx` and adapt fields, labels and
+the endpoint (`/~/form-<name>`). Keep:
+
+- `useForm({ resolver: zodResolver(schema), mode: "onTouched" })` — validates a field on blur,
+  then live while the user corrects it
+- One `<FormField>` per field with `<FormItem>`, `<FormLabel>`, `<FormControl>`,
+  `<FormMessage>`; add `autoComplete` on name, email, phone and address inputs
+- `noValidate` on `<form>`, so Zod's messages replace the browser's
+- The `Toaster` from `@/components/ui/sonner` — the theme-aware wrapper, not sonner's raw
+  export. One Toaster per page: if another island on the page already renders one, drop
+  this one; `toast()` reaches whichever Toaster is mounted
+
+**Checkbox:** wrap `<Checkbox>` in `<FormControl>` and put `<FormLabel>` beside it inside the
+same `<FormItem>`, as the example does — that gives the label `htmlFor` and the checkbox a
+matching `id`, so clicking the text toggles it and screen readers announce it. Map
+`onCheckedChange={(v) => field.onChange(v === true)}`.
+
+**Select:** Radix Select is a compound component, so it must live inside the island (never as
+separate pieces in `.astro`). Put `<FormControl>` around `<SelectTrigger>`:
+
+```tsx
+<FormField control={form.control} name="topic" render={({ field }) => (
+  <FormItem>
+    <FormLabel>Topic</FormLabel>
+    <Select onValueChange={field.onChange} value={field.value}>
+      <FormControl>
+        <SelectTrigger><SelectValue placeholder="Choose a topic" /></SelectTrigger>
+      </FormControl>
+      <SelectContent>
+        <SelectItem value="sales">Sales</SelectItem>
+        <SelectItem value="support">Support</SelectItem>
+      </SelectContent>
+    </Select>
+    <FormMessage />
+  </FormItem>
+)} />
+```
+
+Labels, helper text and button text in the example are placeholders; hand real wording to
+`professional-copywriter` if the user wants it polished.
+
+### Step 5: Add the worker handler and route
+
+Copy `assets/form.js` to `worker/form.js`. It:
+
+- takes `(request, env, ctx)` like every route handler, so bindings and secrets are on `env`
+- maps the URL suffix to a schema in `SCHEMAS` — add each new form's schema there, imported
+  by relative path (`../src/lib/<name>-schema`; the `@/` alias does not exist in the worker
+  bundle)
+- answers through `problem()`: 404 unknown form, 405 non-POST (with `Allow: POST`), 400
+  malformed JSON, 422 failed validation with the issue list in `detail`
+- sends no `Access-Control-Allow-Origin` header — the form is same-origin, and an open CORS
+  policy only invites cross-site spam
+
+Register the route in `worker/index.js`:
 
 ```js
 import { handleForm } from './form.js';
 
 const ROUTES = {
-  // ... existing routes
+  // ...existing routes
   '/~/form-': { handler: handleForm, description: 'Form Handler' },
 };
 ```
 
-## Usage in Astro
+### Step 6: Place the island on the page
 
 ```astro
 ---
-import { ContactForm } from "@/components/ContactForm"
+import { ContactForm } from "@/components/ContactForm";
 ---
 <section class="py-16 px-4">
   <div class="max-w-md mx-auto">
-    <h2 class="text-3xl font-bold text-center mb-8">Get in Touch</h2>
-    <ContactForm client:load />
+    <h2 class="text-3xl font-bold text-center mb-8">Get in touch</h2>
+    <ContactForm client:visible />
   </div>
 </section>
 ```
 
-For below-the-fold forms (newsletter signup in the footer, contact form near page bottom), prefer `client:visible` over `client:load` — hydration is deferred until the form scrolls into view, which trims initial JS execution without harming UX.
+Use `client:visible` for forms below the fold (footer newsletter, contact form at the end of a
+page) — hydration waits until the form scrolls into view. Use `client:load` only when the form
+is in the first viewport.
 
-## Field Pattern
+### Step 7: Test on the preview server
 
-For additional fields, use standard React controlled inputs with the Field UI components:
+Worker routes don't run under `bun run dev` — it is plain `astro dev` with no worker, so every
+`/~/` path returns Astro's 404. Run `bun run preview` (builds, then serves the site and worker
+on `http://127.0.0.1:8787`) and check:
 
-```tsx
-const [values, setValues] = useState({ fieldName: "" })
-const [errors, setErrors] = useState<Record<string, string>>({})
-
-<Field data-invalid={!!errors.fieldName}>
-  <FieldLabel htmlFor="fieldName">Label</FieldLabel>
-  <Input
-    id="fieldName"
-    value={values.fieldName}
-    onBlur={() => validateField("fieldName")}
-    onChange={(e) => setValues(v => ({ ...v, fieldName: e.target.value }))}
-    aria-invalid={!!errors.fieldName}
-  />
-  {errors.fieldName && <FieldError message={errors.fieldName} />}
-</Field>
+```sh
+curl -s -X POST http://127.0.0.1:8787/~/form-contact \
+  -H 'content-type: application/json' \
+  -d '{"name":"Ada","email":"ada@example.com","message":"Testing the form","consent":true}'
+# → {"ok":true}
+curl -s -X POST http://127.0.0.1:8787/~/form-contact \
+  -H 'content-type: application/json' -d '{"email":"nope"}'
+# → 422 problem+json listing each failing field
 ```
 
-## Additional Field Types
+For an end-to-end pass in a real browser (fill, submit, toast, console errors, axe), use
+`agent-browser`. Run `bun run check` before finishing.
 
-**Select**: `bunx --bun shadcn@latest add select --overwrite` (skip if `src/components/ui/select.tsx` already exists)
-```tsx
-<Select value={values.option} onValueChange={(v) => setValues(s => ({ ...s, option: v }))}>
-  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-  <SelectContent><SelectItem value="opt1">Option</SelectItem></SelectContent>
-</Select>
+### Step 8: Verify and report
+
+Tell the user:
+
+```
+Form added: <Name>Form on <page> → POST /~/form-<name>
+Submissions go to: <destination>   — or: not stored yet (logging stub only)
+Schema: src/lib/<name>-schema.ts (shared by the island and worker/form.js)
+Remaining TODOs: <list, e.g. destination, helper text>
+Tested: bun run preview — valid → 200, invalid → 422
 ```
 
-**Checkbox**: `bunx --bun shadcn@latest add checkbox --overwrite` (skip if `src/components/ui/checkbox.tsx` already exists)
-```tsx
-<Field orientation="horizontal">
-  <Checkbox
-    checked={values.agree}
-    onCheckedChange={(v) => setValues(s => ({ ...s, agree: !!v }))}
-  />
-  <FieldLabel>I agree to terms</FieldLabel>
-</Field>
-```
-
-## Validation
-
-Zod schemas validate on submit and optionally on blur:
-
-```tsx
-const schema = z.object({
-  name: z.string().min(2, "Name required"),
-  email: z.string().email("Invalid email"),
-})
-
-// Validate single field (for onBlur)
-function validateField(name: string) {
-  const fieldSchema = schema.shape[name]
-  const result = fieldSchema.safeParse(values[name])
-  setErrors(e => ({
-    ...e,
-    [name]: result.success ? "" : result.error.errors[0].message,
-  }))
-}
-
-// Validate all fields (for onSubmit)
-function validateAll() {
-  const result = schema.safeParse(values)
-  if (!result.success) {
-    const fieldErrors: Record<string, string> = {}
-    result.error.errors.forEach(e => {
-      if (e.path[0]) fieldErrors[String(e.path[0])] = e.message
-    })
-    setErrors(fieldErrors)
-    return false
-  }
-  setErrors({})
-  return true
-}
-```
-
-## Accessibility
-
-- `aria-invalid` on inputs
-- `data-invalid` on Field wrapper
-- `role="alert"` on errors
-- `htmlFor`/`id` associations
-- `autoComplete` attributes
-
-## Assets
-
-- `assets/field.tsx` - Field components (Field, FieldLabel, FieldError, etc.)
-- `assets/form.js` - Worker handler example
-- `assets/ContactForm.tsx` - Complete contact form example
+Mention that `prelaunch-checklist` Check 4 audits form wiring before launch and flags a
+handler that only logs.

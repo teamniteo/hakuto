@@ -100,7 +100,7 @@ Scan the parsed string values (not the raw markup) of every JSON-LD block:
 
 This is a serializer bug, never a content bug: the source copy is virtually always clean.
 The known culprit is `astro-seo-schema`'s `safeJsonLdReplacer`, which the Hakuto scaffold no
-longer uses (see `scaffold/src/components/Schema.astro`). If it reappears, something
+longer uses (see `src/components/Schema.astro`). If it reappears, something
 reintroduced HTML escaping as a "security fix" — the only sequence that actually needs
 guarding inside a raw-text script element is `</`.
 

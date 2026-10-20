@@ -2,15 +2,16 @@
 title: "Welcome to the blog"
 slug: "welcome"
 date: "2026-01-15"
-author: "Author Name"
-authorEmail: "author@example.com"
-authorBio: "One line about the author. Replace with a real bio."
+author: "TODO: Author Name"
+# Optional — drives the Gravatar avatar. Delete the line to show no avatar.
+# authorEmail: "author@yourdomain.com"
+authorBio: "TODO: One line about the author."
 category: "News"
-description: "A sample post. Replace it with your first article."
+description: "TODO: One or two sentences summarising the post."
 draft: false
 ---
 
-This is a sample post. Replace it with your own writing, or delete it once the first real article is in.
+TODO: This is a sample post. Replace it with your own writing, or delete it once the first real article is in.
 
 ## A section heading
 

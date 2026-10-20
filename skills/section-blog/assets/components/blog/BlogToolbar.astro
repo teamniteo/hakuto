@@ -26,7 +26,7 @@ const { postCount, search = true } = Astro.props;
           <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z" />
         </svg>
         Search articles
-        <kbd class="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono bg-foreground/5 border border-foreground/10 rounded" aria-hidden="true">⌘K</kbd>
+        <kbd class="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono bg-foreground/5 border border-foreground/10 rounded" aria-hidden="true" data-search-shortcut>Ctrl K</kbd>
       </button>
       <span class="text-foreground/20" aria-hidden="true">|</span>
     </>
@@ -77,6 +77,12 @@ const { postCount, search = true } = Astro.props;
   const openBtn = document.getElementById("blog-search-open");
 
   if (dialog && openBtn) {
+    // The shortcut accepts ⌘ or Ctrl; show the one this platform uses.
+    if (/Mac|iPhone|iPad|iPod/.test(navigator.userAgent)) {
+      const hint = openBtn.querySelector("[data-search-shortcut]");
+      if (hint) hint.textContent = "⌘K";
+    }
+
     const open = () => {
       if (dialog.open) return;
       dialog.showModal();
@@ -103,8 +109,10 @@ const { postCount, search = true } = Astro.props;
   }
 </script>
 
-<!-- is:inline keeps this out of the render-blocking stylesheet bundle. -->
-<style is:global is:inline>
+<!-- is:inline keeps this out of the render-blocking stylesheet bundle. Inline
+     styles are never scoped, so the rules are already global (and reach into the
+     Pagefind UI markup). -->
+<style is:inline>
   .blog-search-dialog {
     padding: 0;
     border: none;

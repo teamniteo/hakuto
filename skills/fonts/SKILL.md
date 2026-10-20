@@ -1,88 +1,26 @@
 ---
 name: fonts
-description: Configure web fonts via Astro's Fonts API (top-level `fonts` in Astro 6+, `experimental.fonts` in 5.x). Use whenever custom fonts come up — user mentions Google Fonts, Fontsource, local fonts, typography changes, font loading or performance, or asks to "add fonts", "change typography", "use custom fonts", "improve font loading", "optimize fonts". The Fonts API replaces `@import` and `@font-face` in CSS. Not for changing font size, weight or tracking on an already-configured family — those are Tailwind utilities in `src/index.css`, and loading this skill for them wastes a round-trip.
+description: Configures web fonts through Astro's Fonts API and picks type pairings — provider, weights, preloading, and the Tailwind wiring. Use for "add Google Fonts", "use custom fonts", "change the typography", "pick a font pairing", "what font should I use", "optimize font loading", or a local brand font. Skip for size, weight or tracking on an already-configured family (Tailwind utilities in `src/index.css`), colors (`brand-designer`), and whole-site restyles or new-site direction (`website-builder`, which calls this skill when a web font is chosen).
 ---
 
 # Fonts (Astro Fonts API)
 
-Configure performant web fonts with automatic optimization, preloading, and privacy-focused delivery from your own site.
+Configure performant web fonts with automatic optimization, preloading, and privacy-focused delivery from the site's own origin. The Fonts API replaces `@import` and `@font-face` in CSS — don't use either for custom fonts.
 
-## Critical Workflow Order
+## The naming rule
 
-Font setup MUST follow this exact sequence. The `<Font />` component and CSS variables are only available after the dev server processes the config.
+Two layers of CSS variables are in play, and they must not share names:
 
-### Step 1: Configure astro.config.mjs (FIRST)
+- **Astro `cssVariable`** — the family itself. Namespace it by family: `--font-crimson-pro`, `--font-dm-sans`, `--font-jetbrains-mono`.
+- **Tailwind theme key** — the role a utility uses: `--font-display`, `--font-sans`, `--font-serif`, `--font-mono`. Mapped to the family in `@theme inline`.
 
-Add fonts to the top-level `fonts` array (Astro 6+ promoted from `experimental.fonts`):
+**Never name an Astro variable the same as a Tailwind theme key.** Both end up on `:root`, so `cssVariable: "--font-display"` plus `@theme { --font-display: … }` collide and whichever is emitted last wins; `--font-mono: var(--font-mono)` is a cycle and resolves to nothing. Either way the page silently falls back to system fonts. Family-named variables also mean swapping a font is one line in `@theme inline`.
 
-```javascript
-import { defineConfig, fontProviders } from "astro/config";
+## Workflow
 
-export default defineConfig({
-  fonts: [{
-    provider: fontProviders.google(),
-    name: "Crimson Pro",
-    cssVariable: "--font-display",
-    weights: [400, 600, 700],
-    styles: ["normal"]
-  }]
-});
-```
+### Step 1: Configure astro.config.mjs
 
-> **Note**: Astro ≤ 5.x required `experimental: { fonts: [...] }`. Astro 6.x graduated the API; wrap in `experimental` only if you're on an older Astro.
-
-### Step 2: Restart the dev/preview server
-
-The dev server reads `astro.config.mjs` once at startup. Without a restart, `import { Font } from 'astro:assets'` will fail and the CSS variables won't exist yet.
-
-How to restart depends on how the server was started — pick the one that matches your setup:
-
-- **Hakuto preview hook (this repo):** the preview server is managed externally; ask the user to restart it, or wait for the next file-save hook trigger.
-- **Manual `bun run dev` / `bun run preview`:** stop the process (Ctrl-C) and re-run the same command.
-- **PM2-managed (`pm2 list` shows it):** `pm2 restart <process-name>` — typical names are `preview` or the package name.
-
-Don't proceed to Step 3 until the server has restarted — the next step depends on the new config being live.
-
-When invoked from website-builder's style-preview loop, always end by telling the user to restart their dev server before reviewing the preview — and encourage locking fonts early in the iteration, since every font swap repeats this restart cycle while palette/layout tweaks don't.
-
-### Step 3: Add Font declarations to .astro files (ONLY AFTER RESTART)
-
-Now you can use the `<Font />` component and CSS variables:
-
-**Layout.astro** - Add `<Font />` to head:
-```astro
----
-import { Font } from 'astro:assets';
----
-
-<head>
-  <Font cssVariable="--font-display" preload />
-  <!-- other head elements -->
-</head>
-```
-
-**index.css** - Wire into Tailwind:
-```css
-@import 'tailwindcss';
-
-@theme {
-  --font-sans: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-}
-```
-
-## Provider Selection
-
-| Provider | Use When | Import |
-|----------|----------|--------|
-| `fontProviders.google()` | Quick setup, vast selection | Built-in |
-| `fontProviders.fontsource()` | Open-source, granular control | Built-in |
-| `fontProviders.bunny()` | Privacy-focused, GDPR compliant | Built-in |
-| `fontProviders.fontshare()` | Free distinctive fonts | Built-in |
-| `fontProviders.local()` | Custom brand fonts, offline support | Built-in |
-
-## Configuration Examples
-
-### Google Fonts
+Add fonts to the top-level `fonts` array (Astro 6+; on Astro 5.x it is `experimental: { fonts: [...] }`):
 
 ```javascript
 import { defineConfig, fontProviders } from "astro/config";
@@ -92,117 +30,36 @@ export default defineConfig({
     {
       provider: fontProviders.google(),
       name: "Crimson Pro",
-      cssVariable: "--font-display",
-      weights: [400, 600, 700],
+      cssVariable: "--font-crimson-pro",
+      weights: ["200 900"],          // variable font: one file covers the range
       styles: ["normal", "italic"],
-      subsets: ["latin"]
+      subsets: ["latin"],
+      fallbacks: ["Georgia", "serif"]
     },
     {
       provider: fontProviders.google(),
       name: "DM Sans",
-      cssVariable: "--font-body",
-      weights: [400, 500, 600],
-      styles: ["normal"]
-    }
-  ]
-});
-```
-
-### Fontsource (Open-Source)
-
-```javascript
-import { defineConfig, fontProviders } from "astro/config";
-
-export default defineConfig({
-  fonts: [
-    {
-      provider: fontProviders.fontsource(),
-      name: "JetBrains Mono",
-      cssVariable: "--font-mono",
-      weights: [400, 700],
+      cssVariable: "--font-dm-sans",
+      weights: [400, 500],
+      styles: ["normal"],
       subsets: ["latin"],
-      fallbacks: ["monospace"]
+      fallbacks: ["sans-serif"]
     }
   ]
 });
 ```
 
-### Local Fonts
+Request only the weights and subsets the design uses — every extra static weight is another download. For a variable font, a range string (`"200 900"`) fetches one file.
 
-```javascript
-import { defineConfig, fontProviders } from "astro/config";
+**Providers** (all built in, from `fontProviders`): `google()` for the widest selection; `fontsource()`, `bunny()` (GDPR-friendly), `fontshare()` (distinctive free display faces); `local()` for brand files in `src/assets/fonts/`; `adobe({ id })` with a subscription; `npm()` for a font package already in `node_modules`. Read **`references/font-providers.md`** when you need anything beyond the Google example above: Adobe, local files, icon fonts, Fontsource/Bunny/Fontshare specifics, or advanced options (feature settings, unicode ranges, granular downloads).
 
-export default defineConfig({
-  fonts: [{
-    provider: fontProviders.local(),
-    name: "Brand Font",
-    cssVariable: "--font-brand",
-    options: {
-      variants: [
-        {
-          weight: 400,
-          style: "normal",
-          src: ["./src/assets/fonts/BrandFont-Regular.woff2"]
-        },
-        {
-          weight: 700,
-          style: "normal",
-          src: ["./src/assets/fonts/BrandFont-Bold.woff2"]
-        }
-      ]
-    }
-  }]
-});
-```
+### Step 2: Let the config reload
 
-**Important:** Store local fonts in `src/assets/fonts/`, NOT in `public/` (avoids duplicate files in build).
+Astro restarts the dev server itself when `astro.config.mjs` changes. If `import { Font } from 'astro:assets'` errors or the preview still shows fallback fonts afterwards, ask the user to restart `bun run dev`. When invoked from website-builder's style-preview loop, encourage locking fonts early — font swaps touch the config, palette and layout tweaks don't.
 
-### Variable Fonts
+### Step 3: Add `<Font />` to the layout
 
-```javascript
-{
-  provider: fontProviders.google(),
-  name: "Recursive",
-  cssVariable: "--font-recursive",
-  weights: ["300 1000"],  // Variable weight range
-  styles: ["normal"]
-}
-```
-
-`Recursive` (and `Sora`, `Inter Tight`, `Crimson Pro`, `Spectral`) ships as a single variable font file covering the full weight range — one network request instead of 5–9 separate weight files. Pick a distinctive variable font; avoid `Inter` and `Roboto` defaults.
-
-## Integration with Tailwind v4
-
-Define font families in `src/index.css`:
-
-```css
-@import 'tailwindcss';
-
-@theme {
-  /* Override default font families */
-  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-display), ui-serif, Georgia, serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
-
-  /* Or create custom font utilities */
-  --font-display: var(--font-crimson);
-  --font-heading: var(--font-sora);
-}
-```
-
-Usage in components:
-
-```astro
-<h1 class="font-display text-4xl">Beautiful Heading</h1>
-<p class="font-sans text-base">Body text content</p>
-<code class="font-mono">Code snippet</code>
-```
-
-## Layout Integration
-
-### Basic Setup (Layout.astro)
-
-Import CSS via the frontmatter — Astro processes the import and emits a hashed stylesheet link automatically. Don't use `<link rel="stylesheet" href="/src/index.css" />`; `/src/` paths don't resolve in production builds.
+Import CSS through the frontmatter (Astro emits a hashed stylesheet link; a literal `/src/index.css` link 404s in production) and declare each family in `<head>`:
 
 ```astro
 ---
@@ -210,120 +67,79 @@ import { Font } from 'astro:assets';
 import '../index.css';
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-
-    <!-- Font declarations and preloads -->
-    <Font cssVariable="--font-display" preload />
-    <Font cssVariable="--font-body" preload />
-  </head>
-  <body class="font-sans">
-    <slot />
-  </body>
-</html>
+<head>
+  <Font cssVariable="--font-crimson-pro" preload={[{ weight: '700', style: 'normal', subset: 'latin' }]} />
+  <Font cssVariable="--font-dm-sans" preload={[{ weight: '400', style: 'normal', subset: 'latin' }]} />
+</head>
 ```
 
-### Granular Preloading (Performance)
+Preload only what renders above the fold — usually the display weight of the H1 and the body regular. A bare `preload` preloads every file of that family.
 
-Only preload fonts actually used above-the-fold:
+### Step 4: Map families to Tailwind roles
 
-```astro
-<Font
-  cssVariable="--font-display"
-  preload={[
-    { weight: '700', style: 'normal', subset: 'latin' }
-  ]}
-/>
+In `src/index.css`:
 
-<Font
-  cssVariable="--font-body"
-  preload={[
-    { weight: '400', style: 'normal', subset: 'latin' },
-    { weight: '600', style: 'normal', subset: 'latin' }
-  ]}
-/>
-```
-
-## Performance Tips
-
-### Limit Weights and Styles
-
-```javascript
-// Bad - downloads all weights
-weights: [100, 200, 300, 400, 500, 600, 700, 800, 900]
-
-// Good - only what you use
-weights: [400, 600, 700]
-```
-
-### Subset Optimization
-
-```javascript
-// Only Latin characters (most Western sites)
-subsets: ["latin"]
-
-// Add if needed
-subsets: ["latin", "latin-ext", "cyrillic"]
-```
-
-### Use Fallbacks
-
-```javascript
-{
-  name: "Crimson Pro",
-  cssVariable: "--font-display",
-  fallbacks: ["Georgia", "serif"]  // Shown while loading
+```css
+@theme inline {
+  --font-display: var(--font-crimson-pro), Georgia, serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 ```
 
-## Type Contrast (Read This Before Pairing)
+`inline` makes the utility reference the family variable directly, so it resolves where `<Font />` defines it. `--font-sans` is Tailwind's default body family; `--font-display` creates a `font-display` utility:
 
-Pairings work because of **contrast**, not similarity. The two cardinal rules:
+```astro
+<h1 class="font-display text-6xl font-bold">Beautiful Heading</h1>
+<p class="text-base">Body text inherits font-sans</p>
+```
 
-1. **Don't pair two fonts from the same family of sans-serifs.** `Sora + Inter`, `Archivo + Nunito`, `DM Sans + Work Sans` — all flat. The reader can't tell where the heading ends and the body begins. Pair a serif with a sans, a display with a monospace, or a humanist sans with a geometric sans.
-2. **Push weight contrast hard — 300 body vs 800–900 display.** Timid scales (400 body / 600 heading) read as generic. The same goes for size: aim for ≥3× jumps between H1 and body.
+## Pairing
 
-A single distinctive font used decisively across the whole site often beats a weak pair.
+Pairings work because of **contrast**, not similarity:
 
-## Recommended Font Pairings
+1. **Don't pair two similar sans-serifs.** `Sora + Inter`, `Archivo + Nunito`, `DM Sans + Work Sans` — all flat; the reader can't tell where the heading ends and the body begins. Pair a serif with a sans, a display with a monospace, or a humanist sans with a geometric sans.
+2. **Push weight and size contrast** — light or regular body against heavy display, and ≥3× size jumps between H1 and body — unless the base language file specifies otherwise (elegant runs light; corporate keeps it firm but not theatrical).
 
-Avoid "AI slop" aesthetics with distinctive combinations. Each row pairs across-family deliberately:
+A single distinctive family used decisively often beats a weak pair, and some languages (brutalist) call for the system stack — then no web font is needed at all. Avoid generic defaults like Inter and Roboto.
 
 | Display | Body | Why this works |
 |---------|------|----------------|
-| Crimson Pro (serif) | DM Sans (geometric sans) | Editorial weight against modern minimal — clear hierarchy |
-| Spectral (serif) | Source Sans Pro (humanist sans) | Refined editorial paired with workhorse legibility |
-| Instrument Serif | Instrument Sans | Designed-as-a-pair; complementary contrast built-in |
+| Crimson Pro (serif, variable) | DM Sans (geometric sans, variable) | Editorial weight against modern minimal — clear hierarchy |
+| Spectral (serif, static weights) | Source Sans 3 (humanist sans, variable) | Refined editorial paired with workhorse legibility |
+| Instrument Serif | Instrument Sans | Designed as a pair; contrast built in |
 | Bitter (slab serif) | Open Sans (humanist sans) | Friendly slab against neutral body — warm but readable |
-| Fraunces (display serif) | Inter Tight (geometric sans) | Expressive display paired with tight, distraction-free body |
-| Sora (geometric sans, 800) | Crimson Pro (serif, 400) | Single-distinctive-font feel by inverting the usual sans-display / serif-body convention |
+| Fraunces (display serif) | Inter Tight (geometric sans) | Expressive display over a tight, distraction-free body |
+| Sora (geometric sans, 800) | Crimson Pro (serif, 400) | Inverts the usual sans-display / serif-body convention |
+
+Variable families (Crimson Pro, Sora, Inter Tight, Recursive, Fraunces, Source Sans 3) ship one file for the whole weight range — prefer them when the design uses three or more weights. Spectral is static: request only the weights you use.
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| `Font` import fails or CSS variable undefined | Server hasn't picked up the new config — see Step 2. Also verify `cssVariable` name matches between `astro.config.mjs` and your CSS/component usage. |
-| Fonts not loading | Check `<Font />` is in Layout head |
-| Build fails | Ensure local font paths are correct |
-| FOUT (flash of unstyled text) | Add `preload` to critical fonts |
-| Large bundle | Reduce weights/subsets, prefer a variable font |
+| Page renders in system fonts, no error | Name collision or cycle — check the naming rule above |
+| `Font` import fails or variable undefined | Config not reloaded yet — see Step 2. Also check `cssVariable` matches between config, `<Font />` and `@theme inline` |
+| Fonts not loading | `<Font />` missing from the layout `<head>` |
+| Build fails on a local font | Path must point into `src/assets/fonts/` (not `public/`) |
+| FOUT (flash of unstyled text) | Preload the above-the-fold weights; set `fallbacks` so the metric-matched fallback is close |
+| Large font payload | Fewer weights/subsets; prefer a variable font |
 
-## Advanced: Programmatic Access
+For OpenGraph images or other programmatic use, `import { fontData } from "astro:assets"` and read `fontData["--font-crimson-pro"]`.
 
-Get font data for OpenGraph images or other uses:
+## Report
 
-```typescript
-import { fontData } from "astro:assets";
+When done, tell the caller (website-builder) or the user:
 
-const data = fontData["--font-display"];
-// Returns array of font face data with src, weight, style
-```
+- **Families:** name, provider, role (display/body/mono)
+- **Weights / styles** requested per family
+- **Variables:** Astro `cssVariable` → Tailwind key (e.g. `--font-crimson-pro` → `--font-display`)
+- **Restart needed?** Usually no (Astro reloads on config change); say so explicitly if the preview still showed fallbacks
+
+If `site-specification.md` exists, update its **Fonts** line.
 
 ## See Also
 
-- `references/font-providers.md` - Detailed provider configurations
-- `website-builder/SKILL.md` - Overall site workflow
-- `brand-designer/SKILL.md` - Color and typography decisions
+- `references/font-providers.md` — every provider's options, local and icon fonts, advanced settings
+- `website-builder` — overall site workflow and design direction
+- `brand-designer` — color palettes (typography lives here, not there)

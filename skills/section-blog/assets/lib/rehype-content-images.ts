@@ -16,8 +16,15 @@ import type { Root } from "hast";
 // `densities` is present, which would leave every image with a single candidate
 // and an inert `sizes`. Widths above a source's intrinsic width are clamped, never
 // upscaled. If the article column is not 768px, change all three numbers together.
+//
+// Scoped to blog posts: `markdown.rehypePlugins` runs on every Markdown file in the
+// site (docs, Markdown pages), and their columns are not 768px. Other collections
+// need their own measured numbers.
+const BLOG_DIR = /[\\/]src[\\/]content[\\/]blog[\\/]/;
+
 export function rehypeContentImages() {
-  return (tree: Root) => {
+  return (tree: Root, file: { path?: string }) => {
+    if (!BLOG_DIR.test(file.path ?? "")) return;
     visit(tree, (node) => {
       if (node.type !== "element" || node.tagName !== "img") return;
       node.properties = node.properties ?? {};

@@ -1,272 +1,133 @@
 ---
 name: agent-browser
-description: Automates browser interactions for web testing, form filling, screenshots, and data extraction. Use when the user needs to navigate websites, interact with web pages, fill forms, take screenshots, test web applications, or extract information from web pages. Skip if the user just needs static page contents — use WebFetch instead. Use this skill only when interaction (clicking, typing, JS execution) is required.
+description: Drive a headless browser against the local preview (`bun run preview`) or a deployed Hakuto site to check what static audits can't — submit a form end to end, click through navigation, take mobile, desktop and dark-mode screenshots, run an axe accessibility pass, read console errors. Use for "test the contact form", "screenshot the site on mobile", "click through the site", "any console errors?". Skip for reading page text (WebFetch), markup or SEO checks (`seo-audit`), Lighthouse scores (`pagespeed-audit`), building a form (`section-form`), or tasks needing the user's own signed-in Chrome.
 ---
 
-# Browser Automation with agent-browser
+# Site QA with agent-browser
 
-## Prerequisites
+`agent-browser` (vercel-labs, npm `agent-browser`) is a CLI that drives headless Chrome
+through a background daemon. The core loop is **snapshot → ref → act**: `snapshot -i` lists
+interactive elements with refs (`@e1`, `@e2`), and commands act on those refs. Refs come
+from the accessibility tree, so they survive re-renders and hydration where CSS selectors
+break; take a fresh snapshot after any navigation or large DOM change.
 
-If `agent-browser` is missing from `$PATH`, install it globally and run the one-time Chrome download:
+The full command list is in `references/commands.md` — read it when you need a command
+beyond the flow below. `agent-browser skills get core` prints the upstream guide matched to
+the installed version, if a flag here doesn't behave as described.
 
-```bash
-bun install -g agent-browser
-agent-browser install   # Downloads Chrome for Testing (first run only)
+## 1. Check the install
+
+```sh
+command -v agent-browser && agent-browser --version
 ```
 
-Alternatives: `npm install -g agent-browser`, `brew install agent-browser`, or `cargo install agent-browser` — each followed by `agent-browser install`. Surface any install failures to the user rather than improvising workarounds.
+If it is missing, don't install it yourself — tell the user to run one of:
 
-## Daemon lifecycle
-
-`agent-browser` runs as a background daemon that **persists after the skill exits**, keeping a headless Chrome alive so subsequent commands are instant. By default it never shuts down on its own, so an unused daemon can linger across projects (sometimes surfacing as a blank Chrome window on macOS, since `--headless=new` still spawns a real window in some configurations).
-
-Two ways to keep it tidy:
-
-- **Auto-shutdown after idle** (recommended) — set `AGENT_BROWSER_IDLE_TIMEOUT_MS` in your shell environment, e.g. `export AGENT_BROWSER_IDLE_TIMEOUT_MS=300000` for a 5-minute idle timeout. The daemon exits N ms after the last command.
-- **Manual cleanup** — run `agent-browser close --all` when you're done, or `pkill -f agent-browser` to nuke any orphans.
-
-## Why refs over selectors
-
-The core pattern is **snapshot → ref → act**. Refs (`@e1`, `@e2`) come from the snapshot's accessibility tree and survive minor DOM mutations between actions; CSS selectors and XPath break easily on re-renders, dynamic class names, or hydration. Re-snapshot whenever the page navigates or the DOM changes meaningfully.
-
-## Quick start
-
-```bash
-agent-browser open <url>        # Navigate to page
-agent-browser snapshot -i       # Get interactive elements with refs
-agent-browser click @e1         # Click element by ref
-agent-browser fill @e2 "text"   # Fill input by ref
-agent-browser close             # Close browser
+```sh
+npm install -g agent-browser     # or: brew install agent-browser
+agent-browser install            # first time only: downloads Chrome for Testing
 ```
 
-## Core workflow
+`agent-browser install` is only needed when no Chrome/Chromium is already on the machine;
+existing installs are detected. Avoid `bun install -g` here: bun's global bin directory is
+usually not on `PATH` outside devenv, so the command "installs" and then isn't found.
+`agent-browser doctor` diagnoses a broken install.
 
-1. Navigate: `agent-browser open <url>`
-2. Snapshot: `agent-browser snapshot -i` (returns elements with refs like `@e1`, `@e2`)
-3. Interact using refs from the snapshot
-4. Re-snapshot after navigation or significant DOM changes
+## 2. Pick the target
 
-## Commands
+- **Deployed site:** use the URL the user gives.
+- **Local:** worker routes (`/~/…`, i.e. every form endpoint) only run under
+  `bun run preview`, which builds and serves site + worker on `http://127.0.0.1:8787`.
+  `bun run dev` (port 4321) has no worker and no Pagefind index — fine for layout
+  screenshots, wrong for forms or search.
 
-### Navigation
-```bash
-agent-browser open <url>      # Navigate to URL
-agent-browser back            # Go back
-agent-browser forward         # Go forward
-agent-browser reload          # Reload page
-agent-browser close           # Close browser
+  Check before starting anything: `lsof -iTCP:8787 -sTCP:LISTEN` (and `:4321` for dev). If
+  nothing is listening and you need forms or search, start `bun run preview` in the
+  background from the site root and wait until `curl -s -o /dev/null http://127.0.0.1:8787/`
+  succeeds. Don't start a second server if one is already up.
+
+## 3. QA flow
+
+Run per page the user asked about (default: home, plus any page with a form). The daemon
+shuts itself down after an hour idle (`--idle-timeout`, or `AGENT_BROWSER_IDLE_TIMEOUT_MS`),
+but close it explicitly when done.
+
+```sh
+agent-browser open http://127.0.0.1:8787/contact/
+agent-browser snapshot -i                  # refs for links, inputs, buttons
 ```
 
-### Snapshot (page analysis)
-```bash
-agent-browser snapshot            # Full accessibility tree
-agent-browser snapshot -i         # Interactive elements only (recommended)
-agent-browser snapshot -c         # Compact output
-agent-browser snapshot -d 3       # Limit depth to 3
-agent-browser snapshot -s "#main" # Scope to CSS selector
+**Interact.** Act on refs from the latest snapshot:
+
+```sh
+agent-browser click @e9                    # submit empty — expect inline field errors
+agent-browser get text main                # read the errors back
+agent-browser fill @e5 "Ada Lovelace"
+agent-browser fill @e6 "ada@example.com"
+agent-browser check @e8                    # checkbox
+agent-browser click @e9
+agent-browser wait --text "Message sent"   # whatever success text the form shows
+agent-browser network requests --method POST   # confirm the POST to /~/form-… and its status
 ```
 
-### Interactions (use @refs from snapshot)
-```bash
-agent-browser click @e1           # Click
-agent-browser dblclick @e1        # Double-click
-agent-browser focus @e1           # Focus element
-agent-browser fill @e2 "text"     # Clear and type
-agent-browser type @e2 "text"     # Type without clearing
-agent-browser press Enter         # Press key
-agent-browser press Control+a     # Key combination
-agent-browser keydown Shift       # Hold key down
-agent-browser keyup Shift         # Release key
-agent-browser hover @e1           # Hover
-agent-browser check @e1           # Check checkbox
-agent-browser uncheck @e1         # Uncheck checkbox
-agent-browser select @e1 "value"  # Select dropdown
-agent-browser scroll down 500     # Scroll page
-agent-browser scrollintoview @e1  # Scroll element into view
-agent-browser drag @e1 @e2        # Drag and drop
-agent-browser upload @e1 file.pdf # Upload files
+If a click reports the target is covered (cookie banner, dialog), dismiss that element first
+and re-snapshot. Navigation: click each header/footer link from the snapshot and confirm the
+URL and `<h1>` with `get url` / `get text h1`.
+
+**Errors.** After the page has loaded and after each interaction:
+
+```sh
+agent-browser console                      # log / warn / error messages
+agent-browser errors                       # uncaught exceptions
 ```
 
-### Get information
-```bash
-agent-browser get text @e1        # Get element text
-agent-browser get html @e1        # Get innerHTML
-agent-browser get value @e1       # Get input value
-agent-browser get attr @e1 href   # Get attribute
-agent-browser get title           # Get page title
-agent-browser get url             # Get current URL
-agent-browser get count ".item"   # Count matching elements
-agent-browser get box @e1         # Get bounding box
+**Screenshots.** Mobile and desktop, then dark mode:
+
+```sh
+agent-browser set viewport 375 812
+agent-browser screenshot                   # no path → saved to a temp dir; the path is printed
+agent-browser set viewport 1280 800
+agent-browser screenshot --full
+agent-browser set media dark
+agent-browser screenshot
 ```
 
-### Check state
-```bash
-agent-browser is visible @e1      # Check if visible
-agent-browser is enabled @e1      # Check if enabled
-agent-browser is checked @e1      # Check if checked
+`set media dark` only emulates `prefers-color-scheme`. Hakuto's dark styles hang off a `.dark`
+class (`@custom-variant dark (&:is(.dark *))`), so if the site toggles that class itself
+rather than following the system setting, add it directly:
+`agent-browser eval "document.documentElement.classList.add('dark')"`.
+Look at each screenshot (Read the printed path) before reporting on it.
+
+**Accessibility.**
+
+```sh
+agent-browser a11y --tags wcag2a,wcag2aa
 ```
 
-### Screenshots & PDF
-```bash
-agent-browser screenshot          # Screenshot to stdout
-agent-browser screenshot path.png # Save to file
-agent-browser screenshot --full   # Full page
-agent-browser pdf output.pdf      # Save as PDF
+Report violations by impact (critical, serious, moderate, minor). Items under "incomplete"
+need a human look — mention them, don't count them as failures.
+
+**Close.**
+
+```sh
+agent-browser close
 ```
 
-### Video recording
-```bash
-agent-browser record start ./demo.webm    # Start recording (uses current URL + state)
-agent-browser click @e1                   # Perform actions
-agent-browser record stop                 # Stop and save video
-agent-browser record restart ./take2.webm # Stop current + start new recording
-```
-Recording creates a fresh context but preserves cookies/storage from your session. If no URL is provided, it automatically returns to your current page. For smooth demos, explore first, then start recording.
+Stop a `bun run preview` you started yourself; leave one the user started.
 
-### Wait
-```bash
-agent-browser wait @e1                     # Wait for element
-agent-browser wait 2000                    # Wait milliseconds
-agent-browser wait --text "Success"        # Wait for text
-agent-browser wait --url "**/dashboard"    # Wait for URL pattern
-agent-browser wait --load networkidle      # Wait for network idle
-agent-browser wait --fn "window.ready"     # Wait for JS condition
+## 4. Report
+
+One block per page, most severe first:
+
+```
+## /contact/  (http://127.0.0.1:8787, preview)
+Console:  0 errors, 1 warning — "<message>"
+Errors:   none
+a11y:     1 serious — color-contrast on .toast (3.9:1); 2 incomplete (manual review)
+Form:     empty submit → 3 inline errors ✓; valid submit → POST /~/form-contact 200, success toast ✓
+Nav:      6/6 header links resolve ✓
+Screens:  375px <path> · 1280px <path> · dark <path>
 ```
 
-### Mouse control
-```bash
-agent-browser mouse move 100 200      # Move mouse
-agent-browser mouse down left         # Press button
-agent-browser mouse up left           # Release button
-agent-browser mouse wheel 100         # Scroll wheel
-```
-
-### Semantic locators (alternative to refs)
-```bash
-agent-browser find role button click --name "Submit"
-agent-browser find text "Sign In" click
-agent-browser find label "Email" fill "user@test.com"
-agent-browser find first ".item" click
-agent-browser find nth 2 "a" text
-```
-
-### Browser settings
-```bash
-agent-browser set viewport 1920 1080      # Set viewport size
-agent-browser set device "iPhone 14"      # Emulate device
-agent-browser set geo 37.7749 -122.4194   # Set geolocation
-agent-browser set offline on              # Toggle offline mode
-agent-browser set headers '{"X-Key":"v"}' # Extra HTTP headers
-agent-browser set credentials user pass   # HTTP basic auth
-agent-browser set media dark              # Emulate color scheme
-```
-
-### Cookies & Storage
-```bash
-agent-browser cookies                     # Get all cookies
-agent-browser cookies set name value      # Set cookie
-agent-browser cookies clear               # Clear cookies
-agent-browser storage local               # Get all localStorage
-agent-browser storage local key           # Get specific key
-agent-browser storage local set k v       # Set value
-agent-browser storage local clear         # Clear all
-```
-
-### Network
-```bash
-agent-browser network route <url>              # Intercept requests
-agent-browser network route <url> --abort      # Block requests
-agent-browser network route <url> --body '{}'  # Mock response
-agent-browser network unroute [url]            # Remove routes
-agent-browser network requests                 # View tracked requests
-agent-browser network requests --filter api    # Filter requests
-```
-
-### Tabs & Windows
-```bash
-agent-browser tab                 # List tabs
-agent-browser tab new [url]       # New tab
-agent-browser tab 2               # Switch to tab
-agent-browser tab close           # Close tab
-agent-browser window new          # New window
-```
-
-### Frames
-```bash
-agent-browser frame "#iframe"     # Switch to iframe
-agent-browser frame main          # Back to main frame
-```
-
-### Dialogs
-```bash
-agent-browser dialog accept [text]  # Accept dialog
-agent-browser dialog dismiss        # Dismiss dialog
-```
-
-### JavaScript
-```bash
-agent-browser eval "document.title"   # Run JavaScript
-```
-
-## Example: Form submission
-
-```bash
-agent-browser open https://example.com/form
-agent-browser snapshot -i
-# Output shows: textbox "Email" [ref=e1], textbox "Password" [ref=e2], button "Submit" [ref=e3]
-
-agent-browser fill @e1 "user@example.com"
-agent-browser fill @e2 "password123"
-agent-browser click @e3
-agent-browser wait --load networkidle
-agent-browser snapshot -i  # Check result
-```
-
-## Example: Authentication with saved state
-
-```bash
-# Login once
-agent-browser open https://app.example.com/login
-agent-browser snapshot -i
-agent-browser fill @e1 "username"
-agent-browser fill @e2 "password"
-agent-browser click @e3
-agent-browser wait --url "**/dashboard"
-agent-browser state save auth.json
-
-# Later sessions: load saved state
-agent-browser state load auth.json
-agent-browser open https://app.example.com/dashboard
-```
-
-## Sessions (parallel browsers)
-
-```bash
-agent-browser --session test1 open https://site-a.com
-agent-browser --session test2 open https://site-b.com
-agent-browser session list
-```
-
-## JSON output (for parsing)
-
-Add `--json` for machine-readable output:
-```bash
-agent-browser snapshot -i --json
-agent-browser get text @e1 --json
-```
-
-## Debugging
-
-```bash
-agent-browser open example.com --headed   # Show browser window
-agent-browser --cdp 9222 snapshot         # Connect via CDP
-agent-browser console                     # View console messages
-agent-browser console --clear             # Clear console
-agent-browser errors                      # View page errors
-agent-browser errors --clear              # Clear errors
-agent-browser highlight @e1               # Highlight element
-agent-browser trace start                 # Start recording trace
-agent-browser trace stop trace.zip        # Stop and save trace
-```
-
-For video recording during debugging, see [Video recording](#video-recording) above — same `record start` / `record stop` commands apply.
+Finish with a short list of what to fix, each pointing at the file in `src/` when it is
+obvious (e.g. contrast → `src/index.css` token). This skill reports; it does not fix.

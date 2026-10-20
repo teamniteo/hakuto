@@ -1,0 +1,403 @@
+/* src/styles/docs.css — the minimal docs design system.
+ *
+ * Docs ignore the brand palette on purpose: long technical reading wants plain
+ * text and one accent (links). Colours are custom properties so the site's dark
+ * mode (`.dark` on <html>, matching `@custom-variant dark` in index.css) can
+ * swap them; nothing below hardcodes a colour outside these two blocks.
+ * Fonts reuse the site's tokens so docs still look like the same site.
+ *
+ * Contrast (WCAG AA, 4.5:1 for body text) — re-check if you change a value:
+ *   #0066ff on #ffffff 4.8:1 · #4d94ff on #0a0a0a 6.6:1
+ *   #333333 on #ffffff 12.6:1 · #d4d4d4 on #0a0a0a 13:1
+ */
+:root {
+  --docs-fg: #0a0a0a;
+  --docs-fg-muted: #333333;
+  --docs-accent: #0066ff; /* links: the only colour accent */
+  --docs-border: #e5e5e5;
+  --docs-code-bg: #f5f5f5;
+}
+
+.dark {
+  --docs-fg: #fafafa;
+  --docs-fg-muted: #d4d4d4;
+  --docs-accent: #4d94ff;
+  --docs-border: #2a2a2a;
+  --docs-code-bg: #1a1a1a;
+}
+
+.docs {
+  color: var(--docs-fg);
+  font-family: var(--font-sans);
+}
+
+/* ---- Layout: sidebar | article | table of contents ---------------------- */
+
+.docs-grid {
+  display: grid;
+  gap: 2.5rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.docs-aside,
+.docs-toc-aside {
+  display: none;
+}
+
+.docs-article {
+  min-width: 0;
+  max-width: 50rem; /* ~800px reading width */
+}
+
+@media (min-width: 64rem) {
+  .docs-grid {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+  .docs-aside {
+    display: block;
+  }
+  .docs-aside > nav {
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+  }
+  .docs-mobile-nav {
+    display: none;
+  }
+}
+
+@media (min-width: 80rem) {
+  .docs-grid {
+    grid-template-columns: 15rem minmax(0, 1fr) 13rem;
+  }
+  .docs-toc-aside {
+    display: block;
+  }
+  .docs-toc-aside > nav {
+    position: sticky;
+    top: 2rem;
+  }
+}
+
+/* ---- Sidebar, mobile menu, table of contents ---------------------------- */
+
+.docs-sidebar,
+.docs-toc {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.docs-sidebar ul,
+.docs-toc ul {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+}
+
+.docs-sidebar li a,
+.docs-toc li a,
+.docs-sidebar-home {
+  display: block;
+  padding: 0.25rem 0;
+  color: var(--docs-fg-muted);
+  text-decoration: none;
+}
+
+.docs-sidebar-home {
+  margin-bottom: 1.5rem;
+}
+
+.docs-sidebar a:hover,
+.docs-toc a:hover {
+  color: var(--docs-accent);
+  text-decoration: underline;
+}
+
+/* Current page: weight and a rule, not colour alone. */
+.docs-sidebar a[aria-current="page"] {
+  color: var(--docs-fg);
+  font-weight: 600;
+  border-left: 2px solid var(--docs-accent);
+  padding-left: 0.75rem;
+  margin-left: calc(-0.75rem - 2px);
+}
+
+.docs-sidebar-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--docs-fg);
+}
+
+.docs-toc-sub {
+  padding-left: 0.875rem;
+}
+
+.docs-mobile-nav {
+  border: 1px solid var(--docs-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.docs-mobile-nav summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.docs-mobile-nav[open] summary {
+  margin-bottom: 1rem;
+}
+
+/* ---- Page header -------------------------------------------------------- */
+
+.docs-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  font-size: 0.875rem;
+  color: var(--docs-fg-muted);
+}
+
+.docs-breadcrumb li + li::before {
+  content: "/";
+  margin-right: 0.5rem;
+}
+
+.docs-title {
+  margin: 0 0 0.75rem;
+  font-size: 2.25rem;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.docs-lede {
+  margin: 0 0 2.5rem;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--docs-fg-muted);
+}
+
+/* ---- Body content ------------------------------------------------------- */
+
+.docs-content {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.docs-content > * + * {
+  margin-top: 1.25em;
+}
+
+.docs-content h2 {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--docs-border);
+  font-size: 1.5rem;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.docs-content h3 {
+  margin-top: 2rem;
+  font-size: 1.1875rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.docs-content h2,
+.docs-content h3 {
+  scroll-margin-top: 2rem;
+}
+
+/* Body links are underlined so they are not identified by colour alone. */
+.docs-content a,
+.docs-start,
+.docs-card a {
+  color: var(--docs-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.docs-content a:hover,
+.docs-start:hover,
+.docs-card a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.docs-content ul,
+.docs-content ol {
+  padding-left: 1.5rem;
+}
+
+.docs-content ul {
+  list-style: disc;
+}
+
+.docs-content ol {
+  list-style: decimal;
+}
+
+.docs-content li + li {
+  margin-top: 0.375rem;
+}
+
+.docs-content code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+.docs-content :not(pre) > code {
+  background: var(--docs-code-bg);
+  border: 1px solid var(--docs-border);
+  border-radius: 0.25rem;
+  padding: 0.1em 0.35em;
+}
+
+/* Fenced blocks keep Shiki's own theme colours (Astro's default highlighter). */
+.docs-content pre {
+  overflow-x: auto;
+  border: 1px solid var(--docs-border);
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.docs-content blockquote {
+  border-left: 3px solid var(--docs-border);
+  padding-left: 1rem;
+  color: var(--docs-fg-muted);
+}
+
+.docs-content table {
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.docs-content th,
+.docs-content td {
+  border: 1px solid var(--docs-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-content th {
+  font-weight: 600;
+}
+
+.docs-content td code {
+  white-space: nowrap;
+}
+
+.docs-content hr {
+  border: 0;
+  border-top: 1px solid var(--docs-border);
+}
+
+/* ---- Previous / next ---------------------------------------------------- */
+
+.docs-prevnext {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--docs-border);
+}
+
+.docs-prevnext a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  border: 1px solid var(--docs-border);
+  border-radius: 0.5rem;
+  color: var(--docs-fg);
+  text-decoration: none;
+}
+
+.docs-prevnext a:hover {
+  border-color: var(--docs-accent);
+}
+
+.docs-prevnext-next {
+  text-align: right;
+}
+
+.docs-prevnext-label {
+  font-size: 0.8125rem;
+  color: var(--docs-fg-muted);
+}
+
+/* ---- Docs home ---------------------------------------------------------- */
+
+.docs-home {
+  max-width: 64rem;
+  margin: 0 auto;
+}
+
+.docs-home-header {
+  margin-bottom: 3rem;
+}
+
+.docs-search {
+  margin: 0 0 1.5rem;
+  /* Pagefind UI reads these; keep it on the docs palette in both themes. */
+  --pagefind-ui-primary: var(--docs-accent);
+  --pagefind-ui-text: var(--docs-fg);
+  --pagefind-ui-background: transparent;
+  --pagefind-ui-border: var(--docs-border);
+  --pagefind-ui-tag: var(--docs-code-bg);
+  --pagefind-ui-font: var(--font-sans);
+}
+
+.docs-home-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 48rem) {
+  .docs-home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.docs-card {
+  border: 1px solid var(--docs-border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.docs-card h2 {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.docs-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.docs-card li + li {
+  margin-top: 1rem;
+}
+
+.docs-card p {
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--docs-fg-muted);
+}

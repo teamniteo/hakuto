@@ -19,7 +19,9 @@ const blog = defineCollection({
         ),
       date: z.coerce.date(),
       author: z.string(),
-      authorEmail: z.email(),
+      // Optional. Drives the Gravatar avatar and the RSS <author>; without it the
+      // post shows no avatar and the feed omits the author.
+      authorEmail: z.email().optional(),
       authorBio: z.string().optional(),
       // Where the byline links to: an author page, an /about/ anchor, or a profile.
       authorUrl: z.string().optional(),

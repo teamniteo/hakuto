@@ -22,9 +22,10 @@ const [featured] = posts;
 const cards = pagePosts(posts, 1);
 const featuredCover = featured?.data.featuredImage as ImageMetadata | undefined;
 
-// Placeholders — replace with the site's own blog intro (not marketing copy).
+// The description is a `TODO:` placeholder so prelaunch-checklist flags it —
+// replace with the site's own blog intro (not marketing copy).
 const BLOG_TITLE = "Blog";
-const BLOG_DESCRIPTION = "Notes, updates and lessons from the team.";
+const BLOG_DESCRIPTION = "TODO: One sentence on what this blog covers.";
 ---
 
 <Layout title={BLOG_TITLE} description={BLOG_DESCRIPTION} feedUrl="/blog/rss.xml" pagefindIgnore>

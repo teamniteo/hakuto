@@ -4,8 +4,14 @@ import type { Root } from "mdast";
 // The post template renders the title as the page's only <h1>. Authors (and
 // imported posts) often start sections with `#`, which would add a second one,
 // so demote every Markdown H1 to H2. Deeper levels are left alone.
+//
+// Scoped to blog posts: `markdown.remarkPlugins` runs on every Markdown file in the
+// site, and a Markdown page elsewhere may rely on its own `#` heading.
+const BLOG_DIR = /[\\/]src[\\/]content[\\/]blog[\\/]/;
+
 export function remarkBlogHeadings() {
-  return (tree: Root) => {
+  return (tree: Root, file: { path?: string }) => {
+    if (!BLOG_DIR.test(file.path ?? "")) return;
     const walk = (node: { type: string; depth?: number; children?: unknown[] }) => {
       if (node.type === "heading" && node.depth === 1) node.depth = 2;
       if (Array.isArray(node.children)) {
