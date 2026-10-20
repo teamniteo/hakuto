@@ -1,0 +1,47 @@
+---
+// src/pages/blog/page/[page].astro — pages 2..N. Page 1 is /blog/.
+import Layout from "@/layouts/Layout.astro";
+import PostCard from "@/components/blog/PostCard.astro";
+import Pagination from "@/components/blog/Pagination.astro";
+import BlogToolbar from "@/components/blog/BlogToolbar.astro";
+import type { GetStaticPaths } from "astro";
+import { getPosts, pagePosts, totalPages } from "@/lib/blog";
+
+export const getStaticPaths = (async () => {
+  const total = totalPages(await getPosts());
+  return Array.from({ length: Math.max(0, total - 1) }, (_, i) => ({
+    params: { page: String(i + 2) },
+    props: { page: i + 2 },
+  }));
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+
+// Re-fetch here rather than passing entries through getStaticPaths props —
+// props strip the `image()` asset binding and every cover would break.
+const posts = await getPosts();
+const total = totalPages(posts);
+const cards = pagePosts(posts, page);
+---
+
+<Layout
+  title={`Blog — Page ${page}`}
+  description={`Page ${page} of ${total} of the blog archive.`}
+  feedUrl="/blog/rss.xml"
+  pagefindIgnore
+>
+  <section class="pt-12 pb-10 text-center">
+    <p class="text-xs uppercase tracking-widest font-semibold text-primary mb-3">
+      Page {page} of {total}
+    </p>
+    <h1 class="text-4xl font-bold tracking-tight mb-8">Blog archive</h1>
+    <BlogToolbar postCount={posts.length} />
+  </section>
+
+  <section class="pb-16">
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+      {cards.map((post) => <PostCard post={post} />)}
+    </div>
+    <Pagination page={page} total={total} />
+  </section>
+</Layout>

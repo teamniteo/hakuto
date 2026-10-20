@@ -1,0 +1,205 @@
+---
+// src/pages/blog/[...slug].astro — one post: header, cover, body, author box,
+// older/newer links and related posts.
+import Layout from "@/layouts/Layout.astro";
+import PostCard from "@/components/blog/PostCard.astro";
+import { Picture } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import { render } from "astro:content";
+import { createHash } from "node:crypto";
+import type { BlogPosting, WithContext } from "schema-dts";
+import { fallbackFormat } from "@/lib/image-fallback";
+import { categoryHref, dateFmt, getPosts, postHref } from "@/lib/blog";
+import { SITE_NAME } from "@/lib/site";
+import "@/styles/blog-content.css";
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post) => ({
+    params: { slug: post.data.slug },
+    props: { slug: post.data.slug },
+  }));
+}
+
+const { slug } = Astro.props;
+
+// Re-fetch here rather than passing the entry through getStaticPaths props —
+// props strip the `image()` asset binding, which breaks the cover and every
+// image in the body.
+const allPosts = await getPosts();
+const idx = allPosts.findIndex((p) => p.data.slug === slug);
+const post = allPosts[idx];
+if (!post) throw new Error(`Blog post not found for slug: ${slug}`);
+
+const { Content } = await render(post);
+const cover = post.data.featuredImage as ImageMetadata | undefined;
+const coverUrl = cover ? new URL(cover.src, Astro.site).href : undefined;
+const isoDate = post.data.date.toISOString();
+
+// Newest first, so the next index is the older post.
+const older = allPosts[idx + 1] ?? null;
+const newer = idx > 0 ? allPosts[idx - 1] : null;
+const related = allPosts
+  .filter((p) => p.id !== post.id && p.data.category === post.data.category)
+  .slice(0, 3);
+
+// Gravatar: `s=` is the only sizing control for an external image, so request
+// 2x the rendered size — 32px byline → s=64, 64px author box → s=128.
+const emailHash = createHash("md5")
+  .update(post.data.authorEmail.trim().toLowerCase())
+  .digest("hex");
+const gravatar = (px: number) => `https://gravatar.com/avatar/${emailHash}?s=${px * 2}&d=mp`;
+
+const authorUrl = post.data.authorUrl
+  ? new URL(post.data.authorUrl, Astro.site).href
+  : undefined;
+
+const schema: WithContext<BlogPosting> = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: isoDate,
+  mainEntityOfPage: new URL(postHref(post), Astro.site).href,
+  author: {
+    "@type": "Person",
+    name: post.data.author,
+    ...(authorUrl && { url: authorUrl }),
+  },
+  publisher: { "@type": "Organization", name: SITE_NAME, url: Astro.site?.href },
+  articleSection: post.data.category,
+  ...(coverUrl && { image: coverUrl }),
+};
+---
+
+<Layout
+  title={post.data.title}
+  description={post.data.description}
+  socialImageUrl={coverUrl}
+  feedUrl="/blog/rss.xml"
+  schema={schema}
+>
+  <article>
+    <header class="max-w-3xl mx-auto pt-8 pb-8">
+      <a
+        href="/blog/"
+        class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-8"
+      >
+        ← All posts
+      </a>
+      <p class="mb-4">
+        <a
+          href={categoryHref(post.data.category)}
+          class="text-xs uppercase tracking-widest font-semibold text-primary hover:underline"
+        >
+          {post.data.category}
+        </a>
+      </p>
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-6">{post.data.title}</h1>
+      <p class="text-lg text-muted-foreground leading-relaxed mb-6">{post.data.description}</p>
+
+      <div class="flex items-center gap-3 text-sm text-muted-foreground">
+        <img
+          src={gravatar(32)}
+          alt=""
+          width="32"
+          height="32"
+          loading="lazy"
+          decoding="async"
+          class="rounded-full"
+        />
+        {authorUrl ? (
+          <a href={post.data.authorUrl} rel="author" class="font-medium text-foreground hover:text-primary">
+            {post.data.author}
+          </a>
+        ) : (
+          <span class="font-medium text-foreground">{post.data.author}</span>
+        )}
+        <span aria-hidden="true">·</span>
+        <time datetime={isoDate}>{dateFmt.format(post.data.date)}</time>
+      </div>
+    </header>
+
+    {cover && (
+      <div class="max-w-4xl mx-auto pb-8">
+        <div class="rounded-lg overflow-hidden border border-border">
+          <!-- Usually the post's LCP element: eager + high priority. -->
+          <Picture
+            src={cover}
+            alt=""
+            loading="eager"
+            fetchpriority="high"
+            formats={["webp"]}
+            fallbackFormat={fallbackFormat(cover)}
+            width={896}
+            widths={[448, 896, 1792]}
+            sizes="(min-width: 928px) 896px, 100vw"
+            class="w-full h-auto"
+          />
+        </div>
+      </div>
+    )}
+
+    <div id="blog-content" class="blog-content max-w-3xl mx-auto pb-12">
+      <Content />
+    </div>
+
+    <footer class="max-w-3xl mx-auto pt-8 pb-12 border-t border-border">
+      <div class="flex items-start gap-4">
+        <img
+          src={gravatar(64)}
+          alt=""
+          width="64"
+          height="64"
+          loading="lazy"
+          decoding="async"
+          class="rounded-full shrink-0"
+        />
+        <div>
+          <p class="font-semibold text-sm">
+            {authorUrl ? (
+              <a href={post.data.authorUrl} rel="author" class="hover:text-primary">{post.data.author}</a>
+            ) : (
+              post.data.author
+            )}
+          </p>
+          {post.data.authorBio && (
+            <p class="text-sm text-muted-foreground mt-1 leading-relaxed">{post.data.authorBio}</p>
+          )}
+        </div>
+      </div>
+    </footer>
+  </article>
+
+  {(older || newer) && (
+    <nav class="max-w-3xl mx-auto pb-12 grid sm:grid-cols-2 gap-4" aria-label="More posts">
+      {older ? (
+        <a
+          href={postHref(older)}
+          class="block p-5 rounded-lg border border-border bg-card hover:border-primary/50 hover:shadow-soft transition-all"
+        >
+          <p class="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-2">← Older</p>
+          <p class="font-medium leading-snug line-clamp-2">{older.data.title}</p>
+        </a>
+      ) : <div></div>}
+      {newer && (
+        <a
+          href={postHref(newer)}
+          class="block p-5 rounded-lg border border-border bg-card hover:border-primary/50 hover:shadow-soft transition-all sm:text-right"
+        >
+          <p class="text-xs uppercase tracking-widest font-semibold text-muted-foreground mb-2">Newer →</p>
+          <p class="font-medium leading-snug line-clamp-2">{newer.data.title}</p>
+        </a>
+      )}
+    </nav>
+  )}
+
+  {related.length > 0 && (
+    <section class="border-t border-border pt-12 pb-16">
+      <h2 class="text-2xl font-bold mb-8 text-center">More from {post.data.category}</h2>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {related.map((p) => <PostCard post={p} headingLevel="h3" showCategory={false} />)}
+      </div>
+    </section>
+  )}
+</Layout>

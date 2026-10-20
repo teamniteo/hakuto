@@ -1,0 +1,61 @@
+---
+// src/components/blog/PostCard.astro — one card markup for the listing,
+// pagination, category and related-post grids.
+import { Picture } from "astro:assets";
+import type { ImageMetadata } from "astro";
+import { fallbackFormat } from "@/lib/image-fallback";
+import { dateFmt, postHref, type Post } from "@/lib/blog";
+
+interface Props {
+  post: Post;
+  /** h2 on archive pages (the card titles are the page's sections); h3 under an h2 section heading. */
+  headingLevel?: "h2" | "h3";
+  showCategory?: boolean;
+}
+
+const { post, headingLevel = "h2", showCategory = true } = Astro.props;
+const Heading = headingLevel;
+// Cast: `image().optional()` types `format` as optional, ImageMetadata requires it.
+const cover = post.data.featuredImage as ImageMetadata | undefined;
+---
+
+<a
+  href={postHref(post)}
+  class="group flex flex-col rounded-lg overflow-hidden border border-border bg-card hover:shadow-medium transition-shadow"
+>
+  {cover ? (
+    <div class="aspect-[16/10] bg-secondary overflow-hidden">
+      <!-- 352px = one column of a 3-up gap-8 grid in a 1120px container. Re-measure if the site's container differs. -->
+      <Picture
+        src={cover}
+        alt=""
+        loading="lazy"
+        formats={["webp"]}
+        fallbackFormat={fallbackFormat(cover)}
+        width={352}
+        widths={[352, 704]}
+        sizes="(min-width: 1024px) 352px, (min-width: 640px) 50vw, 100vw"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      />
+    </div>
+  ) : (
+    <div class="aspect-[16/10] bg-gradient-hero" aria-hidden="true"></div>
+  )}
+  <div class="p-6 flex flex-col flex-1">
+    {showCategory && (
+      <p class="text-xs uppercase tracking-widest font-semibold text-primary mb-2">
+        {post.data.category}
+      </p>
+    )}
+    <Heading class="text-lg font-semibold mb-3 group-hover:text-primary transition-colors leading-snug">
+      {post.data.title}
+    </Heading>
+    <p class="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-3">
+      {post.data.description}
+    </p>
+    <p class="text-xs text-muted-foreground mt-auto">
+      <time datetime={post.data.date.toISOString()}>{dateFmt.format(post.data.date)}</time>
+      {" · "}{post.data.author}
+    </p>
+  </div>
+</a>
