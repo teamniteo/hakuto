@@ -152,13 +152,15 @@ When applying, write the upstream rules (B, stripped) followed by the site's **o
 block, copied verbatim from C — never the scaffold's block, which indexes the demo pages. If C
 has no block, write the rules alone; the next build appends one.
 
-**Legacy instruction layout (pre-0.17.0).** If the site's `CLAUDE.md` is not the import stub
-(no line that is exactly `@AGENTS.md`), its rules still live in `CLAUDE.md` and `AGENTS.md` is
-only the generated block. Don't offer `CLAUDE.md` or `AGENTS.md` as per-file decisions —
-replacing `CLAUDE.md` with the stub first would drop the rules and the site's customizations.
-Point the user at the 0.17.0 migration, which moves both files over together. A `CLAUDE.md`
-that is the stub (with or without Claude-Code-only notes below it) is classified like any
-other file.
+**`CLAUDE.md` (removed in 0.18.0).** The scaffold ships no `CLAUDE.md`: Claude Code reads
+`AGENTS.md` directly. A site that still has one is never classified as a per-file decision:
+- **Pre-0.17.0 layout** — `CLAUDE.md` holds the rules (no line that is exactly `@AGENTS.md`)
+  and `AGENTS.md` is only the generated block. Point the user at the 0.17.0 and 0.18.0
+  migrations: the rules move into `AGENTS.md` above the site's `page_summary` block, then
+  `CLAUDE.md` is deleted. Deleting it first would drop the rules and the site's customizations.
+- **The 0.17.0 import stub** — `CLAUDE.md` is the `@AGENTS.md` line plus the scaffold comment.
+  Delete it (0.18.0 migration). If the user added Claude-Code-only notes below the import, move
+  them into `AGENTS.md` above the `page_summary` block first.
 `test/dev-smoke.test.ts` exercises the scaffold worker and static serving, so it has to move in
 step with `worker/index.js` — leaving it behind would leave the site testing an old worker
 contract. A site that extended it lands in `both-changed` like any other file.
