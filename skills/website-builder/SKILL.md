@@ -11,7 +11,7 @@ Generate production-ready websites through a design interview: read the brief, a
 
 ## Working Alongside AGENTS.md
 
-This skill is the orchestrator referenced by the site's AGENTS.md (the agent instructions; `CLAUDE.md` just imports it). Follow AGENTS.md's "Mandatory Workflow" (`index.css` → `Layout.astro` → Project Plan → Components) alongside this skill's design workflows. AGENTS.md owns the *how* (which files to touch, what conventions to follow); this skill owns the *what* (which direction, which content strategy, when to invoke siblings).
+This skill is the orchestrator referenced by the site's AGENTS.md (the agent instructions). Follow AGENTS.md's "Mandatory Workflow" (`index.css` → `Layout.astro` → Project Plan → Components) alongside this skill's design workflows. AGENTS.md owns the *how* (which files to touch, what conventions to follow); this skill owns the *what* (which direction, which content strategy, when to invoke siblings).
 
 Two deliberate differences from older instruction-file copies: the Project Plan lives in `site-specification.md` under `## Project Plan`, not in AGENTS.md or CLAUDE.md (so the instructions stay clean for `scaffold-sync`), and the spec is created at style-preview approval rather than while writing `index.css`.
 
