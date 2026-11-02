@@ -50,7 +50,7 @@ Open [localhost:4321](http://localhost:4321) to see the site.
 
 ## How It Works
 
-Hakuto is a Claude Code plugin bundling skills, a subagent, and an Astro scaffold. Skills (design rules, component patterns, copy, analytics, etc.) live in the plugin and update via `/plugin update hakuto`. The scaffolded `AGENTS.md` ties everything together inside your site repo — Codex reads it directly, and Claude Code through a one-line `CLAUDE.md` import.
+Hakuto is a Claude Code plugin bundling skills, a subagent, and an Astro scaffold. Skills (design rules, component patterns, copy, analytics, etc.) live in the plugin and update via `/plugin update hakuto`. The scaffolded `AGENTS.md` ties everything together inside your site repo — Claude Code and Codex both read it directly.
 
 1. **Install the plugin** — one time, global
 2. **`/hakuto:init`** — drops an Astro + Cloudflare starter into an empty directory
@@ -96,7 +96,6 @@ src/
 └── index.css        # Theme tokens (Tailwind v4 @theme)
 
 AGENTS.md            # Agent spec for your site + build-generated page index
-CLAUDE.md            # Imports AGENTS.md for Claude Code
 worker/              # Cloudflare Worker entry
 wrangler.toml        # Worker name, assets, custom domain
 ```

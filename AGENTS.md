@@ -1,7 +1,7 @@
 # Hakuto — plugin development
 
 Hakuto is a Claude Code plugin that scaffolds and builds Astro + Cloudflare sites.
-This file is memory for working **on the plugin** (`CLAUDE.md` imports it). It is not shipped to generated sites.
+This file is memory for working **on the plugin** (Claude Code and Codex both read it directly). It is not shipped to generated sites.
 
 ## Two audiences — know which tree you are editing
 
@@ -9,7 +9,7 @@ This file is memory for working **on the plugin** (`CLAUDE.md` imports it). It i
 |---|---|---|
 | `skills/`, `agents/`, `commands/` | Claude Code, when the plugin is installed | Changes agent behaviour on the next `/plugin update hakuto` |
 | `scaffold/` | Copied into an empty directory by `/hakuto:init` | Changes what **new** sites get |
-| `scaffold/AGENTS.md` | The generated site's agent (Claude Code via the `scaffold/CLAUDE.md` import stub, Codex directly) | A shipped artifact — **not** this repo's memory |
+| `scaffold/AGENTS.md` | The generated site's agent (read directly by Claude Code and Codex; there is no `CLAUDE.md`) | A shipped artifact — **not** this repo's memory |
 | `.codex-plugin/` | Codex, when the plugin is installed there | Loads `skills/` only — no `agents/`, no `commands/` (so no `/hakuto:init`) |
 
 Existing sites never pick up scaffold changes on their own. Anything they need requires a

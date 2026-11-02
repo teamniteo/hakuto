@@ -20,6 +20,7 @@ applied on a site that never had the file.
 - [0.10.0 — WebMCP on by default, backed by Pagefind](#0100-webmcp-on-by-default-backed-by-pagefind)
 - [0.16.0 — Worker passes `env` to handlers; CLAUDE.md restructure](#0160-worker-passes-env-to-handlers-claudemd-restructure)
 - [0.17.0 — AGENTS.md is the instruction file](#0170-agentsmd-is-the-instruction-file)
+- [0.18.0 — No CLAUDE.md](#0180-no-claudemd)
 
 ---
 
@@ -318,7 +319,8 @@ Claude Code v2.1.277+ reads `AGENTS.md` natively, but by default only when no `C
 `@AGENTS.md` import covers every case and never loads the file twice. A symlink is not used:
 Claude Code's Edit/Write refuse to write through one, and Windows checkouts break it.
 
-**Detect:** `CLAUDE.md` is the stub and `AGENTS.md` carries the rules and the block.
+**Detect:** `CLAUDE.md` is the stub and `AGENTS.md` carries the rules and the block. Superseded
+by 0.18.0, which deletes the stub — if 0.18.0's markers pass, treat this one as applied too.
 ```sh
 test -f CLAUDE.md && grep -qx '@AGENTS.md' CLAUDE.md &&
   test -f AGENTS.md && grep -q '^<page_summary>' AGENTS.md &&
@@ -342,10 +344,38 @@ Manual edits for customized sites — do these in order, before replacing `CLAUD
    "`AGENTS.md` is regenerated, never hand-edit it" → only its `page_summary` block is
    regenerated. Make sure no line above the block contains the opening tag in angle brackets.
 4. **Replace `CLAUDE.md`** with the scaffold stub. Claude-Code-only notes, if the site has any,
-   go below the `@AGENTS.md` line.
+   go below the `@AGENTS.md` line. (From 0.18.0 the scaffold has no stub: delete `CLAUDE.md`
+   instead and put those notes in `AGENTS.md` — see the 0.18.0 entry.)
 5. A `CLAUDE.local.md` needs no change — Claude Code loads it alongside `CLAUDE.md`, and the
    stub's import still brings in `AGENTS.md`.
 
 After applying:
 - `grep -c '<page_summary>' AGENTS.md` — expect exactly `1`
 - run `bun run build`, then `git diff AGENTS.md` — only lines inside the block may change
+
+---
+
+### 0.18.0 — No CLAUDE.md
+
+The scaffold no longer ships the `CLAUDE.md` import stub. Claude Code reads `AGENTS.md`
+natively when no `CLAUDE.md` exists, so the stub only added a second file to keep in step.
+Apply the 0.17.0 migration first if the site's rules still live in `CLAUDE.md`.
+
+**Detect:** no `CLAUDE.md`, and `AGENTS.md` carries the rules and the block.
+```sh
+test ! -e CLAUDE.md &&
+  test -f AGENTS.md && grep -q '^<page_summary>' AGENTS.md &&
+  grep -q '^## Mandatory Workflow' AGENTS.md
+```
+
+Manual edits:
+
+1. **Claude-Code-only notes.** If the site's `CLAUDE.md` has anything below the `@AGENTS.md`
+   line besides the scaffold comment, move it into `AGENTS.md` above the `page_summary` block.
+2. **Delete `CLAUDE.md`** (`git rm CLAUDE.md`). A `CLAUDE.local.md` would again stop Claude Code
+   reading `AGENTS.md` by default, so fold any such file into `AGENTS.md` too.
+3. Fix any remaining mention of `CLAUDE.md` in the site's `README.md` or comments.
+
+After applying:
+- start a fresh Claude Code session in the site and ask what the Mandatory Workflow is — it
+  should answer from `AGENTS.md`
