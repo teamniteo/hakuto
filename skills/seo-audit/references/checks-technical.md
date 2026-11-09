@@ -224,9 +224,7 @@ A feed nobody can find is a feed nobody reads, and readers/aggregators only look
   Quote the cost concretely: byte-identical CSS re-transferred on every navigation, where a
   hashed `/_astro/*.css` file would be served once and reused from cache for the rest of the
   session.
-- Cross-check `build.inlineStylesheets` in `astro.config.mjs`. If it is `"always"`, name it
-  as the cause — Astro's `"auto"` default only inlines stylesheets under ~4 KB, so a 122 KB
-  inline block is always a deliberate setting, never an accident.
+- Cross-check `build.inlineStylesheets` in `astro.config.mjs`. If it is `"always"`, name it as the cause — Astro's `"auto"` default only inlines stylesheets under ~4 KB, so a 122 KB inline block is always a deliberate setting, never an accident. Look for the reason before recommending a change (`git log -S inlineStylesheets`, a comment beside it): it is often set to remove the render-blocking stylesheet on a PageSpeed push, and that trade-off is real on a first visit. Recommend measuring both settings with `pagespeed-audit` rather than flipping it.
 - Tie it to the performance picture where you have it: a large inline block shows up as
   render delay dominating the LCP subparts *even on pages whose LCP element is plain text*,
   because nothing can paint until the block is parsed. That signature is diagnostic.

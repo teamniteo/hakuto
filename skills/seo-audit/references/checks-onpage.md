@@ -42,6 +42,7 @@ To check self-reference: derive expected URL from file path (e.g. `dist/client/a
 **Open Graph:** check for og:title, og:description, og:image, og:url
 - Missing any → ⚠️ warning for each missing tag
 - All present → ✅ pass
+- **`og:image` / `twitter:image` on the site's own host that resolves to no file in `dist/client/`** → ❌ critical, reported once with the page count: "og:image [url] is a 404 — every share of N pages shows a broken card". A layout default like `/og-image.png` that was never added to `public/` passes the presence check on every page and fails on every share. Same test for JSON-LD `logo` and `image` values on the site's own host (`checks-schema.md`).
 
 **Twitter / X card:** `twitter:card` decides whether a shared link renders as a large image or a bare URL; X falls back to OG for title, description and image, but not for the card type.
 - `twitter:card` missing → ⚠️ warning. `Layout.astro` emits it, so a miss means the page bypasses the layout — say so.
@@ -92,6 +93,7 @@ unreadable to an agent, because nothing below the H1 marks where one idea ends a
 begins. A skipped level is a broken outline; *no* outline is worse, and the skip check above
 passes it silently.
 
+- Measure the text inside `<main>` (or `<article>`), never the whole `<body>` — header navigation and the footer add hundreds of characters to every page and make a short page look long.
 - Page has an H1 and ≥ 500 characters of body text but **zero H2s** → ⚠️ warning: "Flat
   heading structure on [url]: N chars under a single H1, no H2s". Agent-readiness scanners
   grade this directly — it is the difference between a partial and a full pass on
