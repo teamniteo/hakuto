@@ -196,8 +196,9 @@ confirmed production use of it, so the upside is modest — but it is close to f
   ⚠️ warning
 - `manifest.webmanifest` (`astro-favicons` output; older sites may use `site.webmanifest`) → recommended, missing = ⚠️ warning
 
-*Validation*: for each `<link rel="icon" href="...">`, confirm the referenced file exists in
-`dist/client/` → broken reference = ❌ critical.
+*Validation*: for each `<link rel="icon" href="...">`, confirm the referenced file exists in `dist/client/` → broken reference = ❌ critical.
+
+**Files present, links absent** — the favicon files exist in `dist/client/` but **no page** carries `<link rel="icon">` → ❌ critical, reported once: "Favicons are built but never linked". On Hakuto sites this is `astro-favicons` ≤ 3.1.7 on Astro 7: its middleware only injects into responses carrying the `X-Astro-Route-Type` header, which Astro 7 no longer sets, so every page ships without the tags and the build stays green. Check `node_modules/astro-favicons/package.json` and `node_modules/astro/package.json` before reporting the cause. A site that hand-writes icon links in its layout masks the bug — check the version there too.
 
 ---
 
@@ -247,8 +248,7 @@ exists after hydration is content that, for these purposes, does not exist.
 The highest-value instance of this is pricing, because it is the single most commercially
 important question asked about most sites.
 
-- A page whose route or `<title>` contains `pricing`, `plans`, `price` or `cost`, whose
-  built HTML contains **no currency figure** (no `$`/`€`/`£`/`¥` followed by digits, no
+- A page whose route or `<title>` contains `pricing`, `plans`, `price` or `cost` — excluding articles (routes under `/blog/`, `/docs/`, or any page whose JSON-LD is `Article`/`BlogPosting`; a post titled "The Total Cost of Risk Management" is not a pricing page) and `noindex` pages — whose built HTML contains **no currency figure** (no `$`/`€`/`£`/`¥` followed by digits, no
   `\d+ (USD|EUR|GBP)`) → ❌ critical: "[url] ships zero prices in server-rendered HTML".
   Show the evidence:
   ```sh

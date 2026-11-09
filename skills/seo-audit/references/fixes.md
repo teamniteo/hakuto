@@ -82,7 +82,8 @@ The rows below were sorted by one test: two competent people fixing it independe
 | `llms.txt` links without the trailing slash | Add the slash to every internal link. |
 | Blog post or docs page with no schema, or Article missing `dateModified` / `image` | Build `BlogPosting` / `Article` in the post or docs layout from the collection's frontmatter (`title`, `description`, `pubDate`, `updatedDate`, `heroImage`), with `publisher` pointing at the site Organization `@id`. Fall back to the git commit date for `dateModified` and the site's OG image for `image`. |
 | `build.inlineStylesheets: "always"` with > 15 KB inline | Set it back to `"auto"`. |
-| Favicon file or `<link>` missing | Restore the `favicons()` integration and its `src/assets/favicon.png` input from the scaffold. |
+| Favicon files built but no `<link rel="icon">` on any page | `bun add astro-favicons@3.1.8` (or later). If the layout hand-writes icon links as a workaround, remove them once the integration's tags appear, so they aren't duplicated. |
+| Favicon file missing | Restore the `favicons()` integration and its `src/assets/favicon.png` input from the scaffold. |
 
 ## ✍️ Needs One Answer
 
@@ -90,7 +91,7 @@ Propose a concrete value for each — the user should only have to approve or ed
 
 | Finding | Ask for |
 | --- | --- |
-| Title or description missing, outside 50–60 / 150–160 chars, or duplicated | The new string. Draft it from the page's H1 and opening copy; hand longer rewrites to `professional-copywriter`. |
+| Title or description missing, outside 50–60 / 150–160 chars, or duplicated | The new string. Draft it from the page's H1 and opening copy; hand longer rewrites to `professional-copywriter`. Don't change a visible headline to fix `<title>` length — add an optional `seoTitle` that feeds only `<title>`. |
 | Description restates the title, or ends on a stock CTA ("Try it free!") | A rewritten description that adds what the title doesn't. |
 | Duplicate H1 across templated pages | Which attribute (platform, category, city) qualifies the H1 in the template. |
 | Flat heading structure (long page, no H2s) | Approval of drafted section headings, inserted where the prose already changes topic — the body text itself is not rewritten. |

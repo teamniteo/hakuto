@@ -8,6 +8,8 @@ Step 7 of `SKILL.md`.
 
 ## Meta Tags
 
+**Short on purpose:** utility pages — About, Contact, Privacy/Legal/Terms, 404, blog pagination (`/blog/2/`), login/members stubs — legitimately carry short titles and descriptions ("About | Brand"). Don't flag their *length*; still flag them missing or duplicated.
+
 **Title:** `<title>` in `<head>`
 - Missing → ❌ critical
 - <30 chars → ⚠️ warning: "Title too short: X chars (optimal: 50-60)" — Google rewrites
@@ -22,7 +24,7 @@ Step 7 of `SKILL.md`.
 - 100-149 or 161+ chars → ⚠️ warning: "Description X chars (optimal: 150-160)"
 - 150-160 chars → ✅ pass
 - Track in `descriptions{}` for duplicates
-- **Restates the title** — skip titles under three words ("Skills", "Blog": a description naturally opens with the subject). Otherwise, after lowercasing and stripping punctuation and the ` | Site Name` suffix, the description *starts with* the title, or the title's words make up most of the description's first sentence → ⚠️ warning: "Description on [url] repeats its title". The snippet then says the same thing twice and wastes the line Google gives you.
+- **Restates the title** — after lowercasing and stripping punctuation and the ` | Site Name` suffix, the description *starts with* the title **and** what follows adds little: fewer than 8 more words, or only a stock CTA → ⚠️ warning: "Description on [url] repeats its title and adds nothing". The snippet then says the same thing twice. A description that opens on the topic and goes on to say something substantive ("Vendor risk assessment in clinical trials lets risk set oversight — judging vendors by …") is good practice, not a finding. Skip titles under three words.
 - **Stock CTA ending** — ends on a generic call to action ("Try it free.", "Get started today!", "Sign up now.", "Learn more.") → ℹ️ note. One page doing it is fine; the same tail on ≥ 3 pages is the signature of templated metadata → ⚠️ warning, reported once with the count.
 
 **Canonical:** `<link rel="canonical" href="...">` in `<head>`
@@ -104,7 +106,7 @@ lead-ins. Check for that pattern specifically: a bolded paragraph immediately fo
 
 ## Image Alt Text
 
-Extract all `<img>` tags in `<body>`:
+Extract all `<img>` tags in `<body>`. An `alt` attribute with no value (`<img alt>`) is `alt=""` — an HTML parser that returns `None` for it hasn't found a missing alt.
 - Missing `alt` attribute → ❌ critical: "Image missing alt: [src]"
 - Empty `alt=""` on a decorative image (no surrounding link/caption) → ✅ pass (intentional)
 - Empty `alt=""` on a content image (inside `<a>`, `<figure>`, or with no other text in
