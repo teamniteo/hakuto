@@ -62,7 +62,7 @@ The rows below were sorted by one test: two competent people fixing it independe
 | Broken internal link | Repoint to the built page the slug clearly meant (`/pricng/` → `/pricing/`). If no built page is an unambiguous match, ✍️. |
 | Broken in-page anchor | Add the missing `id` to the section the link names, or repoint the link to the existing `id`. |
 | Mixed content (`http://` asset or link) | Switch to `https://` after confirming the HTTPS URL answers (`curl -sI`). If it doesn't, report-only. |
-| Missing `<lastmod>`, or all identical | Add a `serialize()` to `sitemap()` that reads `git log -1 --format=%cI -- <source file>`; if the identical stamps come from CI, set `fetch-depth: 0` on the checkout. |
+| Missing `<lastmod>`, all identical, or missing only in production | Copy `src/lib/git-dates.ts` and the `sitemap({ serialize })` call from the scaffold (`${CLAUDE_PLUGIN_ROOT}/scaffold/`); extend `sourceForPath` for routes it doesn't cover. Its shallow-clone fetch handles Cloudflare Workers Builds; for a GitHub Actions deploy also set `fetch-depth: 0` on the checkout. |
 | `<priority>` / `<changefreq>` in the sitemap | Remove them from `serialize()` — Google ignores both. |
 | Sitemap lists a `noindex` page, a cross-canonicalized page, or a non-HTML route | Exclude it with `sitemap({ filter })`. |
 | Sitemap URLs without a trailing slash on a `force-trailing-slash` site | Set `trailingSlash: "always"` in `astro.config.mjs`; every listed URL is otherwise a redirect. |
@@ -81,8 +81,10 @@ The rows below were sorted by one test: two competent people fixing it independe
 | `llms.txt` links to an unbuilt route | Remove the line. If the page plainly moved (same slug under another section), repoint it instead. |
 | `llms.txt` links without the trailing slash | Add the slash to every internal link. |
 | Blog post or docs page with no schema, or Article missing `dateModified` / `image` | Build `BlogPosting` / `Article` in the post or docs layout from the collection's frontmatter (`title`, `description`, `pubDate`, `updatedDate`, `heroImage`), with `publisher` pointing at the site Organization `@id`. Fall back to the git commit date for `dateModified` and the site's OG image for `image`. |
-| `build.inlineStylesheets: "always"` with > 15 KB inline | Set it back to `"auto"`. |
-| Favicon file or `<link>` missing | Restore the `favicons()` integration and its `src/assets/favicon.png` input from the scaffold. |
+| Favicon files built but no `<link rel="icon">` on any page | `bun add astro-favicons@^3.1.8`. Then remove any hand-written icon links from the layouts: the integration skips a page that already contains any one of its own tags, so a single hand-written `<link rel="icon" href="/favicon.svg">` suppresses the whole generated set (apple-touch, manifest, every size). |
+| Hand-written icon link suppresses the generated favicon set | Remove the hand-written icon `<link>`s from the layout, after confirming `astro-favicons` is ≥ 3.1.8 and its output covers the files they pointed at. Rebuild and check one page has `apple-touch-icon` and `manifest` links. |
+| `og:image`, JSON-LD `logo` or `image` pointing at a 404 on the site's own host | Point it at the built asset: import it (`import logo from "@/assets/logo.png"`) and use `new URL(logo.src, Astro.site).href`, so the hashed URL can't go stale. If no suitable image exists at all, ✍️ — don't generate one. |
+| Favicon file missing | Restore the `favicons()` integration and its `src/assets/favicon.png` input from the scaffold. |
 
 ## ✍️ Needs One Answer
 
@@ -90,7 +92,7 @@ Propose a concrete value for each — the user should only have to approve or ed
 
 | Finding | Ask for |
 | --- | --- |
-| Title or description missing, outside 50–60 / 150–160 chars, or duplicated | The new string. Draft it from the page's H1 and opening copy; hand longer rewrites to `professional-copywriter`. |
+| Title or description missing, outside 50–60 / 150–160 chars, or duplicated | The new string. Draft it from the page's H1 and opening copy; hand longer rewrites to `professional-copywriter`. On `.astro` pages, change the `title` prop passed to `Layout.astro`. For blog and docs entries, change frontmatter `title` and `description` themselves — they are also the visible headline, cards and RSS, so show the user that in the proposal. Never add a separate SEO field (`seoTitle`, `metaTitle`, `seoDescription`): a page has one title and one description. If the site already has such fields, fold their values into `title`/`description` and remove them. |
 | Description restates the title, or ends on a stock CTA ("Try it free!") | A rewritten description that adds what the title doesn't. |
 | Duplicate H1 across templated pages | Which attribute (platform, category, city) qualifies the H1 in the template. |
 | Flat heading structure (long page, no H2s) | Approval of drafted section headings, inserted where the prose already changes topic — the body text itself is not rewritten. |
@@ -99,6 +101,7 @@ Propose a concrete value for each — the user should only have to approve or ed
 | No explicit AI-crawler policy, or a search-citation crawler blocked | Which crawlers to block. Show what each one gates (see `checks-technical.md`). |
 | Generic link text ("click here", "read more", "learn more") | The rewritten link text, drafted from the target page's title. |
 | Organization schema missing `logo` / `sameAs` | The social profile URLs; the logo is usually already in `src/assets/`. |
+| `build.inlineStylesheets: "always"` with > 15 KB inline | Whether to keep it. Show the reason from `git log -S inlineStylesheets` and suggest measuring both settings with `pagespeed-audit` first. |
 | No schema on a product or pricing page | Approval of a drafted `Product`/`SoftwareApplication` node using the prices already on the page. |
 | Pricing page ships no price in HTML | The "from $X" figure to server-render. |
 | Page-level `nofollow` on a content page | Whether it was intentional. |

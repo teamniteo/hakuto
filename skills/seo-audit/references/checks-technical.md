@@ -24,11 +24,8 @@ index to its child sitemaps.
 - **`<lastmod>` freshness** — every `<url>` should carry a `<lastmod>`. Missing on some/all →
   ⚠️ warning: "Sitemap missing <lastmod> on N URLs (weakens freshness/crawl signals)". Derive
   lastmod from git commit history so it stays accurate without hand-maintenance.
-- **Placeholder lastmod** — all URLs share one identical `<lastmod>` (e.g. the build date) →
-  ⚠️ warning: "All sitemap <lastmod> values identical — likely build-time stamp, not real
-  content dates". The usual root cause is a shallow CI checkout: a `serialize()` hook that
-  shells out to `git log -1 --format=%cs` returns nothing, and every URL falls back to the
-  build date. Check for `fetch-depth: 0` in the Actions checkout before blaming the hook.
+- **Placeholder lastmod** — all URLs share one identical `<lastmod>` (e.g. the build date) → ⚠️ warning: "All sitemap <lastmod> values identical — likely build-time stamp, not real content dates". The usual root cause is a shallow checkout: a `serialize()` hook that shells out to `git log` sees one commit, and every URL gets the same date or the build date.
+- **Dates locally, none in production** — a local build has full git history, so a clean local `<lastmod>` pass doesn't prove the deployed sitemap has dates. Cloudflare Workers Builds clones only the latest commit. If `src/lib/git-dates.ts` exists but doesn't run `git fetch --unshallow`, report ⚠️ warning: "Sitemap dates will be missing in production (shallow deploy clone)". When the deployed domain is known, `curl -s https://<domain>/sitemap-0.xml | grep -c '<lastmod>'` settles it.
 - **Invalid `<lastmod>`** — not a W3C Datetime (`YYYY-MM-DD` or full ISO 8601 with offset), or later than the build date → ⚠️ warning. Google only honours `<lastmod>` when it is consistently and verifiably accurate; one future date teaches it to ignore the whole file.
 - **`<priority>` / `<changefreq>`** present → ℹ️ note: "Google ignores both — remove them". Harmless, but they signal hand-tuned values nobody maintains.
 - **Non-canonical URL listed** — a sitemap URL whose built page canonicals to a *different* URL → ❌ critical: "Sitemap lists [url], which canonicals to [target]". The sitemap is a canonical-URL list; contradicting the page's own canonical is the same mixed signal as the noindex leak.
@@ -196,8 +193,11 @@ confirmed production use of it, so the upside is modest — but it is close to f
   ⚠️ warning
 - `manifest.webmanifest` (`astro-favicons` output; older sites may use `site.webmanifest`) → recommended, missing = ⚠️ warning
 
-*Validation*: for each `<link rel="icon" href="...">`, confirm the referenced file exists in
-`dist/client/` → broken reference = ❌ critical.
+*Validation*: for each `<link rel="icon" href="...">`, confirm the referenced file exists in `dist/client/` → broken reference = ❌ critical.
+
+**Files present, links absent** — the favicon files exist in `dist/client/` but **no page** carries `<link rel="icon">` → ❌ critical, reported once: "Favicons are built but never linked". On Hakuto sites this is `astro-favicons` ≤ 3.1.7 on Astro 7: its middleware only injects into responses carrying the `X-Astro-Route-Type` header, which Astro 7 no longer sets, so every page ships without the tags and the build stays green. Check `node_modules/astro-favicons/package.json` and `node_modules/astro/package.json` before reporting the cause.
+
+**Hand-written icon link suppresses the generated set** — a page has `<link rel="icon">` but no `rel="apple-touch-icon"` and no `rel="manifest"`, while `astro-favicons` is installed → ⚠️ warning: "Hand-written icon link suppresses astro-favicons' generated tags". The integration skips any page that already contains one of its own tags, so a single hand-written link (often added to work around the bug above) leaves the page without the apple-touch icon and manifest.
 
 ---
 
@@ -223,9 +223,7 @@ A feed nobody can find is a feed nobody reads, and readers/aggregators only look
   Quote the cost concretely: byte-identical CSS re-transferred on every navigation, where a
   hashed `/_astro/*.css` file would be served once and reused from cache for the rest of the
   session.
-- Cross-check `build.inlineStylesheets` in `astro.config.mjs`. If it is `"always"`, name it
-  as the cause — Astro's `"auto"` default only inlines stylesheets under ~4 KB, so a 122 KB
-  inline block is always a deliberate setting, never an accident.
+- Cross-check `build.inlineStylesheets` in `astro.config.mjs`. If it is `"always"`, name it as the cause — Astro's `"auto"` default only inlines stylesheets under ~4 KB, so a 122 KB inline block is always a deliberate setting, never an accident. Look for the reason before recommending a change (`git log -S inlineStylesheets`, a comment beside it): it is often set to remove the render-blocking stylesheet on a PageSpeed push, and that trade-off is real on a first visit. Recommend measuring both settings with `pagespeed-audit` rather than flipping it.
 - Tie it to the performance picture where you have it: a large inline block shows up as
   render delay dominating the LCP subparts *even on pages whose LCP element is plain text*,
   because nothing can paint until the block is parsed. That signature is diagnostic.
@@ -247,10 +245,7 @@ exists after hydration is content that, for these purposes, does not exist.
 The highest-value instance of this is pricing, because it is the single most commercially
 important question asked about most sites.
 
-- A page whose route or `<title>` contains `pricing`, `plans`, `price` or `cost`, whose
-  built HTML contains **no currency figure** (no `$`/`€`/`£`/`¥` followed by digits, no
-  `\d+ (USD|EUR|GBP)`) → ❌ critical: "[url] ships zero prices in server-rendered HTML".
-  Show the evidence:
+- A page whose route or `<title>` contains `pricing`, `plans`, `price` or `cost` — excluding articles (routes under `/blog/`, `/docs/`, or any page whose JSON-LD is `Article`/`BlogPosting`; a post titled "The Real Cost of Downtime" is not a pricing page) and `noindex` pages — whose built HTML contains **no currency figure** (no `$`/`€`/`£`/`¥` followed by digits, no `\d+ (USD|EUR|GBP)`) → ❌ critical: "[url] ships zero prices in server-rendered HTML". Show the evidence:
   ```sh
   grep -oE '[$€£][0-9]+' dist/client/pricing/index.html   # → (no matches)
   ```
