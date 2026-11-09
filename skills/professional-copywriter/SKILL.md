@@ -191,8 +191,8 @@ pages collect most:
 - Stacked triplets, anaphora ("Built for X. Built for Y. Built for Z."), and "The result? Y."
 - Performed cleverness ("Your inbox, minus the noise") and too many punchy moments: a page
   gets one or two
-- Headings echoed by their first sentence or the eyebrow above them, more than two or three
-  em dashes per page, and title-case headings or buttons
+- Headings echoed by their first sentence or the eyebrow above them, characters nobody types
+  (em dashes, typographic minus signs, guillemets), and title-case headings or buttons
 
 Customer testimonials and quotes are never edited for AI tells. They're the customer's words.
 
