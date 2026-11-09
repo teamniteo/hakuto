@@ -83,7 +83,7 @@ bun add @astrojs/rss rehype-external-links
 | `assets/components/blog/*.astro` | `src/components/blog/` |
 | `assets/pages/blog/**` | `src/pages/blog/` — keep the structure (`page/`, `category/`) |
 
-The templates import `@/lib/git-dates` for `dateModified`. It ships with the scaffold since 0.20.0 and also feeds sitemap `<lastmod>`; if the site predates it, copy `${CLAUDE_PLUGIN_ROOT}/scaffold/src/lib/git-dates.ts`.
+The templates import `@/lib/git-dates` for `dateModified`. It ships with the scaffold since 0.21.0 and also feeds sitemap `<lastmod>`; if the site predates it, copy `${CLAUDE_PLUGIN_ROOT}/scaffold/src/lib/git-dates.ts`.
 
 Then adapt to the site:
 - **Visual design.** The templates use the shadcn tokens and scaffold utilities only. Restyle
