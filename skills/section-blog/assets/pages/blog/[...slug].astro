@@ -36,7 +36,7 @@ const { Content } = await render(post);
 const cover = post.data.featuredImage as ImageMetadata | undefined;
 const coverUrl = cover ? new URL(cover.src, Astro.site).href : undefined;
 const isoDate = post.data.date.toISOString();
-// Last commit touching the post file; undefined in shallow clones (see git-dates.ts).
+// Last commit touching the post file; omitted when git has no date for it (see git-dates.ts).
 const dateModified = lastModified(post.filePath);
 
 // Newest first, so the next index is the older post.

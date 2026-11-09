@@ -385,11 +385,11 @@ After applying:
 
 ### 0.20.0 — Favicon tags on Astro 7, sitemap lastmod, AI-crawler policy
 
-Found by `seo-audit` across five production sites. The first is a live defect on every site running Astro 7: the build is green and the favicon files ship, but no page links to them.
+The first is a live defect on any site that upgraded to Astro 7: the build is green and the favicon files ship, but no page links to them. Sites still on Astro 6 (the scaffold's pin) are unaffected; for them the bump is preventive.
 
 **Detect:** all three must hold.
 ```sh
-test -f package.json && grep -qE '"astro-favicons": "\^?3\.1\.([89]|[1-9][0-9])' package.json &&
+test -f package.json && grep -qE '"astro-favicons": "[\^~]?(3\.1\.([89]|[1-9][0-9])|3\.([2-9]|[1-9][0-9])\.|[4-9]\.)' package.json &&
   test -f src/lib/git-dates.ts && grep -q 'serialize' astro.config.mjs &&
   test -f src/pages/robots.txt.ts && grep -q 'OAI-SearchBot' src/pages/robots.txt.ts
 ```
@@ -403,9 +403,12 @@ Apply from scaffold when not heavily customized:
 Manual edits for customized sites:
 
 1. **`bun add astro-favicons@^3.1.8`.** Versions ≤ 3.1.7 inject the icon tags from middleware that only touches responses carrying `X-Astro-Route-Type`, a header Astro 7 no longer sets — so every page ships without `<link rel="icon">`. If the layout hand-writes icon links as a workaround, remove them once the build shows the integration's tags (`grep -c 'rel="icon"' dist/client/index.html`).
-2. **Sitemap `<lastmod>`.** Copy `src/lib/git-dates.ts` and pass `sitemap({ serialize })` as in the scaffold's `astro.config.mjs`. Extend `sourceForPath` for any dynamic route whose source isn't under `src/pages/` or `src/content/<section>/`. In a shallow clone it returns nothing, so the deploy build needs full git history for dates to appear.
+2. **Sitemap `<lastmod>`.** Copy `src/lib/git-dates.ts` and pass `sitemap({ serialize })` as in the scaffold's `astro.config.mjs`. Extend `sourceForPath` for any dynamic route whose source isn't under `src/pages/` or `src/content/<section>/`. In a shallow clone (Cloudflare Workers Builds clones only the latest commit) it runs `git fetch --unshallow` once per build; if that fails, dates are omitted rather than faked. A site with an older copy of `git-dates.ts` that lacks the fetch ships no dates from Workers Builds — re-copy the file.
 3. **AI-crawler policy in `src/pages/robots.txt.ts`.** The scaffold now blocks training crawlers and allows search/retrieval crawlers, matching the existing `Content-Signal: ai-train=no`. Ask before applying if the site made a different choice. Copy every `Disallow:` from the `*` group into the search group — a bot that matches a named group ignores `*`.
-4. **Blog and docs sections** (if installed): re-copy `src/pages/blog/[...slug].astro`, `src/pages/blog/index.astro`, `src/pages/blog/category/[category].astro` and `src/pages/docs/[...slug].astro` from `section-blog` / `section-docs`, or add by hand: `dateModified: lastModified(post.filePath)` on `BlogPosting`/`TechArticle`, and a `CollectionPage` node on the blog index and category pages.
+
+If `src/pages/blog/` or `src/pages/docs/` exists (always, customized or not):
+- Re-copy `src/pages/blog/[...slug].astro`, `src/pages/blog/category/[category].astro` and `src/pages/docs/[...slug].astro` from `section-blog` / `section-docs` only if the site's copy is unmodified; otherwise add by hand: `dateModified: lastModified(post.filePath)` on `BlogPosting`/`TechArticle`, and a `CollectionPage` node on the category page.
+- Never re-copy `src/pages/blog/index.astro` — it holds the site's `BLOG_TITLE` and `BLOG_DESCRIPTION`. Add its `CollectionPage` node by hand.
 
 After applying:
 - `bun run build`, then `grep -c 'rel="icon"' dist/client/index.html` (> 0), `grep -c '<lastmod>' dist/client/sitemap-0.xml` (> 0), and `grep OAI-SearchBot dist/client/robots.txt`
