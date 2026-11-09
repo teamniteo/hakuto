@@ -21,7 +21,7 @@ applied on a site that never had the file.
 - [0.16.0 — Worker passes `env` to handlers; CLAUDE.md restructure](#0160-worker-passes-env-to-handlers-claudemd-restructure)
 - [0.17.0 — AGENTS.md is the instruction file](#0170-agentsmd-is-the-instruction-file)
 - [0.18.0 — No CLAUDE.md](#0180-no-claudemd)
-- [0.20.0 — Favicon tags on Astro 7, sitemap lastmod, AI-crawler policy](#0200-favicon-tags-on-astro-7-sitemap-lastmod-ai-crawler-policy)
+- [0.21.0 — Favicon tags on Astro 7, sitemap lastmod, AI-crawler policy](#0210-favicon-tags-on-astro-7-sitemap-lastmod-ai-crawler-policy)
 
 ---
 
@@ -383,7 +383,7 @@ After applying:
 
 ---
 
-### 0.20.0 — Favicon tags on Astro 7, sitemap lastmod, AI-crawler policy
+### 0.21.0 — Favicon tags on Astro 7, sitemap lastmod, AI-crawler policy
 
 The first is a live defect on any site that upgraded to Astro 7: the build is green and the favicon files ship, but no page links to them. Sites still on Astro 6 (the scaffold's pin) are unaffected; for them the bump is preventive.
 
