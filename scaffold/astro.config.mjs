@@ -9,6 +9,7 @@ import pagefind from "astro-pagefind";
 import { agentsSummary } from "@nuasite/agent-summary";
 import astroAgentAnnotate from "astro-agent-annotate";
 import cloudflare from "@astrojs/cloudflare";
+import { lastModified, sourceForPath } from "./src/lib/git-dates";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 const devToolbar = { enabled: isDevelopment };
@@ -23,7 +24,14 @@ export default defineConfig({
   // buys nothing — and see the adapter note below before changing `imageService`.
   integrations: [
     react(),
-    sitemap(),
+    sitemap({
+      // <lastmod> from the last commit touching each page's source. Omitted,
+      // never faked, when git has no date — see src/lib/git-dates.ts.
+      serialize(item) {
+        const lastmod = lastModified(sourceForPath(new URL(item.url).pathname));
+        return lastmod ? { ...item, lastmod } : item;
+      },
+    }),
     agentsSummary(),
     pagefind(),
     ...(devToolbar.enabled ? [astroAgentAnnotate()] : []),

@@ -38,7 +38,7 @@
         "@radix-ui/react-tooltip": "^1.2.8",
         "@tailwindcss/vite": "^4.2.4",
         "astro": "6.4.8",
-        "astro-favicons": "^3.1.6",
+        "astro-favicons": "^3.1.8",
         "astro-pagefind": "^1.8.6",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -726,7 +726,7 @@
 
     "astro-agent-annotate": ["astro-agent-annotate@0.0.2", "", { "peerDependencies": { "astro": "^4.0.0 || ^5.0.0" } }, "sha512-t/qymOQRlF9B0w/MNObNJBl+zU6Mt8sHxMGjw67y6Lj8q+mTqUTdm1TL+qR7/72fil8n4WovEQDU3WhGic3QTg=="],
 
-    "astro-favicons": ["astro-favicons@3.1.6", "", { "dependencies": { "favilib": "^1.0.5", "ultrahtml": "^1.5.3" }, "peerDependencies": { "astro": ">= 4.0.0" } }, "sha512-9YfNWaBEFz1nCHy4P1l4wfPRvuLe4qHuHovIcqD5HYfZeW82wyVG1+CZUVGhcjwbRCVkGRJ3G+CKTyX9BcoI5w=="],
+    "astro-favicons": ["astro-favicons@3.1.8", "", { "dependencies": { "favilib": "^1.0.5", "ultrahtml": "^1.5.3" }, "peerDependencies": { "astro": ">= 4.0.0" } }, "sha512-1d4ARIb7ZcHUoFAH7HabR9vnWOvU2wLJYb1mUBWXsH3ZeNSn0vrlC4iULWQu6Xkyi1AmwE7F6O3fAQ5B52IThA=="],
 
     "astro-pagefind": ["astro-pagefind@1.8.6", "", { "dependencies": { "@pagefind/default-ui": "^1.2.0", "pagefind": "^1.2.0", "sirv": "^3.0.0" }, "peerDependencies": { "astro": "^2.0.4 || ^3 || ^4 || ^5 || ^6" } }, "sha512-pofDcWMgA3qLQX9gSJ1mc3NSJDv6o1PDs68MrtdupxMFIlAFT2yckFSiOoaab2stSDmKyX/wVaTObyj5FuBulA=="],
 

@@ -88,6 +88,8 @@ Every other page renders exactly as before. The docs templates pass `wide`.
 | `docs.css` | `src/styles/docs.css` (imported by both pages) |
 | `content/docs/getting-started/introduction.md` | starting point for each page in Step 5 |
 
+The templates import `@/lib/git-dates` for `dateModified`. It ships with the scaffold since 0.21.0 and also feeds sitemap `<lastmod>`; if the site predates it, copy `${CLAUDE_PLUGIN_ROOT}/scaffold/src/lib/git-dates.ts`.
+
 How the pieces fit:
 
 - **One route.** `[...slug].astro` serves every page at `/docs/<category>/<page>/`. There is

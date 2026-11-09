@@ -10,6 +10,7 @@ import { render } from "astro:content";
 import type { InferGetStaticPropsType } from "astro";
 import type { TechArticle, WithContext } from "schema-dts";
 import { categoryLabel, categoryOf, docHref, getDocs } from "@/lib/docs";
+import { lastModified } from "@/lib/git-dates";
 import { SITE_NAME } from "@/lib/site";
 import "@/styles/docs.css";
 
@@ -31,6 +32,7 @@ const { Content, headings } = await render(doc);
 const prev = idx > 0 ? docs[idx - 1] : undefined;
 const next = docs[idx + 1];
 const category = categoryOf(doc);
+const dateModified = lastModified(doc.filePath);
 
 const schema: WithContext<TechArticle> = {
   "@context": "https://schema.org",
@@ -39,7 +41,15 @@ const schema: WithContext<TechArticle> = {
   description: doc.data.description,
   articleSection: categoryLabel(category),
   mainEntityOfPage: new URL(docHref(doc), Astro.site).href,
-  publisher: { "@type": "Organization", name: SITE_NAME, url: Astro.site?.href },
+  // Last commit touching the page file; omitted when git has no date for it (see git-dates.ts).
+  ...(dateModified && { dateModified }),
+  // Same @id as the homepage Organization node in src/lib/schema.ts.
+  publisher: {
+    "@type": "Organization",
+    "@id": `${Astro.site?.href ?? "/"}#organization`,
+    name: SITE_NAME,
+    url: Astro.site?.href,
+  },
 };
 ---
 

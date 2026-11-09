@@ -16,18 +16,30 @@ Allow: /
 # Also sent as an HTTP header from public/_headers for forward-compatibility.
 Content-Signal: ai-train=no, search=yes, ai-input=yes
 
-# No crawler-specific rules by default: every bot is allowed. Decide explicitly
-# whether training-only crawlers should be blocked, then uncomment what you want.
-# Note that Google-Extended gates Gemini *training* only — it has no effect on
-# Google Search indexing or AI Overviews, which use Googlebot.
-#
-# User-agent: GPTBot          # OpenAI, model training
-# User-agent: ClaudeBot       # Anthropic, model training
-# User-agent: PerplexityBot   # Perplexity, search index + training
-# User-agent: Google-Extended # Gemini training (NOT Google Search)
-# User-agent: Bytespider      # ByteDance, model training
-# User-agent: CCBot           # Common Crawl, open dataset
-# Disallow: /
+# AI crawlers: training is blocked, search is allowed — the same preference as
+# the Content-Signal line above, enforced for the bots that honour robots.txt.
+# Search and user-triggered fetchers are what make the site citable in ChatGPT,
+# Claude and Perplexity answers; blocking them removes it from those answers.
+# Google-Extended gates Gemini training only — Google Search and AI Overviews
+# use Googlebot, which the * group above already allows.
+# A bot that matches a named group ignores the * group, so any Disallow you add
+# to * must be repeated in the search group below.
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+User-agent: Bytespider
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+Allow: /
 
 Sitemap: ${sitemap}
 `;
