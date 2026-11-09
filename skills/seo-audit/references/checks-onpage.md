@@ -8,7 +8,7 @@ Step 7 of `SKILL.md`.
 
 ## Meta Tags
 
-**Short on purpose:** utility pages — About, Contact, Privacy/Legal/Terms, 404, blog pagination (`/blog/2/`), login/members stubs — legitimately carry short titles and descriptions ("About | Brand"). Don't flag their *length*; still flag them missing or duplicated.
+**Short on purpose:** utility routes — `/about/`, `/contact/`, `/privacy/`, `/terms/`, `/legal/`, `/imprint/` and blog pagination (`/blog/<n>/`) — legitimately carry short titles and descriptions ("About | Brand"). Don't flag their *length*; still flag them missing or duplicated. (404 and gated pages are `noindex` and already skipped — see SKILL.md.)
 
 **Title:** `<title>` in `<head>`
 - Missing → ❌ critical
@@ -24,7 +24,7 @@ Step 7 of `SKILL.md`.
 - 100-149 or 161+ chars → ⚠️ warning: "Description X chars (optimal: 150-160)"
 - 150-160 chars → ✅ pass
 - Track in `descriptions{}` for duplicates
-- **Restates the title** — after lowercasing and stripping punctuation and the ` | Site Name` suffix, the description *starts with* the title **and** what follows adds little: fewer than 8 more words, or only a stock CTA → ⚠️ warning: "Description on [url] repeats its title and adds nothing". The snippet then says the same thing twice. A description that opens on the topic and goes on to say something substantive ("Vendor risk assessment in clinical trials lets risk set oversight — judging vendors by …") is good practice, not a finding. Skip titles under three words.
+- **Restates the title** — after lowercasing and stripping punctuation and the ` | Site Name` suffix, the description *starts with* the title **and** what follows adds little: fewer than 8 more words, or only a stock CTA → ⚠️ warning: "Description on [url] repeats its title and adds nothing". The snippet then says the same thing twice. A description that opens on the topic and goes on to say something substantive ("Invoice automation for agencies matches each payment to its invoice, so month-end close takes …") is good practice, not a finding. Skip titles under three words.
 - **Stock CTA ending** — ends on a generic call to action ("Try it free.", "Get started today!", "Sign up now.", "Learn more.") → ℹ️ note. One page doing it is fine; the same tail on ≥ 3 pages is the signature of templated metadata → ⚠️ warning, reported once with the count.
 
 **Canonical:** `<link rel="canonical" href="...">` in `<head>`
@@ -42,7 +42,7 @@ To check self-reference: derive expected URL from file path (e.g. `dist/client/a
 **Open Graph:** check for og:title, og:description, og:image, og:url
 - Missing any → ⚠️ warning for each missing tag
 - All present → ✅ pass
-- **`og:image` / `twitter:image` on the site's own host that resolves to no file in `dist/client/`** → ❌ critical, reported once with the page count: "og:image [url] is a 404 — every share of N pages shows a broken card". A layout default like `/og-image.png` that was never added to `public/` passes the presence check on every page and fails on every share. Same test for JSON-LD `logo` and `image` values on the site's own host (`checks-schema.md`).
+- **`og:image` / `twitter:image` on the site's own host that resolves to no file in `dist/client/`** → ❌ critical, reported once with the page count: "og:image [url] is a 404 — every share of N pages shows a broken card". A layout default like `/og-image.png` that was never added to `public/` passes the presence check on every page and fails on every share. JSON-LD `logo`/`image` URLs are checked in `checks-schema.md`; don't report them again here.
 
 **Twitter / X card:** `twitter:card` decides whether a shared link renders as a large image or a bare URL; X falls back to OG for title, description and image, but not for the card type.
 - `twitter:card` missing → ⚠️ warning. `Layout.astro` emits it, so a miss means the page bypasses the layout — say so.

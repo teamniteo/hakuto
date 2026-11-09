@@ -86,7 +86,7 @@ ext_images = {}       # third-party image host → [(page, src, slot width)]
 
 Run every check in `references/checks-onpage.md` and `references/checks-schema.md` against each file in scope. Populate the trackers as you go — several checks (duplicate titles, cross-page H1s, site-wide `aggregateRating` counts, third-party image hosts) are only decidable once every page has been seen, and are evaluated in Step 7.
 
-**`noindex` pages get integrity checks only.** A page that carries `noindex` (including `404.html`) is deliberately out of the index, so search-quality checks say nothing about it: skip title and description length, duplicate title/description/H1, Open Graph and Twitter tags, schema expectations, heading structure, canonical checks and orphan detection for it. Still run link targets, anchors, alt text, image weight and dimensions, and mixed content — those break the page for people. A members area of 89 noindex pages otherwise buries the real findings under hundreds of meaningless ones.
+**`noindex` pages get integrity checks only.** A page that carries `noindex` (including `404.html`) is deliberately out of the index, so search-quality checks say nothing about it: skip title and description length, duplicate title/description/H1, Open Graph and Twitter tags, schema expectations, heading structure, canonical checks and orphan detection for it. Still run link targets, anchors, alt text, image weight and dimensions, and mixed content — those break the page for people. A gated area of dozens of noindex pages otherwise buries the real findings under hundreds of meaningless ones.
 
 ### 6. Check Site-Wide & Technical Files
 
