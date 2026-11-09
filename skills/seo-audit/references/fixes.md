@@ -92,7 +92,7 @@ Propose a concrete value for each — the user should only have to approve or ed
 
 | Finding | Ask for |
 | --- | --- |
-| Title or description missing, outside 50–60 / 150–160 chars, or duplicated | The new string. Draft it from the page's H1 and opening copy; hand longer rewrites to `professional-copywriter`. Don't change a visible headline to fix `<title>` length. On `.astro` pages change only the `title` prop passed to `Layout.astro` — it is already separate from the H1. For blog and docs entries, where frontmatter `title` drives both, add an optional `seoTitle` to the collection schema and pass `seoTitle ?? title` to `Layout.astro`. |
+| Title or description missing, outside 50–60 / 150–160 chars, or duplicated | The new string. Draft it from the page's H1 and opening copy; hand longer rewrites to `professional-copywriter`. On `.astro` pages, change the `title` prop passed to `Layout.astro`. For blog and docs entries, change frontmatter `title` and `description` themselves — they are also the visible headline, cards and RSS, so show the user that in the proposal. Never add a separate SEO field (`seoTitle`, `metaTitle`, `seoDescription`): a page has one title and one description. If the site already has such fields, fold their values into `title`/`description` and remove them. |
 | Description restates the title, or ends on a stock CTA ("Try it free!") | A rewritten description that adds what the title doesn't. |
 | Duplicate H1 across templated pages | Which attribute (platform, category, city) qualifies the H1 in the template. |
 | Flat heading structure (long page, no H2s) | Approval of drafted section headings, inserted where the prose already changes topic — the body text itself is not rewritten. |
