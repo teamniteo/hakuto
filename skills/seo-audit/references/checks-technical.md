@@ -29,6 +29,11 @@ index to its child sitemaps.
   content dates". The usual root cause is a shallow CI checkout: a `serialize()` hook that
   shells out to `git log -1 --format=%cs` returns nothing, and every URL falls back to the
   build date. Check for `fetch-depth: 0` in the Actions checkout before blaming the hook.
+- **Invalid `<lastmod>`** — not a W3C Datetime (`YYYY-MM-DD` or full ISO 8601 with offset), or later than the build date → ⚠️ warning. Google only honours `<lastmod>` when it is consistently and verifiably accurate; one future date teaches it to ignore the whole file.
+- **`<priority>` / `<changefreq>`** present → ℹ️ note: "Google ignores both — remove them". Harmless, but they signal hand-tuned values nobody maintains.
+- **Non-canonical URL listed** — a sitemap URL whose built page canonicals to a *different* URL → ❌ critical: "Sitemap lists [url], which canonicals to [target]". The sitemap is a canonical-URL list; contradicting the page's own canonical is the same mixed signal as the noindex leak.
+- **Wrong form of the URL** — a sitemap URL whose protocol or host differs from `site` in `astro.config.mjs`, or that lacks the trailing slash on a site with `html_handling = "force-trailing-slash"` (the Hakuto default) → ❌ critical: "Sitemap URLs redirect — [N] of [M] lack the trailing slash / use [host]". Every one of them is a redirect, and sitemaps must list final URLs. The cause is always config (`site`, or `trailingSlash: "always"` missing), so report once.
+- **Size** — more than 50,000 URLs or 50 MB uncompressed in one file → ❌ critical. `@astrojs/sitemap` splits automatically at its `entryLimit`, so this only fires if that option was raised.
 
 ---
 
@@ -56,8 +61,20 @@ But it should be a *decision*, not a default.
 
 - No named rules for GPTBot, ChatGPT-User, ClaudeBot, PerplexityBot, Google-Extended,
   Bytespider or CCBot → ℹ️ note (not a warning): "No explicit AI-crawler policy recorded."
-- If the site blocks `Google-Extended`, confirm the user knows it gates Gemini **training**
-  only and has no effect on Google Search indexing or AI Overviews (those use Googlebot).
+- If the site blocks `Google-Extended`, confirm the user knows it gates Gemini **training** only and has no effect on Google Search indexing or AI Overviews (those use Googlebot).
+
+**Search crawlers vs training crawlers** — blocking a training crawler opts out of model training; blocking a *search* crawler removes the site from that assistant's cited answers. The two are routinely conflated.
+
+| Blocks citations in | Search / retrieval crawler | Training-only crawler |
+| --- | --- | --- |
+| ChatGPT | `OAI-SearchBot`, `ChatGPT-User` | `GPTBot` |
+| Claude | `Claude-SearchBot`, `Claude-User` | `ClaudeBot` |
+| Perplexity | `PerplexityBot`, `Perplexity-User` | — |
+| Gemini | Googlebot (not separable) | `Google-Extended` |
+| Apple | `Applebot` | `Applebot-Extended` (opt-out signal, not a crawler) |
+
+- A search/retrieval crawler is disallowed (`Disallow: /` under its `User-agent`, or a `User-agent: *` block that disallows everything while named search bots aren't re-allowed) → ⚠️ warning: "robots.txt blocks [bot] — the site can't be cited in [assistant] answers". Not a defect if it was the intent; it's here because the comment next to the rule usually says "block AI training".
+- `Content-Signal: search=yes` while the same file blocks a search crawler → ⚠️ warning: the two signals contradict each other.
 
 ---
 
@@ -144,6 +161,7 @@ the site.
   → ❌ critical: "llms.txt is the unedited scaffold template — it's live and tells crawlers
   the site is 'Site Name' at hello@example.com". Present-but-placeholder is worse than
   absent: it publishes wrong facts instead of none.
+- Links without the trailing slash on a `force-trailing-slash` site (the Hakuto default) → ⚠️ warning: "N of M llms.txt links redirect". An agent following them pays a redirect on every hop.
 - Present, and a Key Pages link resolves to no file in `dist/client/` → ❌ critical: "llms.txt links
   to [route] which isn't built (the scaffold's `/docs/` is the usual leftover)".
 

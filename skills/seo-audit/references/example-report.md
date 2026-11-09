@@ -15,29 +15,32 @@ Scope: [All pages | Single page: /about/ | Pages: /pricing/, /contact/]
 
 ## Critical Issues (❌)
 
-1. Missing meta title
-   File: dist/client/pricing/index.html:4
+1. ✍️ Missing meta title
+   File: dist/client/pricing/index.html:4 → src/pages/pricing.astro
 
-2. Multiple H1 tags (found 2)
-   File: dist/client/about/index.html:38, :112
+2. 🔧 Multiple H1 tags (found 2)
+   File: dist/client/about/index.html:38, :112 → src/pages/about.astro
 
-3. Broken internal link: /pricng/ (target missing in dist/client)
-   File: dist/client/index.html:57
+3. 🔧 Broken internal link: /pricng/ (target missing in dist/client)
+   File: dist/client/index.html:57 → src/components/Hero.astro
 
-4. Oversized image: /_astro/hero.Bx3k.png (3.4 MB) — will tank LCP
-   File: dist/client/index.html:41
+4. 🔧 Oversized image: /_astro/hero.Bx3k.png (3.4 MB) — will tank LCP
+   File: dist/client/index.html:41 → src/components/Hero.astro
+
+5. ✍️ Placeholder in JSON-LD: Organization.name = "Site Name" (12 pages)
+   File: dist/client/index.html:22 → src/lib/site.ts
 
 ---
 
 ## Warnings (⚠️)
 
-1. Title too short: "About" (5 chars, optimal: 50-60)
-   File: dist/client/about/index.html:6
+1. ✍️ Title too short: "About" (5 chars, optimal: 50-60)
+   File: dist/client/about/index.html:6 → src/pages/about.astro
 
-2. Broken heading hierarchy: H1→H3 (skipped H2)
-   File: dist/client/pricing/index.html:45
+2. 🔧 Broken heading hierarchy: H1→H3 (skipped H2)
+   File: dist/client/pricing/index.html:45 → src/pages/pricing.astro
 
-3. Missing og:image
+3. 🔧 Missing og:image
    Files: dist/client/pricing/index.html:9, dist/client/contact/index.html:9
 
 4. Duplicate title "Features" in:
@@ -49,14 +52,17 @@ Scope: [All pages | Single page: /about/ | Pages: /pricing/, /contact/]
 6. Missing `<html lang>` attribute
    File: dist/client/index.html:2
 
-7. Large image: /_astro/team.Dk2a.jpg (1.4 MB) — consider compressing
-   File: dist/client/about/index.html:74
+7. 🔧 Heavy image: /_astro/team.Dk2a.jpg (420 KB) — consider compressing
+   File: dist/client/about/index.html:74 → src/pages/about.astro
+
+8. 🔧 Sitemap URLs redirect — 14 of 14 lack the trailing slash
+   File: dist/client/sitemap-0.xml → astro.config.mjs (trailingSlash)
 
 ---
 
 ## Notes (ℹ️)
 
-- No explicit AI-crawler policy recorded in robots.txt (src/pages/robots.txt.ts)
+- ✍️ No explicit AI-crawler policy recorded in robots.txt (src/pages/robots.txt.ts)
 
 ---
 
@@ -71,10 +77,27 @@ Scope: [All pages | Single page: /about/ | Pages: /pricing/, /contact/]
 
 ---
 
-To fix issues, edit the source files in src/ (and src/pages/robots.txt.ts, public/llms.txt):
-"Add meta description to src/pages/pricing.astro"
-"Fix heading hierarchy in src/pages/pricing.astro"
-"Fix all critical SEO issues"
+7 🔧 fixes I can apply now, 4 ✍️ that need your input — say "fix them" to apply.
+```
+
+## After Fixes (Step 9)
+
+```markdown
+Fixes applied — rebuilt, affected checks re-run against dist/client/
+=====================================================================
+
+Fixed (9):
+- 🔧 Multiple H1s → second H1 demoted to H2 (src/pages/about.astro:112)
+- 🔧 Broken link /pricng/ → /pricing/ (src/components/Hero.astro:57)
+- ✍️ Organization name → "Acme Analytics" (src/lib/site.ts:3) — 12 pages
+- …
+
+Skipped (1):
+- 🔧 Mixed content: http://cdn.partner.io/logo.svg — no HTTPS version answers; left as is
+
+Still open (report-only): 1 orphaned page (/old-page/), 1 contrast failure (brand-designer)
+
+Not live until the next deploy.
 ```
 
 ---
@@ -127,6 +150,5 @@ Note: this reflects the deploy live at scan time, not the working tree. The
 score only changes after a redeploy and a fresh scan.
 ```
 
-If the user asked for fixes, list what will change and confirm the selection
-before editing anything. Otherwise stop here — the skill is report-only.
+If the user asked for fixes, follow `references/fixes.md`. Otherwise stop here.
 

@@ -102,7 +102,7 @@ Keep the footer after a scan, minus whatever the scan actually observed.
 
 ---
 
-## B. Apply Fixes (opt-in — the only part of `seo-audit` that writes)
+## B. Apply Fixes (opt-in)
 
 Run **only** when the user asked for fixes — "…and fix the issues", "fix what is-agentic
 found", "apply the report". Absent that, stop after the report.
@@ -113,25 +113,9 @@ found", "apply the report". Absent that, stop after the report.
    Any fix that bakes in a product or content decision (writing the `llms.txt` description of
    the business, changing copy, exposing a new machine-readable endpoint) needs the user's
    answer — don't guess it.
-3. **Fix in source, never in `dist/client/`** — that tree is a build artifact and the next
-   build overwrites it. Each finding's `recommendation` is the spec; translate it to the file
-   that owns that surface in a Hakuto site:
+3. **Fix in source, never in `dist/client/`** — that tree is a build artifact and the next build overwrites it. Each finding's `recommendation` is the spec; translate it to the file that owns that surface using the **Where Each Surface Lives** table in `references/fixes.md`. Where the finding matches a 🔧 or ✍️ row there, use that recipe.
 
-| What the finding is about | Where it lives |
-| --- | --- |
-| 404 / soft-404 status codes | `src/pages/404.astro`; confirm `worker/index.js` and `wrangler.toml` are not answering `200` for unknown paths |
-| Crawler and agent access rules, AI-crawler policy, `Content-Signal` | `src/pages/robots.txt.ts` |
-| Site summary for LLM crawlers | `public/llms.txt` — replace the scaffold placeholders with real content |
-| Structured data / JSON-LD | the `schema` prop each page passes to `src/layouts/Layout.astro` (typed with `schema-dts`, serialized by `src/components/Schema.astro`) |
-| Title, description, canonical, OG, feed autodiscovery | `src/layouts/Layout.astro` and the per-page props |
-| Crawler-signal headers (`Link`, `Content-Signal`) | `public/_headers` — security and cache headers are `hakuto-review`'s |
-| Content that only exists after JS runs | the `.astro` component — move it into server-rendered markup |
-| Sitemap coverage or wrong host | `@astrojs/sitemap` config and `site` in `astro.config.mjs` |
-| Page weight / inline CSS | `build.inlineStylesheets` in `astro.config.mjs` |
-| Semantic structure, headings, landmarks | the page's `.astro` markup |
-
-   A finding whose fix has no home in this table, or that you cannot verify locally, goes
-   back to the user as a recommendation — don't improvise infrastructure to satisfy a check.
+   A finding whose fix has no home in that table, or that you cannot verify locally, goes back to the user as a recommendation — don't improvise infrastructure to satisfy a check.
 
 4. **Re-run the static audit (Steps 1–7)** after editing. An agent-readiness fix can break a
    static check — new JSON-LD that fails to parse, a robots.txt change that drops the

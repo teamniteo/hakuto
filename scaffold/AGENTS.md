@@ -46,7 +46,7 @@ Use skills proactively when a request matches — don't wait to be asked.
 - `section-blog` — blog / articles
 - `section-docs` — documentation section
 - `section-form` — contact, newsletter and other forms
-- `seo-audit` — static SEO audit of the build; agent-readiness scan of the live site
+- `seo-audit` — static SEO audit of the build, with opt-in fixes for the mechanical findings; agent-readiness scan of the live site
 - `website-builder` — core design and build orchestrator
 
 ## Working Style
