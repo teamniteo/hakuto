@@ -18,11 +18,11 @@ for f in package.json src CLAUDE.md AGENTS.md astro.config.mjs astro.config.ts; 
   fi
 done
 
-# Copy full scaffold (incl. dotfiles and .claude/)
+# Copy full scaffold (incl. dotfiles)
 cp -a "${CLAUDE_PLUGIN_ROOT}/scaffold/." ./
 
 # Sanity check the copy
-ls package.json astro.config.mjs AGENTS.md CLAUDE.md >/dev/null
+ls package.json astro.config.mjs AGENTS.md >/dev/null
 
 # Initialize git (scaffold ships a .gitignore)
 [ -d .git ] || git init -q -b main
