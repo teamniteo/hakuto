@@ -230,9 +230,16 @@ it for X." Borrowed authority.
 
 ## Formatting
 
-**Em dashes.** Two or three per page is human. One per paragraph is not. Use a period,
-comma, colon or parentheses. If the user's own copy uses dashes freely, match their rate
-instead.
+**Characters with no key.** Write with what a keyboard for the copy's language can type. Em and en dashes, the typographic minus (−), ≤, … and «guillemets» are what a model emits and a person typing does not. Replace a dash with a period, comma, colon or parentheses, a minus or a range with a hyphen, guillemets with quotation marks, and the rest with words ("up to 50"). Where a sentence really wants a dash, type a spaced hyphen ( - ), two or three per page at most. Keep one only when it has a reason:
+
+- It belongs to the language: accents, ñ, ü, ß, ¿ and ¡ have keys on that language's keyboard, and dropping them is a spelling mistake. Names keep theirs too (Citroën, Zoë).
+- Currency and unit symbols: €, £, °, m².
+- Formulas, where × ÷ ≤ ≥ are the notation. The minus is still a hyphen.
+- Legal citations, official names and wording the reader copies exactly, such as § 14 or a mandatory invoice mention.
+- Key names and interface labels quoted as shown (⌘K), and code blocks.
+- The user's own copy uses them. Match their rate instead.
+
+Curly quotes and apostrophes are fine, see Context-dependent.
 
 **Title case.** Headings, buttons and nav use sentence case: "Start free trial", not
 "Start Free Trial". Proper nouns and product names keep their capitals.
@@ -347,4 +354,5 @@ them over the draft after the rewrite:
   anaphora, parallel bullet openers and Wh-headers at a glance.
 - **Section lengths:** compare them. If they're all the same, some point is padded or cut
   short.
-- **Em dashes and exclamation points:** count them against the limits above.
+- **Characters with no key:** search for `[—–−«»…≤≥]`. Every hit needs one of the reasons listed under Formatting.
+- **Exclamation points:** count them against the limit above.
