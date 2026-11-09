@@ -4,6 +4,7 @@ import Layout from "@/layouts/Layout.astro";
 import PostCard from "@/components/blog/PostCard.astro";
 import BlogToolbar from "@/components/blog/BlogToolbar.astro";
 import type { GetStaticPaths } from "astro";
+import type { CollectionPage, WithContext } from "schema-dts";
 import { categories, categoryHref, categorySlug, getPosts } from "@/lib/blog";
 
 export const getStaticPaths = (async () => {
@@ -20,12 +21,22 @@ const { category } = Astro.props;
 const allPosts = await getPosts();
 const posts = allPosts.filter((p) => p.data.category === category);
 const others = categories(allPosts).filter((c) => c !== category);
+
+const schema: WithContext<CollectionPage> = {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  name: `${category} — Blog`,
+  description: `Posts in the ${category} category.`,
+  url: new URL(categoryHref(category), Astro.site).href,
+  isPartOf: { "@id": `${Astro.site?.href ?? "/"}#website` },
+};
 ---
 
 <Layout
   title={`${category} — Blog`}
   description={`Posts in the ${category} category.`}
   feedUrl="/blog/rss.xml"
+  schema={schema}
   pagefindIgnore
 >
   <section class="pt-12 pb-10 text-center">

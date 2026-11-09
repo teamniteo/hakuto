@@ -80,6 +80,7 @@ bun add @astrojs/rss rehype-external-links
 | `assets/lib/remark-blog-headings.ts` | `src/lib/remark-blog-headings.ts` |
 | `assets/lib/rehype-content-images.ts` | `src/lib/rehype-content-images.ts` |
 | `assets/blog-content.css` | `src/styles/blog-content.css` |
+| `src/lib/git-dates.ts` | Ships with the scaffold since 0.20.0 (it also feeds sitemap `<lastmod>`). If the site predates it, copy `${CLAUDE_PLUGIN_ROOT}/scaffold/src/lib/git-dates.ts` — the templates import it for `dateModified`. |
 | `assets/components/blog/*.astro` | `src/components/blog/` |
 | `assets/pages/blog/**` | `src/pages/blog/` — keep the structure (`page/`, `category/`) |
 
@@ -263,8 +264,7 @@ external host. On a site whose positioning is privacy, self-host the few author 
 
 ## SEO, Feed and Author Identity
 
-- **JSON-LD.** Each post emits `BlogPosting` (headline, description, datePublished, image,
-  articleSection, publisher) via Layout's `schema` prop. `publisher` carries the same `@id`
+- **JSON-LD.** Each post emits `BlogPosting` (headline, description, datePublished, dateModified, image, articleSection, publisher) via Layout's `schema` prop. `dateModified` is the post file's last commit (`src/lib/git-dates.ts`) and is omitted, not faked, in a shallow clone. The blog index and category pages emit `CollectionPage`, linked to the homepage `WebSite` node by `@id`. `publisher` carries the same `@id`
   as the homepage `Organization` node from `src/lib/schema.ts` (`<site>#organization`), so
   the two merge into one entity. `author` is a `Person`, not a bare
   string, with a `url` whenever `authorUrl` is set.
