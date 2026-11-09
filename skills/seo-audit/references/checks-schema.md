@@ -12,6 +12,19 @@ Parse each block first; everything below assumes a parsed object graph.
 
 ---
 
+## Well-Formedness
+
+Run on every parsed node, including nodes inside `@graph`. Each one is a defect a validator rejects and a consumer silently drops — and each has exactly one correct fix.
+
+- A top-level block (or `@graph` container) with no `@context`, or a node with no `@type` → ❌ critical: "JSON-LD on [url] has no @context/@type — it can't be attached to an entity". A rating or offer in such a block reaches nothing.
+- `@context` other than `https://schema.org` / `http://schema.org` (typo, trailing path, `schema.org` without a scheme) → ❌ critical.
+- A URL-valued property — `url`, `logo`, `image`, `@id`, `item`, `sameAs`, `contentUrl`, `thumbnailUrl` — that is relative (starts with `/` or no scheme) → ⚠️ warning: "Relative URL in [property] on [url]: [value]". Consumers have no base URL to resolve it against.
+- A date-valued property — `datePublished`, `dateModified`, `uploadDate`, `startDate`, `endDate`, `validFrom`, `priceValidUntil` — that isn't ISO 8601 (`2026-03-14`, `2026-03-14T09:00:00Z`; not `March 14, 2026`, not `14/03/2026`) → ⚠️ warning: "Unparseable date in [property] on [url]: [value]".
+- `dateModified` earlier than `datePublished`, or either in the future → ⚠️ warning.
+- **Placeholder values** — any string equal to or containing `Site Name`, `Your Company`, `example.com`, `hello@example.com`, `Lorem ipsum`, `John Doe`, `TODO` → ❌ critical: "Placeholder in JSON-LD on [url]: [property] = [value]". Machine-read and taken at face value: this publishes a fake business name. Report once per value with a page count.
+
+---
+
 ## Per-Type Expectations
 
 - **Organization / LocalBusiness**: check `name`, `url` → ✅ pass if present. Also expect

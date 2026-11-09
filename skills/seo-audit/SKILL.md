@@ -1,15 +1,13 @@
 ---
 name: seo-audit
-description: Static SEO audit of a Hakuto site's built `dist/client/` HTML — indexability, meta tags, headings, canonicals, structured data, sitemap, robots.txt, llms.txt, built images and internal links — plus an optional AI-agent-readiness scan of the deployed domain. Report-only unless the user asks to apply agent-readiness fixes. Use for "run SEO test", "SEO audit", "check meta tags", "validate structured data", "check built images / internal links", "check agent readiness". Skip for source code or security/cache headers (`hakuto-review`), live Core Web Vitals (`pagespeed-audit`), or ship-readiness (`prelaunch-checklist`).
+description: Static SEO audit of a Hakuto site's built `dist/client/` HTML — indexability, meta tags, headings, canonicals, structured data, sitemap, robots.txt, llms.txt, built images and internal links — plus an optional AI-agent-readiness scan of the deployed domain. Reports first, tagging each finding as mechanically fixable or not; applies the fixes in source only when the user asks. Use for "run SEO test", "SEO audit", "check meta tags", "validate structured data", "check built images / internal links", "check agent readiness", "fix the SEO issues". Skip for source code or security/cache headers (`hakuto-review`), live Core Web Vitals (`pagespeed-audit`), or ship-readiness (`prelaunch-checklist`).
 ---
 
 # SEO Audit
 
 Validate SEO on the built output of an Astro site.
 
-Steps 1–7 audit built HTML in `dist/client/` and never write. The optional agent-readiness
-scan needs a **deployed** domain and — only if the user asks — applies that report's fixes to
-source.
+Steps 1–7 audit built HTML in `dist/client/` and never write. Step 8, the optional agent-readiness scan, needs a **deployed** domain. Step 9 applies fixes to source — only when the user asks for them.
 
 ## Check Catalogue
 
@@ -21,7 +19,8 @@ you reach the step that uses it — don't work from memory.
 | `references/checks-onpage.md` | Step 5 | Meta tags, `<html lang>`, headings, alt text, image weight and emitted pixels (local **and** third-party), text contrast, URL hygiene, mixed content, internal links, external link liveness |
 | `references/checks-schema.md` | Step 5 | JSON-LD: per-type expectations, conflicting `@id`, rating substantiation, entity-escaped values, author identity, and the do-not-recommend list |
 | `references/checks-technical.md` | Step 6 | Sitemap, robots.txt, Content-Signal, crawler-signal `_headers` rules, duplicate `/index.html`, llms.txt coverage, favicon, feed autodiscovery, page weight, JS-dependent commercial content |
-| `references/agent-readiness.md` | Step 8 | Read when the user asks for an agent-readiness scan or its fixes: `bunx is-agentic` flow, severity mapping, and where each fix lives in source |
+| `references/agent-readiness.md` | Step 8 | Read when the user asks for an agent-readiness scan or its fixes: `bunx is-agentic` flow and severity mapping |
+| `references/fixes.md` | Output, Step 9 | Which findings are 🔧 mechanical, ✍️ need one answer, or report-only; the fix recipe for each; where each surface lives in source |
 | `references/example-report.md` | Output | Report template — match its shape and headings verbatim |
 
 ---
@@ -117,18 +116,19 @@ that file.
 
 ### 8. Agent-Readiness Scan (opt-in, deployed domains only)
 
-Only when the user asks for it. Read `references/agent-readiness.md` and follow it — it
-covers target resolution, the confirmation the public scan requires, severity mapping, and the
-opt-in fix flow (the only part of this skill that writes). Otherwise, mention the scan is
-available at the end of a whole-site report and stop.
+Only when the user asks for it. Read `references/agent-readiness.md` and follow it — it covers target resolution, the confirmation the public scan requires, severity mapping, and its fix flow. Otherwise, mention the scan is available at the end of a whole-site report.
+
+### 9. Apply Fixes (opt-in)
+
+Only when the user asks — in the original request ("audit and fix") or after the report ("fix them"). Read `references/fixes.md` and follow its flow: apply 🔧 fixes, collect ✍️ answers grouped by cause, edit source only, rebuild, re-run the affected checks, report the delta. Absent a request, end the report with the one-line fix offer and stop.
 
 ---
 
 ## Output Format
 
-Open with a scope header, then list issues in this order: ❌ Critical → ⚠️ Warnings →
-ℹ️ Notes → ✅ Passed. Show `file:line` on every finding so the user can jump straight to it.
-End with a short "to fix" list naming source files in `src/`, `public/` or config.
+Open with a scope header, then list issues in this order: ❌ Critical → ⚠️ Warnings → ℹ️ Notes → ✅ Passed. Show `file:line` on every finding so the user can jump straight to it, and the **source file** the fix lands in.
+
+Mark each finding with its fix class from `references/fixes.md` — 🔧 (mechanical) or ✍️ (needs one answer); unmarked findings are report-only. Look the class up; don't decide it per finding. End with one line counting them: "N 🔧 fixes I can apply now, M ✍️ that need your input — say 'fix them' to apply."
 
 **Severity definitions** — each check in the references carries its own severity; grade from
 there rather than re-deciding:
@@ -183,9 +183,7 @@ verbatim.
 - **External link liveness (opt-in):** `Bash` →
   `curl -sS -o /dev/null -w '%{http_code}' -I -L --max-time 10`.
 
-Read-only throughout — never `Write` or `Edit` — except the agent-readiness fix flow, which
-the user has to opt into explicitly and which touches source files only, never
-`dist/client/`.
+Read-only throughout — never `Write` or `Edit` — except Step 9 and the agent-readiness fix flow, which the user has to opt into explicitly and which touch source files only, never `dist/client/`.
 
 ---
 

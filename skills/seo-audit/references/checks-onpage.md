@@ -22,6 +22,8 @@ Step 7 of `SKILL.md`.
 - 100-149 or 161+ chars → ⚠️ warning: "Description X chars (optimal: 150-160)"
 - 150-160 chars → ✅ pass
 - Track in `descriptions{}` for duplicates
+- **Restates the title** — skip titles under three words ("Skills", "Blog": a description naturally opens with the subject). Otherwise, after lowercasing and stripping punctuation and the ` | Site Name` suffix, the description *starts with* the title, or the title's words make up most of the description's first sentence → ⚠️ warning: "Description on [url] repeats its title". The snippet then says the same thing twice and wastes the line Google gives you.
+- **Stock CTA ending** — ends on a generic call to action ("Try it free.", "Get started today!", "Sign up now.", "Learn more.") → ℹ️ note. One page doing it is fine; the same tail on ≥ 3 pages is the signature of templated metadata → ⚠️ warning, reported once with the count.
 
 **Canonical:** `<link rel="canonical" href="...">` in `<head>`
 - Missing → ❌ critical
@@ -29,14 +31,19 @@ Step 7 of `SKILL.md`.
 - Absolute URL pointing to a different page than the current file's URL → ❌ critical:
   "Cross-canonical: page X canonicals to Y (silently de-indexes X)"
 - Absolute, self-referencing → ✅ pass
+- Protocol or host differs from `site` in `astro.config.mjs` (`http://` on an HTTPS site, `www.` vs apex, `localhost`) → ❌ critical: "Canonical on [url] names [host] — every page points search engines at a host that isn't the site". Report once site-wide; it's always one config value.
 
-To check self-reference: derive expected URL from file path (e.g. `dist/client/about/index.html`
-→ `/about/`) and compare against canonical href path. Account for
-trailing-slash variants.
+Skip the canonical checks on `404.html` and other `noindex` pages — a canonical on a page that's excluded from the index is inert.
+
+To check self-reference: derive expected URL from file path (e.g. `dist/client/about/index.html` → `/about/`) and compare against canonical href path. Account for trailing-slash variants.
 
 **Open Graph:** check for og:title, og:description, og:image, og:url
 - Missing any → ⚠️ warning for each missing tag
 - All present → ✅ pass
+
+**Twitter / X card:** `twitter:card` decides whether a shared link renders as a large image or a bare URL; X falls back to OG for title, description and image, but not for the card type.
+- `twitter:card` missing → ⚠️ warning. `Layout.astro` emits it, so a miss means the page bypasses the layout — say so.
+- `twitter:card` is `summary_large_image` but neither `twitter:image` nor `og:image` exists → ⚠️ warning: "Large-image card with no image on [url]".
 
 **Robots Meta:** `<meta name="robots" content="...">` in `<head>`
 - Contains `noindex` → record this page URL in `noindex_pages[]` (used in Step 6 to confirm
@@ -48,11 +55,15 @@ trailing-slash variants.
 
 ## HTML Document
 
-**Lang Attribute:** `<html lang="...">` on the root element. Screen readers and translation
-tools rely on this to pronounce content correctly and offer the right translation.
+**Lang Attribute:** `<html lang="...">` on the root element. Screen readers and translation tools rely on this to pronounce content correctly and offer the right translation.
 - Missing `lang` attribute → ⚠️ warning: "Missing `<html lang>` attribute"
 - Present but empty (`lang=""`) → ⚠️ warning: "Empty `<html lang>` attribute"
 - Present with non-empty value → ✅ pass
+
+**Viewport:** `<meta name="viewport" content="width=device-width, initial-scale=1…">`. Google indexes the mobile rendering; without this tag phones lay the page out at desktop width.
+- Missing → ❌ critical: "No viewport meta on [url] — renders at desktop width on mobile"
+- Contains `user-scalable=no` or `maximum-scale=1` → ⚠️ warning: blocks pinch-zoom (WCAG 1.4.4)
+- Present, no zoom block → ✅ pass
 
 ---
 
@@ -87,8 +98,7 @@ passes it silently.
   the sections are too coarse to navigate.
 
 The fix is real section headings in the `.astro` markup, not decorative `<p class="font-bold">`
-lead-ins. Check for that pattern specifically: a bolded paragraph immediately followed by
-body copy is a heading that lost its element.
+lead-ins. Check for that pattern specifically: a bolded paragraph immediately followed by body copy is a heading that lost its element. Bylines, author names, card titles and labels inside a component are bold for emphasis, not structure — don't flag them.
 
 ---
 
@@ -99,11 +109,9 @@ Extract all `<img>` tags in `<body>`:
 - Empty `alt=""` on a decorative image (no surrounding link/caption) → ✅ pass (intentional)
 - Empty `alt=""` on a content image (inside `<a>`, `<figure>`, or with no other text in
   link) → ⚠️ warning: "Empty alt on content image: [src]"
-- **Low-quality alt** — non-empty but clearly not human-written: ends in an image extension
-  (`.png`/`.jpg`/`.jpeg`/`.gif`/`.webp`/`.svg`), is a bare slug/filename
-  (`screenshot-2024-11`, `image_01`, `IMG_2043`), or just repeats the file's basename →
-  ⚠️ warning: "Filename-style alt on [src]: '[alt]' — rewrite as a description". These pass
-  a naive presence check but carry no SEO value.
+- **Low-quality alt** — non-empty but clearly not human-written: ends in an image extension (`.png`/`.jpg`/`.jpeg`/`.gif`/`.webp`/`.svg`), is a bare slug/filename (`screenshot-2024-11`, `image_01`, `IMG_2043`), or just repeats the file's basename → ⚠️ warning: "Filename-style alt on [src]: '[alt]' — rewrite as a description". These pass a naive presence check but carry no SEO value.
+- **Placeholder alt** — the whole alt is a generic noun (`image`, `photo`, `picture`, `img`, `graphic`, `banner`, `screenshot`), or identical alt text on ≥ 3 different images on one page → ⚠️ warning: "Generic alt on [src]: '[alt]'". `logo` alone is acceptable only if the brand name is adjacent text.
+- **Overlong alt** — over 125 characters → ℹ️ note: screen readers read it in one breath; move the detail into a caption.
 - Non-empty descriptive alt → ✅ pass
 
 Ignore `<img>` inside `<picture>` only when the `<picture>` itself has an `<img>` child with
@@ -124,9 +132,11 @@ hurting Cumulative Layout Shift.
 For each `<img src="...">` and `<source srcset="...">` referencing a **local** path (starts
 with `/` or relative, not `http://`/`https://`), `stat` the resolved file in `dist/client/`:
 
-- > 2 MB → ❌ critical: "Oversized image: [src] (X MB) — will tank LCP"
-- 1–2 MB → ⚠️ warning: "Large image: [src] (X MB) — consider compressing"
-- ≤ 1 MB → ✅ pass
+- > 700 KB → ❌ critical: "Oversized image: [src] (X KB) — will tank LCP"
+- 300–700 KB → ⚠️ warning: "Heavy image: [src] (X KB) — consider compressing"
+- ≤ 300 KB → ✅ pass
+
+These are the hero/banner ceilings — the most generous tier — so they hold for every image on the page without guessing its role. A thumbnail over 100 KB is still waste; the right-sizing check below catches it by pixels.
 
 Skip SVG files (typically tiny). Astro's build fails on broken `<Picture>`/`<Image>`
 imports, so existence is already guaranteed at this stage.
@@ -250,14 +260,17 @@ Extract all `<a href="...">` tags:
   current page
 - `/page#section` → confirm both the file exists AND the id exists on that page
 
-Strip query strings (`?utm_source=...`) before resolving. Ignore `mailto:`, `tel:`,
-`javascript:` schemes.
+Strip query strings (`?utm_source=...`) before resolving. Ignore `mailto:`, `tel:`, `javascript:` schemes.
 
 - Target file not found → ❌ critical: "Broken internal link: [href] on [page] (target
   missing in dist/client)"
 - In-page anchor with no matching id → ❌ critical: "Broken anchor: [href] on [page] (no
   element with id=[fragment])"
 - Resolves correctly → ✅ pass
+
+**Link text:** anchor text is how a crawler learns what the target page is about, and how a screen-reader user picks a link from a list.
+- Visible text (or `aria-label`, if set) is only a generic phrase — `click here`, `here`, `read more`, `learn more`, `more`, `this link`, `link` — and the anchor has no `aria-label` → ⚠️ warning: "Generic link text '[text]' → [href]". Group by phrase with a count.
+- An internal link with no text at all (icon-only, empty `<a>`) and no `aria-label` → ⚠️ warning.
 
 ---
 
