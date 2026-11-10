@@ -8,7 +8,7 @@ Step 7 of `SKILL.md`.
 
 ## Meta Tags
 
-**Short on purpose:** utility routes — `/about/`, `/contact/`, `/privacy/`, `/terms/`, `/legal/`, `/imprint/` and blog pagination (`/blog/<n>/`) — legitimately carry short titles and descriptions ("About | Brand"). Don't flag their *length*; still flag them missing or duplicated. (404 and gated pages are `noindex` and already skipped — see SKILL.md.)
+**Short on purpose:** utility routes — `/about/`, `/contact/`, `/privacy/`, `/terms/`, `/legal/`, `/imprint/` and blog pagination (`/blog/<n>/`) — legitimately carry short titles and descriptions ("About | Brand"). Docs pages (`/docs/…`) too: a docs title is also its sidebar, prev/next and card label, so it stays short ("Favicons - Brand Docs"). Don't flag their title *length*; still flag them missing or duplicated, and still check docs descriptions. (404 and gated pages are `noindex` and already skipped — see SKILL.md.)
 
 **Title:** `<title>` in `<head>`
 - Missing → ❌ critical
