@@ -88,7 +88,7 @@ Every other page renders exactly as before. The docs templates pass `wide`.
 | `docs.css` | `src/styles/docs.css` (imported by both pages) |
 | `content/docs/getting-started/introduction.md` | starting point for each page in Step 5 |
 
-The templates import `@/lib/git-dates` for `dateModified`. It ships with the scaffold since 0.21.0 and also feeds sitemap `<lastmod>`; if the site predates it, copy `${CLAUDE_PLUGIN_ROOT}/scaffold/src/lib/git-dates.ts`.
+`dateModified` and sitemap `<lastmod>` come from the optional frontmatter `updated:`, never from git; a page without it has neither. The sitemap side is `src/lib/content-dates.ts`, which ships with the scaffold since 0.24.0; if the site still has `src/lib/git-dates.ts`, apply the 0.24.0 migration (`scaffold-sync`) first.
 
 How the pieces fit:
 
@@ -115,8 +115,10 @@ How the pieces fit:
 ### Step 5: Write placeholder pages
 
 Create one Markdown file per page from Step 2. Frontmatter: `title`, `description`, `order`,
-optional `sidebarLabel` and `draft`. The template renders `title` as the page's `<h1>`, so
+optional `sidebarLabel`, `draft` and `updated`. The template renders `title` as the page's `<h1>`, so
 start body sections at `##`.
+
+Leave `updated` out of new pages. Set it to today's date later, whenever a page's content changes — steps, behaviour, options, a code sample — and never for title, description, typo, formatting or link fixes. It feeds `dateModified` and sitemap `<lastmod>`, which search engines stop trusting once it moves without real changes.
 
 Write placeholders, not copy, and don't invoke `professional-copywriter`: marketing tone
 ("Transform your workflow…") is wrong for reference docs, and accurate technical content has

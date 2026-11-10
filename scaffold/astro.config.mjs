@@ -9,7 +9,7 @@ import pagefind from "astro-pagefind";
 import { agentsSummary } from "@nuasite/agent-summary";
 import astroAgentAnnotate from "astro-agent-annotate";
 import cloudflare from "@astrojs/cloudflare";
-import { lastModified, sourceForPath } from "./src/lib/git-dates";
+import { lastmodFor } from "./src/lib/content-dates";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 const devToolbar = { enabled: isDevelopment };
@@ -25,10 +25,10 @@ export default defineConfig({
   integrations: [
     react(),
     sitemap({
-      // <lastmod> from the last commit touching each page's source. Omitted,
-      // never faked, when git has no date — see src/lib/git-dates.ts.
+      // <lastmod> only for blog/docs entries, from frontmatter `updated:` or
+      // `date:`. Other pages get none — see src/lib/content-dates.ts.
       serialize(item) {
-        const lastmod = lastModified(sourceForPath(new URL(item.url).pathname));
+        const lastmod = lastmodFor(new URL(item.url).pathname);
         return lastmod ? { ...item, lastmod } : item;
       },
     }),

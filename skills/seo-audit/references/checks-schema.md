@@ -34,7 +34,7 @@ Run on every parsed node, including nodes inside `@graph`. Each one is a defect 
 - **Article / BlogPosting**: check `headline`, `author`, `datePublished` → present = ✅ pass.
   Additionally require:
   - `dateModified` → ⚠️ warning if missing: "Article schema missing dateModified (freshness
-    signal)". Populate from git commit history, not hand-maintained.
+    signal)". It comes from frontmatter `updated:`, else the publish date — not from git.
   - `publisher` (Organization ref) and `image` → ⚠️ warning for each missing.
 - **Product / SoftwareApplication** pages (pricing, app-download, product landing): expect a
   `Product`/`SoftwareApplication` node, ideally with `offers` → ⚠️ warning if the page is

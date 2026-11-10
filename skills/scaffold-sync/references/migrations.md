@@ -22,6 +22,7 @@ applied on a site that never had the file.
 - [0.17.0 — AGENTS.md is the instruction file](#0170-agentsmd-is-the-instruction-file)
 - [0.18.0 — No CLAUDE.md](#0180-no-claudemd)
 - [0.21.0 — Favicon tags on Astro 7, sitemap lastmod, AI-crawler policy](#0210-favicon-tags-on-astro-7-sitemap-lastmod-ai-crawler-policy)
+- [0.24.0 — Content dates from frontmatter, not git](#0240-content-dates-from-frontmatter-not-git)
 
 ---
 
@@ -390,7 +391,7 @@ The first is a live defect on any site that upgraded to Astro 7: the build is gr
 **Detect:** all three must hold.
 ```sh
 test -f package.json && grep -qE '"astro-favicons": "[\^~]?(3\.1\.([89]|[1-9][0-9])|3\.([2-9]|[1-9][0-9])\.|[4-9]\.)' package.json &&
-  test -f src/lib/git-dates.ts && grep -q 'serialize' astro.config.mjs &&
+  { test -f src/lib/git-dates.ts || test -f src/lib/content-dates.ts; } && grep -q 'serialize' astro.config.mjs &&
   test -f src/pages/robots.txt.ts && grep -q 'OAI-SearchBot' src/pages/robots.txt.ts
 ```
 
@@ -403,7 +404,7 @@ Apply from scaffold when not heavily customized:
 Manual edits for customized sites:
 
 1. **`bun add astro-favicons@^3.1.8`.** Versions ≤ 3.1.7 inject the icon tags from middleware that only touches responses carrying `X-Astro-Route-Type`, a header Astro 7 no longer sets — so every page ships without `<link rel="icon">`. If the layout hand-writes icon links as a workaround, remove them once the build shows the integration's tags (`grep -c 'rel="icon"' dist/client/index.html`).
-2. **Sitemap `<lastmod>`.** Copy `src/lib/git-dates.ts` and pass `sitemap({ serialize })` as in the scaffold's `astro.config.mjs`. Extend `sourceForPath` for any dynamic route whose source isn't under `src/pages/` or `src/content/<section>/`. In a shallow clone (Cloudflare Workers Builds clones only the latest commit) it runs `git fetch --unshallow` once per build; if that fails, dates are omitted rather than faked. A site with an older copy of `git-dates.ts` that lacks the fetch ships no dates from Workers Builds — re-copy the file.
+2. **Sitemap `<lastmod>`.** Superseded by 0.24.0: if the site is going on to 0.24.0, skip this step and apply that entry's sitemap change instead. Otherwise copy `src/lib/git-dates.ts` and pass `sitemap({ serialize })` as in the scaffold's `astro.config.mjs`. Extend `sourceForPath` for any dynamic route whose source isn't under `src/pages/` or `src/content/<section>/`. In a shallow clone (Cloudflare Workers Builds clones only the latest commit) it runs `git fetch --unshallow` once per build; if that fails, dates are omitted rather than faked. A site with an older copy of `git-dates.ts` that lacks the fetch ships no dates from Workers Builds — re-copy the file.
 3. **AI-crawler policy in `src/pages/robots.txt.ts`.** The scaffold now blocks training crawlers and allows search/retrieval crawlers, matching the existing `Content-Signal: ai-train=no`. Ask before applying if the site made a different choice. Copy every `Disallow:` from the `*` group into the search group — a bot that matches a named group ignores `*`.
 
 If `src/pages/blog/` or `src/pages/docs/` exists (always, customized or not):
@@ -412,3 +413,34 @@ If `src/pages/blog/` or `src/pages/docs/` exists (always, customized or not):
 
 After applying:
 - `bun run build`, then `grep -c 'rel="icon"' dist/client/index.html` (> 0), `grep -c '<lastmod>' dist/client/sitemap-0.xml` (> 0), and `grep OAI-SearchBot dist/client/robots.txt`
+
+---
+
+### 0.24.0 — Content dates from frontmatter, not git
+
+0.21.0 dated every sitemap URL from the last git commit touching its source. In practice one commit that edits many files — an SEO pass, a lint run, a scaffold sync, a content import — re-dates all of them at once, so live sitemaps showed most URLs on one day. Search engines stop trusting `<lastmod>` once it moves without real changes. Dates now come only from frontmatter on blog posts and docs pages (`updated:`, else `date:`), set by hand when content changes. Every other page has no `<lastmod>`.
+
+**Detect:** all must hold.
+```sh
+test -f src/lib/content-dates.ts && ! test -f src/lib/git-dates.ts &&
+  test -f astro.config.mjs && grep -q 'lastmodFor' astro.config.mjs &&
+  test -f AGENTS.md && grep -q '### Content Dates' AGENTS.md
+```
+
+Apply from scaffold when not heavily customized:
+- `src/lib/content-dates.ts` (new)
+- `src/lib/git-dates.ts` (delete)
+- `astro.config.mjs`
+- `AGENTS.md` — the `### Content Dates` section under SEO & Structured Data
+
+Manual edits for customized sites:
+
+1. **Sitemap.** Copy `src/lib/content-dates.ts`. In `astro.config.mjs`, import `lastmodFor` from it and make `sitemap({ serialize })` call `lastmodFor(new URL(item.url).pathname)`, as in the scaffold. Delete `src/lib/git-dates.ts`. If a collection is served from a URL that isn't `/<folder>/<slug>/` (posts at the site root, an `/es/blog/` prefix, a renamed section), extend `lastmodFor` to map that URL to its entry file; a site-specific `sourceForPath` in the old file shows which routes need it. Mapping static `src/pages/` routes to dates is out: they get no `<lastmod>`.
+2. **Collections.** Add `updated: z.coerce.date().optional()` to every dated collection's schema (blog, docs, articles, news). Keep an existing field with the same meaning (`updatedDate`, `modified`) and read that instead — don't rename it across every post.
+3. **Schema.** Replace every `lastModified(...)` call: `dateModified` is `(entry.data.updated ?? entry.data.date).toISOString()` on posts, and only set from `updated` on docs. `grep -rn 'lastModified\|git-dates\|git log' src astro.config.mjs` must come back empty.
+4. **Don't backfill.** Leave `updated:` unset on existing entries. Bulk-adding it would recreate the problem this fixes. It gets set the next time someone actually changes a post.
+5. **Build command.** The `git fetch --unshallow || true &&` prefix in a Cloudflare build command is no longer needed; it's harmless to leave.
+
+After applying:
+- `bun run build`, then `grep -c '<lastmod>' dist/client/sitemap-0.xml` — it should equal the number of blog/docs URLs that have a date, and no static page URL (`/`, `/about/`, `/pricing/`) should carry one.
+- `grep -o '<lastmod>[^<]*' dist/client/sitemap-0.xml | sort | uniq -c | sort -rn | head -3` — the dates should follow the posts' `date:`/`updated:` values, not cluster on one recent day.

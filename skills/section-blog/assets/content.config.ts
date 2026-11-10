@@ -18,6 +18,10 @@ const blog = defineCollection({
           "slug must be lowercase alphanumeric segments joined by single hyphens or underscores",
         ),
       date: z.coerce.date(),
+      // Set to today when the post's content changes: facts, sections, advice,
+      // code. Not for title/description, typo, formatting or link fixes. Feeds
+      // dateModified and sitemap <lastmod>; without it both use `date`.
+      updated: z.coerce.date().optional(),
       author: z.string(),
       // Optional. Drives the Gravatar avatar and the RSS <author>; without it the
       // post shows no avatar and the feed omits the author.
