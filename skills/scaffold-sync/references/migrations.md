@@ -424,14 +424,14 @@ After applying:
 ```sh
 test -f src/lib/content-dates.ts && ! test -f src/lib/git-dates.ts &&
   test -f astro.config.mjs && grep -q 'lastmodFor' astro.config.mjs &&
-  test -f AGENTS.md && grep -q '### Content Dates' AGENTS.md
+  grep -qs '### Content Dates' AGENTS.md CLAUDE.md
 ```
 
 Apply from scaffold when not heavily customized:
 - `src/lib/content-dates.ts` (new)
 - `src/lib/git-dates.ts` (delete)
 - `astro.config.mjs`
-- `AGENTS.md` — the `### Content Dates` section under SEO & Structured Data
+- The `### Content Dates` section from the scaffold's `AGENTS.md`, copied verbatim as the last subsection of `## SEO & Structured Data` in whichever file holds the site's rules (`CLAUDE.md` on sites older than 0.17.0). One copy only. Also delete any `git fetch --unshallow` guidance from `CLAUDE.md`, `AGENTS.md` and `README.md`.
 
 Manual edits for customized sites:
 
