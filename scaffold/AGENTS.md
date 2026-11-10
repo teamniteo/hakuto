@@ -169,6 +169,15 @@ const websiteSchema: WithContext<WebSite> = {
 - JSON-LD must not be HTML-escaped: `<script type="application/ld+json">` is raw text, so `&apos;` reaches consumers literally. `Schema.astro` escapes only `<` on purpose — keep using it.
 - Common types: WebSite, Organization, LocalBusiness, Product, Article, FAQPage, BreadcrumbList.
 
+### Content Dates
+
+Sitemap `<lastmod>` and schema `dateModified` come from frontmatter, never from git or the build date (`src/lib/content-dates.ts`). A blog post uses `updated:`, else `date:`; a docs page uses `updated:` and otherwise has no date. Every other page has no `<lastmod>` on purpose: no date is better than an unreliable one.
+
+- **When you change a published post's or docs page's content** — facts, figures, steps, advice, a section added or rewritten, a code sample — set `updated:` to today's date in the same edit.
+- **Leave `updated:` alone** for title or description rewrites, typos, formatting, link and image fixes, lint, scaffold syncs and migrations. Never bump it across many files at once.
+
+Search engines use `<lastmod>` only while it stays accurate. Once it moves without real changes, they ignore it for the whole site.
+
 ## Agent Readiness
 
 The scaffold ships signals that help AI agents find and use the site. Update them with the usual site-identity pass:
@@ -225,7 +234,6 @@ The site builds with `output: "static"` — every page is prerendered. **Runtime
 | Large HTML, render delay dominates LCP | `build.inlineStylesheets` forced to `"always"` — keep `"auto"` |
 | Build fails | Unused imports, implicit `any` |
 | Build fails: "Failed to get static paths from Cloudflare prerender server (404)" | Restore `prerenderEnvironment: "node"` on the adapter |
-| Every page's git-derived date is the deploy date | Cloudflare builds a shallow clone — set the dashboard build command to `git fetch --unshallow \|\| true && bun run build` |
 | Sitemap / canonicals show `localhost:4321` | Set `site` in `astro.config.mjs` and redeploy |
 | Anchor link does nothing | Target element is missing the matching `id` |
 

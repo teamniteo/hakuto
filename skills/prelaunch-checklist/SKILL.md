@@ -227,7 +227,6 @@ Prelaunch Checklist Results
 ## Manual Steps (🔔) — can't be checked from the repo
 
 - [ ] Enable Cloudflare Access on the workers.dev URL once the custom domain is live (leave it off on Preview URLs)
-- [ ] Prefix the Cloudflare build command with `git fetch --unshallow || true &&` (skip if you build locally)
 - [ ] Confirm the custom domain is configured and DNS has propagated
 - [ ] Submit sitemap-index.xml to Google Search Console
 - [ ] Enable Markdown for Agents (Cloudflare Pro plan or higher)

@@ -10,7 +10,6 @@ import { createHash } from "node:crypto";
 import type { BlogPosting, WithContext } from "schema-dts";
 import { fallbackFormat } from "@/lib/image-fallback";
 import { categoryHref, dateFmt, getPosts, postHref } from "@/lib/blog";
-import { lastModified } from "@/lib/git-dates";
 import { SITE_NAME } from "@/lib/site";
 import "@/styles/blog-content.css";
 
@@ -36,8 +35,8 @@ const { Content } = await render(post);
 const cover = post.data.featuredImage as ImageMetadata | undefined;
 const coverUrl = cover ? new URL(cover.src, Astro.site).href : undefined;
 const isoDate = post.data.date.toISOString();
-// Last commit touching the post file; omitted when git has no date for it (see git-dates.ts).
-const dateModified = lastModified(post.filePath);
+// Frontmatter `updated:` (bumped by hand on content changes), else the publish date.
+const dateModified = (post.data.updated ?? post.data.date).toISOString();
 
 // Newest first, so the next index is the older post.
 const older = allPosts[idx + 1] ?? null;
@@ -64,7 +63,7 @@ const schema: WithContext<BlogPosting> = {
   headline: post.data.title,
   description: post.data.description,
   datePublished: isoDate,
-  ...(dateModified && { dateModified }),
+  dateModified,
   mainEntityOfPage: new URL(postHref(post), Astro.site).href,
   author: {
     "@type": "Person",

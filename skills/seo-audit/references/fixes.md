@@ -62,7 +62,7 @@ The rows below were sorted by one test: two competent people fixing it independe
 | Broken internal link | Repoint to the built page the slug clearly meant (`/pricng/` → `/pricing/`). If no built page is an unambiguous match, ✍️. |
 | Broken in-page anchor | Add the missing `id` to the section the link names, or repoint the link to the existing `id`. |
 | Mixed content (`http://` asset or link) | Switch to `https://` after confirming the HTTPS URL answers (`curl -sI`). If it doesn't, report-only. |
-| Missing `<lastmod>`, all identical, or missing only in production | Copy `src/lib/git-dates.ts` and the `sitemap({ serialize })` call from the scaffold (`${CLAUDE_PLUGIN_ROOT}/scaffold/`); extend `sourceForPath` for routes it doesn't cover. Its shallow-clone fetch handles Cloudflare Workers Builds; for a GitHub Actions deploy also set `fetch-depth: 0` on the checkout. |
+| Blog/docs URL missing `<lastmod>`, or dates track builds or bulk commits | Copy `src/lib/content-dates.ts` and the `sitemap({ serialize })` call from the scaffold (`${CLAUDE_PLUGIN_ROOT}/scaffold/`), delete `src/lib/git-dates.ts`, and follow the 0.24.0 entry in `scaffold-sync/references/migrations.md`. Never add `updated:` dates to fix this finding — they record content changes, which an SEO fix isn't. |
 | `<priority>` / `<changefreq>` in the sitemap | Remove them from `serialize()` — Google ignores both. |
 | Sitemap lists a `noindex` page, a cross-canonicalized page, or a non-HTML route | Exclude it with `sitemap({ filter })`. |
 | Sitemap URLs without a trailing slash on a `force-trailing-slash` site | Set `trailingSlash: "always"` in `astro.config.mjs`; every listed URL is otherwise a redirect. |
@@ -72,7 +72,7 @@ The rows below were sorted by one test: two competent people fixing it independe
 | JSON-LD invalid JSON or entity-escaped values | Restore `src/components/Schema.astro` from the scaffold — it must `JSON.stringify` and escape `<` only. |
 | JSON-LD relative URL (`url`, `logo`, `image`, `@id`, `item`) | Wrap in `new URL(path, Astro.site).href`. |
 | JSON-LD date not ISO 8601 | Emit `date.toISOString()` (or `YYYY-MM-DD`) from the content collection's date field. |
-| Article missing `dateModified`, `publisher` or `image` | Derive from git history, the site-wide Organization `@id`, and the post's hero image. |
+| Article missing `dateModified`, `publisher` or `image` | `dateModified` is frontmatter `updated:`, else the publish date (never git). `publisher` is the site-wide Organization `@id`; `image` is the post's hero image. |
 | Conflicting `@id` | Merge the page-specific properties into the shared node; delete the duplicate. |
 | `aggregateRating` on pages that don't display it | Move the property to the schema of the pages that render the rating. |
 | Visible breadcrumb with no `BreadcrumbList` | Build the `BreadcrumbList` from the same array the visible breadcrumb renders. |
@@ -80,7 +80,7 @@ The rows below were sorted by one test: two competent people fixing it independe
 | Feed exists with no autodiscovery link | Pass `feedUrl` to `Layout.astro` from the blog's pages. |
 | `llms.txt` links to an unbuilt route | Remove the line. If the page plainly moved (same slug under another section), repoint it instead. |
 | `llms.txt` links without the trailing slash | Add the slash to every internal link. |
-| Blog post or docs page with no schema, or Article missing `dateModified` / `image` | Build `BlogPosting` / `Article` in the post or docs layout from the collection's frontmatter (`title`, `description`, `pubDate`, `updatedDate`, `heroImage`), with `publisher` pointing at the site Organization `@id`. Fall back to the git commit date for `dateModified` and the site's OG image for `image`. |
+| Blog post or docs page with no schema, or Article missing `dateModified` / `image` | Build `BlogPosting` / `Article` in the post or docs layout from the collection's frontmatter (`title`, `description`, `pubDate`, `updatedDate`, `heroImage`), with `publisher` pointing at the site Organization `@id`. `dateModified` is `updated ?? date` (add an optional `updated` field to the collection schema if it lacks one); fall back to the site's OG image for `image`. |
 | Favicon files built but no `<link rel="icon">` on any page | `bun add astro-favicons@^3.1.8`. Then remove any hand-written icon links from the layouts: the integration skips a page that already contains any one of its own tags, so a single hand-written `<link rel="icon" href="/favicon.svg">` suppresses the whole generated set (apple-touch, manifest, every size). |
 | Hand-written icon link suppresses the generated favicon set | Remove the hand-written icon `<link>`s from the layout, after confirming `astro-favicons` is ≥ 3.1.8 and its output covers the files they pointed at. Rebuild and check one page has `apple-touch-icon` and `manifest` links. |
 | `og:image`, JSON-LD `logo` or `image` pointing at a 404 on the site's own host | Point it at the built asset: import it (`import logo from "@/assets/logo.png"`) and use `new URL(logo.src, Astro.site).href`, so the hashed URL can't go stale. If no suitable image exists at all, ✍️ — don't generate one. |

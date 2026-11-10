@@ -83,7 +83,7 @@ bun add @astrojs/rss rehype-external-links
 | `assets/components/blog/*.astro` | `src/components/blog/` |
 | `assets/pages/blog/**` | `src/pages/blog/` — keep the structure (`page/`, `category/`) |
 
-The templates import `@/lib/git-dates` for `dateModified`. It ships with the scaffold since 0.21.0 and also feeds sitemap `<lastmod>`; if the site predates it, copy `${CLAUDE_PLUGIN_ROOT}/scaffold/src/lib/git-dates.ts`.
+`dateModified` and sitemap `<lastmod>` come from frontmatter (`updated:`, else `date:`), never from git. The sitemap side is `src/lib/content-dates.ts`, which ships with the scaffold since 0.24.0; if the site still has `src/lib/git-dates.ts`, apply the 0.24.0 migration (`scaffold-sync`) first.
 
 Then adapt to the site:
 - **Visual design.** The templates use the shadcn tokens and scaffold utilities only. Restyle
@@ -221,6 +221,7 @@ Schema and field notes live in `assets/content.config.ts`. A post:
 title: "Article Title"
 slug: "article-title"
 date: "2026-01-20"
+updated: "2026-03-02"                 # optional — only when the content changed, see below
 author: "Author Name"
 authorEmail: "author@example.com"     # optional — Gravatar avatar and RSS author
 authorBio: "Short author bio for the author box."
@@ -234,6 +235,8 @@ draft: false
 
 No `layout` field. Use `##` and below in the body; `remarkBlogHeadings` demotes a stray `#`
 so the title stays the page's only `<h1>`.
+
+**`updated:` is a promise that the content changed.** When you edit a published post's substance — facts, figures, advice, a section added or rewritten, a code sample — set `updated:` to today's date. Don't touch it for a title or description rewrite, typo, formatting, link or image fixes, lint, or a migration: those leave the date alone. It feeds `dateModified` and sitemap `<lastmod>`, and search engines stop trusting `<lastmod>` on a site where it moves without real changes. Never bump it in bulk.
 
 ---
 
@@ -265,7 +268,7 @@ external host. On a site whose positioning is privacy, self-host the few author 
 
 ## SEO, Feed and Author Identity
 
-- **JSON-LD.** Each post emits `BlogPosting` (headline, description, datePublished, dateModified, image, articleSection, publisher) via Layout's `schema` prop. `dateModified` is the post file's last commit (`src/lib/git-dates.ts`) and is omitted, not faked, when git has no date for it. The blog index and category pages emit `CollectionPage`, linked to the homepage `WebSite` node by `@id`. `publisher` carries the same `@id` as the homepage `Organization` node from `src/lib/schema.ts` (`<site>#organization`), so the two merge into one entity. `author` is a `Person`, not a bare string, with a `url` whenever `authorUrl` is set.
+- **JSON-LD.** Each post emits `BlogPosting` (headline, description, datePublished, dateModified, image, articleSection, publisher) via Layout's `schema` prop. `dateModified` is frontmatter `updated:`, else `date:` — the same value as the post's sitemap `<lastmod>`. The blog index and category pages emit `CollectionPage`, linked to the homepage `WebSite` node by `@id`. `publisher` carries the same `@id` as the homepage `Organization` node from `src/lib/schema.ts` (`<site>#organization`), so the two merge into one entity. `author` is a `Person`, not a bare string, with a `url` whenever `authorUrl` is set.
 - **Author identity.** Give each author a resolvable `authorUrl` — an author page, an
   `/about/` anchor, or a profile. The byline and author box link to it with `rel="author"`,
   which connects the name to whatever credentials exist elsewhere on the site.

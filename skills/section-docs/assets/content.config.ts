@@ -22,6 +22,10 @@ const docs = defineCollection({
     order: z.number().optional(),
     // Shorter sidebar text when the title is long.
     sidebarLabel: z.string().optional(),
+    // Set to today when the page's content changes: steps, behaviour, options,
+    // code. Not for title/description, typo, formatting or link fixes. Feeds
+    // dateModified and sitemap <lastmod>; a page without it has neither.
+    updated: z.coerce.date().optional(),
     draft: z.boolean().optional().default(false),
   }),
 });
