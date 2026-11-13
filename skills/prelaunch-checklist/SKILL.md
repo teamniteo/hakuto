@@ -159,6 +159,8 @@ Gates 1–3 are confirmations — ask via `AskUserQuestion` and don't auto-invok
 
 "No" → `manual_reminders`: "Run `bun update` to refresh `bun.lock` to latest stable packages, then re-run `bun run check` and the build before shipping." "Yes" → `passed`.
 
+`bun update` stays within each package's declared range, and the scaffold pins `astro` and `@astrojs/*` exactly, so this gate never covers Astro. Astro upgrades come through `scaffold-sync`, which Gate 4 checks. Never suggest `bun update --latest` or `bun x @astrojs/upgrade` here: they jump past the versions the scaffold has tested.
+
 **Gate 4 — Scaffold currency (automatic):**
 
 ```sh

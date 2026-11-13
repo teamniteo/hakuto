@@ -1,6 +1,6 @@
 ---
 name: scaffold-sync
-description: Pulls selected scaffold updates from the installed Hakuto plugin into an existing Hakuto site — shows per-file drift and migration notes since the last sync, and applies only the files the user approves. Use for "sync scaffold", "check for scaffold updates", "pull scaffold changes", "what's new in the scaffold", "is my scaffold current?", or "I just ran /plugin update hakuto". Skip for creating a new site (`/hakuto:init`, `website-builder`) and routine npm dependency upgrades (`bun update`).
+description: Pulls selected scaffold updates from the installed Hakuto plugin into an existing Hakuto site — shows per-file drift and migration notes since the last sync, and applies only the files the user approves. Use for "sync scaffold", "check for scaffold updates", "pull scaffold changes", "what's new in the scaffold", "is my scaffold current?", "I just ran /plugin update hakuto", "upgrade Astro", or "is Astro up to date?" — Astro and `@astrojs/*` are pinned exactly and only move through this sync. Skip for creating a new site (`/hakuto:init`, `website-builder`) and routine upgrades of other npm dependencies (`bun update`).
 ---
 
 # Scaffold Sync Skill
@@ -161,6 +161,18 @@ has no block, write the rules alone; the next build appends one.
 - **The 0.17.0 import stub** — `CLAUDE.md` is the `@AGENTS.md` line plus the scaffold comment.
   Delete it (0.18.0 migration). If the user added Claude-Code-only notes below the import, move
   them into `AGENTS.md` above the `page_summary` block first.
+
+**`package.json` — always report the Astro pins.** The scaffold pins `astro` and every `@astrojs/*` package to an exact version and raises those pins as new Astro releases pass its build. Exact pins mean `bun update` never moves them, so this sync is the site's only Astro upgrade path. Real sites nearly always edit `package.json`, so it usually lands in `both-changed` or `user-only-changed`, where the version bump is easy to lose inside the whole-file diff — or a past sync skipped the file and the site has been behind ever since. So whatever bucket `package.json` is in, compare the pins on their own:
+
+```bash
+astro_pins() { jq -r '(.dependencies // {}) + (.devDependencies // {}) | to_entries[] | select(.key | test("^(astro|@astrojs/.+)$")) | "\(.key) \(.value)"' "$1" | sort; }
+join <(astro_pins "$SCAFFOLD/package.json") <(astro_pins package.json) | while read -r pkg b c; do
+  [[ $c =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && $c != "$b" && $(printf '%s\n' "$c" "$b" | sort -V | tail -1) == "$b" ]] && echo "$pkg $c → $b"
+done
+```
+
+It prints only packages the site is **behind** on. Packages the site doesn't have are left out on purpose: a site that removed an integration such as `@astrojs/sitemap` doesn't want it re-added. Packages the site has moved ahead of the scaffold, or declares as a range, `latest`, `workspace:` or git spec, are the user's choice and are left out too. List the output in the Step 7 summary under "Astro packages behind the scaffold", even when `package.json` itself is `identical`, `user-only-changed` or skipped.
+
 `test/dev-smoke.test.ts` exercises the scaffold worker and static serving, so it has to move in
 step with `worker/index.js` — leaving it behind would leave the site testing an old worker
 contract. A site that extended it lands in `both-changed` like any other file.
@@ -239,6 +251,10 @@ Migration notes:
 ➖ Upstream removals: 0 files
 🤚 User-customized (preserved): 5 files
 
+⬆️  Astro packages behind the scaffold (site → scaffold):
+  - astro               6.4.8  → 6.5.2
+  - @astrojs/cloudflare 13.7.0 → 13.8.1
+
 ⚡ Safe to apply (no local edits):
   - astro.config.mjs
   - AGENTS.md   (rules only; page_summary block kept)
@@ -283,6 +299,14 @@ Then ask via `AskUserQuestion`:
 > - **Cancel sync entirely** (no further changes; state file untouched)
 
 For `upstream-removed` paths, swap "apply" with "delete locally". Always default the option order to the safer choice (skip).
+
+For `package.json` in `both-changed`: don't recommend a wholesale replace, which would drop the site's own dependencies. If Astro packages are behind, recommend **Skip** and upgrading the pins on their own instead. Put this command, built from the behind list, under Recommended Next Steps, for the user to run:
+
+```sh
+bun add --exact astro@6.5.2 @astrojs/cloudflare@13.8.1
+```
+
+It moves only those packages to the scaffold's tested versions and leaves the rest of the file alone. When a package crosses a major version (`astro 5.x → 6.x`, `@astrojs/cloudflare 12.x → 13.x`), say so next to the command: a major bump can break the build, and the migration notes from Step 4 cover the scaffold side of it, so the user should apply those in the same pass. If the site skips a `package.json` that is `upstream-only-changed` while packages are behind, add the same command, so an Astro upgrade never disappears because the file was skipped.
 
 For `AGENTS.md`: sites keep their build plan in `site-specification.md`, so the rules above the `page_summary` block stay mostly scaffold-owned and an untouched file fast-forwards cleanly. A site that added its own rules lands in `both-changed` — recommend hunk-level review over wholesale replace, which would delete them. A legacy site may still carry a `## Project Plan` section (in `AGENTS.md` after the 0.17.0 move, or in a pre-0.17.0 `CLAUDE.md`) — if the local file contains one, call it out before showing the diff and recommend moving the plan to `site-specification.md` first.
 
@@ -413,6 +437,7 @@ Scaffold Sync Report
 ## Recommended Next Steps
 
 - `bun install` — if `package.json` changed
+- `bun add --exact astro@6.5.2 @astrojs/cloudflare@13.8.1` — if Astro packages are behind and `package.json` was not applied
 - `bun run check` — type-check
 - `bun run build` — confirm production build (also regenerates the `page_summary` block of `AGENTS.md`)
 - `git diff` — review what changed before committing
@@ -437,6 +462,6 @@ Scaffold Sync Report
 
 - Run from the site's project root (the directory with `package.json` and `astro.config.mjs`), not from inside `${CLAUDE_PLUGIN_ROOT}`.
 - The skill is interactive — every decision goes through `AskUserQuestion`. Expect a multi-turn conversation on sites with significant drift.
-- Lockfiles (`bun.lock` etc.) are excluded by design — they're user state, not scaffold drift. Run `bun update` separately when you want fresh deps.
+- Lockfiles (`bun.lock` etc.) are excluded by design — they're user state, not scaffold drift. Run `bun update` separately when you want fresh deps. It only moves packages within their declared ranges, so it never touches the exactly pinned `astro` and `@astrojs/*` packages. Those move only through this sync (see the `package.json` rule in Step 5).
 - If `last_sync_method == "content-hash"`, the skill degrades to a 2-way diff (current upstream vs site). It still works, just with less precision; every changed file is presented as "needs review" instead of being auto-classified.
 - A new scaffolded site (via `/hakuto:init`) writes the initial `.hakuto-sync.json` automatically — first-run baseline ceremony only applies to legacy sites.
