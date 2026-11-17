@@ -52,7 +52,7 @@ Use skills proactively when a request matches — don't wait to be asked.
 ## Working Style
 
 - Keep status updates short.
-- Don't create commits or branches — the user manages version control.
+- Follow the project's version-control conventions; if there are none, ask before committing.
 - Read `package.json` first on a new task to see the setup and scripts.
 
 ## Mandatory Workflow
