@@ -1,6 +1,6 @@
 ---
 name: hakuto-review
-description: Source-level review of a Hakuto site's `src/`, config and `public/_headers` — images and right-sizing, Tailwind v4 and shadcn correctness, fonts, Cloudflare adapter, internal links, accessibility, render-path and mobile paint performance, caching and security headers. Reviews one file, the recent diff, or the whole project; report-only. Use for "Hakuto review", "review my changes", "review my site source", "lint the site", "check accessibility", "check my security headers", "why is the page slow" (source side). Skip for built-HTML SEO (`seo-audit`), live Lighthouse scores (`pagespeed-audit`), or ship-readiness (`prelaunch-checklist`).
+description: Source-level review of a Hakuto site's `src/`, config and `public/_headers` — images and right-sizing, Tailwind v4 and shadcn correctness, fonts, Cloudflare adapter, internal links, accessibility, render-path and mobile paint performance, caching and security headers, plus an optional legacy web-platform pattern scan. Reviews one file, the recent diff, or the whole project; report-only. Use for "Hakuto review", "review my changes", "review my site source", "lint the site", "check accessibility", "check my security headers", "why is the page slow" (source side), "find legacy patterns", "modernize the site's code". Skip for built-HTML SEO (`seo-audit`), live Lighthouse scores (`pagespeed-audit`), or ship-readiness (`prelaunch-checklist`).
 ---
 
 # Hakuto Review
@@ -55,15 +55,33 @@ Read the reference files that apply (see the table) and run every check in them 
 in-scope files. Record each finding as `{ severity, check, file, line, message }` so the report
 can show `file:line`.
 
-### 3. Type-Check
+### 3. Legacy-Pattern Scan (optional)
+
+Run on a whole-project review, or when the user asks to "modernize" or for "legacy patterns". Skip it for a single-file review. It runs Modern Web Guidance's static scanner (Chrome, Edge, Firefox and MDN teams), which flags JS and CSS workarounds that a web platform feature now replaces, e.g. a scroll listener where a scroll-driven animation would do. It needs network access to fetch the package. If the command fails or times out, add one ℹ️ Note saying the scan was skipped and continue.
+
+```bash
+DISABLE_TELEMETRY=1 npx -y modern-web-guidance@latest legacy-scan src --json
+```
+
+`DISABLE_TELEMETRY=1` stops the CLI's usage ping to Google. The scan itself reads files locally. Pass the in-scope directory or file instead of `src` for a narrower review.
+
+The JSON groups findings by `guides[].guideId`, then `rules[]`. Each rule has a `verifierRubric` with `keepWhen` / `dropWhen`. The scanner only matches patterns, so check every finding against its rubric before reporting it:
+
+- **Drop** findings in `src/components/ui/` (shadcn/Radix, vendored by the scaffold), deliberate fallbacks, and anything the rubric's `dropWhen` describes.
+- **Report** each kept finding as ⚠️ Warning when it costs runtime performance (scroll/resize listeners, layout thrash, JS doing a CSS job), otherwise ℹ️ Note. Check name `Legacy → <guideId>`; put the rule's `summary` in the message. Group repeats per rule.
+- Under Passed Checks, add one line with the scanned path and kept/dropped counts. The scanner covers only a subset of the guidance (~20%), so a clean result doesn't mean the site has no legacy patterns.
+
+The user can get the full guide for a finding with `npx -y modern-web-guidance@latest retrieve "<guideId>"` when they ask for the fix. Don't retrieve during the review.
+
+### 4. Type-Check
 
 If the scope contains any `.astro`, `.ts` or `.tsx` file, run `bun run check` once at the end.
 Surface only errors introduced by in-scope files; list pre-existing ones separately and don't
 fix them. If `bun` is not on PATH, log one warning and continue with the static checks.
 
-### 4. Report
+### 5. Report
 
-Render the Output Format below.
+Render the Output Format below. If step 3 ran, add a final line: `Legacy scan: Modern Web Guidance (https://github.com/GoogleChrome/modern-web-guidance)`.
 
 ---
 
@@ -205,4 +223,5 @@ Read-only — Read, Glob and Grep for inspection, never Edit or Write. Bash only
 git diff --name-only HEAD   # changed-files scope
 git status --short          # untracked/unstaged additions
 bun run check               # type-check, at most once per review
+DISABLE_TELEMETRY=1 npx -y modern-web-guidance@latest legacy-scan <path> --json   # step 3, optional
 ```
