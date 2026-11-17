@@ -89,6 +89,10 @@ await env.FORMS_KV.put(
 
 List what arrived with `bunx wrangler kv key list --binding FORMS_KV --remote`.
 
+Worker logs are off in `wrangler.toml`, so a `delivery_failed` error is invisible in
+production until `[observability.logs] enabled = true` is set. Suggest turning it on once a
+real destination is wired; the handler logs only the error, never the submission.
+
 ### Step 3: Write the schema
 
 Copy `assets/lib/contact-schema.ts` to `src/lib/<name>-schema.ts` and adapt the fields.
@@ -108,8 +112,16 @@ the endpoint (`/~/form-<name>`). Keep:
 - One `<FormField>` per field with `<FormItem>`, `<FormLabel>`, `<FormControl>`,
   `<FormMessage>`; add `autoComplete` on name, email, phone and address inputs
 - `noValidate` on `<form>`, so Zod's messages replace the browser's
-- The `Toaster` from `@/components/ui/sonner` — the theme-aware wrapper, not sonner's raw
-  export. One Toaster per page: if another island on the page already renders one, drop
+- Error reporting: a failed submit sets `root.server` and renders it inline in a
+  `role="alert"` paragraph above the button. `describeFailure()` reads the worker's
+  problem+json, shows the `detail` of a 422 (the schema's own messages), and puts the status
+  and `code` (e.g. `error 502 delivery_failed`) in every server-error message, so a visitor's
+  report points at the cause. A network failure gets its own message. Set
+  `FALLBACK_CONTACT` to a real address, so visitors have another way in when the form is down.
+  Don't collapse these into one "Something went wrong" toast — it disappears after a few
+  seconds and tells nobody what failed
+- The `Toaster` from `@/components/ui/sonner` for the success message — the theme-aware
+  wrapper, not sonner's raw export. One Toaster per page: if another island on the page already renders one, drop
   this one; `toast()` reaches whichever Toaster is mounted
 
 **Checkbox:** wrap `<Checkbox>` in `<FormControl>` and put `<FormLabel>` beside it inside the
@@ -150,7 +162,11 @@ Copy `assets/form.js` to `worker/form.js`. It:
   by relative path (`../src/lib/<name>-schema`; the `@/` alias does not exist in the worker
   bundle)
 - answers through `problem()`: 404 unknown form, 405 non-POST (with `Allow: POST`), 400
-  malformed JSON, 422 failed validation with the issue list in `detail`
+  malformed JSON, 422 failed validation with the issue list in `detail`, 502
+  `delivery_failed` when the destination throws. Keep the delivery call inside that
+  `try`, and add a `problem()` with its own `code` for any other failure the destination
+  can report (e.g. a Turnstile check → 403 `verification_failed`), with a `detail` a visitor
+  can read — the island shows codes it doesn't know as `error <status> <code>`
 - sends no `Access-Control-Allow-Origin` header — the form is same-origin, and an open CORS
   policy only invites cross-site spam
 
@@ -198,6 +214,9 @@ curl -s -X POST http://127.0.0.1:8787/~/form-contact \
   -H 'content-type: application/json' -d '{"email":"nope"}'
 # → 422 problem+json listing each failing field
 ```
+
+In the browser, check that each failure shows a readable inline message: submit with the
+preview server stopped (network error), and against a destination that throws (502).
 
 For an end-to-end pass in a real browser (fill, submit, toast, console errors, axe), use
 `agent-browser`. Run `bun run check` before finishing.

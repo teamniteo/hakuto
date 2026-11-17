@@ -71,6 +71,8 @@ The worker only sees paths under `/~/` (`run_worker_first = ["/~*"]` in `wrangle
 - The handler only `console.log`s the submission — no email, KV, D1, CRM or webhook destination → "[form] handler has no destination; submissions are lost"
 - Recipient email/destination is a placeholder (`hello@example.com`, `your-email@`, `someone@example.com`)
 
+Warning if the form discards the server's reason on failure — the catch shows one fixed message ("Something went wrong", "Submission failed") or a raw `HTTP 500`/`Failed to fetch`, or the error appears only in a toast → "[form] error message doesn't say what failed or what to do; see `section-form` Step 4, Error reporting".
+
 Pass if a real endpoint and real destination are wired. Worker routes run only under `bun run preview` (or in production) — `bun run dev` serves Astro's 404 for every `/~/` path — so if the user wants to confirm a submission end to end, point them at `bun run preview`.
 
 If no forms exist, skip silently (don't add a passed entry — irrelevant).

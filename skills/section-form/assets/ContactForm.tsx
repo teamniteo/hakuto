@@ -30,6 +30,31 @@ import { contactSchema, type ContactValues } from "@/lib/contact-schema";
 
 const EMPTY: ContactValues = { name: "", email: "", message: "", consent: false };
 
+// Shown when the server fails, so the visitor still has a way to reach you.
+const FALLBACK_CONTACT = "TODO: support@your-domain";
+
+/**
+ * Turn a failed response into a sentence the visitor can act on. The worker
+ * answers every error as problem+json ({ status, code, detail, resolution },
+ * see worker/problem.js); the status and code go into the message so a
+ * visitor who reports the problem gives you something to look up.
+ */
+async function describeFailure(res: Response): Promise<string> {
+  const problem = (await res.json().catch(() => null)) as { code?: string; detail?: string } | null;
+  console.error("Form submission failed", res.status, problem);
+  const ref = problem?.code ? `${res.status} ${problem.code}` : String(res.status);
+  if (res.status === 422 && problem?.detail) {
+    return `Please check your entries: ${problem.detail}`;
+  }
+  if (res.status === 429) {
+    return "Too many submissions from your connection. Wait a minute and try again.";
+  }
+  if (res.status >= 500) {
+    return `Our server couldn't process your message (error ${ref}). Try again in a few minutes, or email ${FALLBACK_CONTACT}.`;
+  }
+  return `Your message was rejected (error ${ref}). Reload the page and try again, or email ${FALLBACK_CONTACT}.`;
+}
+
 export function ContactForm() {
   const form = useForm<ContactValues>({
     resolver: zodResolver(contactSchema),
@@ -39,21 +64,32 @@ export function ContactForm() {
   });
 
   async function onSubmit(values: ContactValues) {
+    let res: Response;
     try {
-      const res = await fetch("/~/form-contact", {
+      res = await fetch("/~/form-contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      toast.success("Message sent. We'll reply by email.");
-      form.reset(EMPTY);
-    } catch {
-      toast.error("Couldn't send your message. Please try again.");
+    } catch (error) {
+      // fetch only throws when no response arrived: offline, DNS, blocked request.
+      console.error("Form submission failed", error);
+      form.setError("root.server", {
+        message: "Couldn't reach our server. Check your connection and try again.",
+      });
+      return;
     }
+    if (!res.ok) {
+      // An inline error, not a toast: it stays until the next submit, so the
+      // visitor can read it, and role="alert" announces it to screen readers.
+      form.setError("root.server", { message: await describeFailure(res) });
+      return;
+    }
+    toast.success("Message sent. We'll reply by email.");
+    form.reset(EMPTY);
   }
 
-  const { isSubmitting } = form.formState;
+  const { isSubmitting, errors } = form.formState;
 
   return (
     <>
@@ -128,6 +164,12 @@ export function ContactForm() {
               </FormItem>
             )}
           />
+
+          {errors.root?.server && (
+            <p role="alert" className="text-sm text-destructive">
+              {errors.root.server.message}
+            </p>
+          )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Sending…" : "Send message"}
