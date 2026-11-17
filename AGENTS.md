@@ -26,7 +26,7 @@ bun run check                    # astro check — type errors
 bun run build                    # → dist/client (also regenerates the page_summary block in AGENTS.md)
 bun run lint                     # biome lint --write — rewrites files in place
 bun test test/dev-smoke.test.ts  # 8 tests; spawns `bun run preview` (builds first — slow)
-bun test test/assets.test.ts     # worker asset passthrough unit tests (fast)
+bun test test/slash-redirects.test.ts  # _redirects rule generation (fast)
 ```
 
 Never pipe a bun command straight into `tail`/`head`. A missing `bun` exits 127, but a

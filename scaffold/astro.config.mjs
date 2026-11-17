@@ -10,6 +10,7 @@ import { agentsSummary } from "@nuasite/agent-summary";
 import astroAgentAnnotate from "astro-agent-annotate";
 import cloudflare from "@astrojs/cloudflare";
 import { lastmodFor } from "./src/lib/content-dates";
+import { slashRedirects } from "./src/lib/slash-redirects";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 const devToolbar = { enabled: isDevelopment };
@@ -32,6 +33,9 @@ export default defineConfig({
         return lastmod ? { ...item, lastmod } : item;
       },
     }),
+    // 301 for /page and /page/index.html → /page/. Cloudflare's own
+    // trailing-slash redirect is a 307. See src/lib/slash-redirects.ts.
+    slashRedirects(),
     agentsSummary(),
     pagefind(),
     ...(devToolbar.enabled ? [astroAgentAnnotate()] : []),

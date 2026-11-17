@@ -65,9 +65,9 @@ Parse `compatibility_date` in `wrangler.toml`. Older than 12 months from today �
 
 Grep `src/` for `<form` (case-insensitive) and for `fetch(` calls in form components. For each form, find its submission target (action attribute, fetch URL, or handler reference) and trace it into `worker/index.js`.
 
-Worker routes live under `/~/`: `worker/index.js` dispatches them by prefix through the `ROUTES` map and serves every other path as a static asset. Critical if any of:
+The worker only sees paths under `/~/` (`run_worker_first = ["/~*"]` in `wrangler.toml`), and dispatches them by prefix through the `ROUTES` map. Critical if any of:
 - `action="#"`, `action=""`, or an obvious dummy value
-- Submits to a `/~/…` path with no matching prefix in `worker/index.js` `ROUTES`, or to any non-`/~/` same-origin path (no worker route handles it) → "[form] posts to [path], which no worker route handles"
+- Submits to a `/~/…` path with no matching prefix in `worker/index.js` `ROUTES`, or to any non-`/~/` same-origin path (never reaches the worker) → "[form] posts to [path], which no worker route handles"
 - The handler only `console.log`s the submission — no email, KV, D1, CRM or webhook destination → "[form] handler has no destination; submissions are lost"
 - Recipient email/destination is a placeholder (`hello@example.com`, `your-email@`, `someone@example.com`)
 
