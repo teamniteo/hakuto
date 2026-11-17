@@ -23,6 +23,7 @@ applied on a site that never had the file.
 - [0.18.0 — No CLAUDE.md](#0180-no-claudemd)
 - [0.21.0 — Favicon tags on Astro 7, sitemap lastmod, AI-crawler policy](#0210-favicon-tags-on-astro-7-sitemap-lastmod-ai-crawler-policy)
 - [0.24.0 — Content dates from frontmatter, not git](#0240-content-dates-from-frontmatter-not-git)
+- [0.26.0 — Permanent trailing-slash redirects](#0260-permanent-trailing-slash-redirects)
 
 ---
 
@@ -444,3 +445,30 @@ Manual edits for customized sites:
 After applying:
 - `bun run build`, then `grep -c '<lastmod>' dist/client/sitemap-0.xml` — it should equal the number of blog/docs URLs that have a date, and no static page URL (`/`, `/about/`, `/pricing/`) should carry one.
 - `grep -o '<lastmod>[^<]*' dist/client/sitemap-0.xml | sort | uniq -c | sort -rn | head -3` — the dates should follow the posts' `date:`/`updated:` values, not cluster on one recent day.
+
+---
+
+### 0.26.0 — Permanent trailing-slash redirects
+
+`html_handling = "force-trailing-slash"` answers `/pricing` with a **307** to `/pricing/`, and `/pricing/index.html` with a 307 to `/pricing/`. The build now appends a 301 rule for each page to `dist/client/_redirects`. Cloudflare's asset layer applies `_redirects` before `html_handling`, so these URLs get a 301 without a Worker invocation. The worker and `wrangler.toml` are unchanged.
+
+**Detect:** all must hold.
+```sh
+test -f src/lib/slash-redirects.ts && grep -q 'slashRedirects()' astro.config.mjs
+```
+
+Apply from scaffold when not heavily customized:
+- `src/lib/slash-redirects.ts` (new)
+- `test/slash-redirects.test.ts` (new)
+- The ``### Worker and `wrangler.toml` `` section, the `_redirects` bullet under ``### `public/` Rules``, and the `@` filename rule under `### Images` from the scaffold's `AGENTS.md`, in whichever file holds the site's rules (`CLAUDE.md` on sites older than 0.17.0).
+
+Manual edits for customized sites:
+
+1. **`astro.config.mjs`.** Never re-copy it. Add `import { slashRedirects } from "./src/lib/slash-redirects";` and put `slashRedirects()` in `integrations`.
+2. **Site sets `html_handling` to something other than `"force-trailing-slash"`, or `trailingSlash` to something other than `"always"`:** skip this migration and report it. The rules assume slashed URLs are canonical.
+3. **`@` in asset filenames.** `find src public -name '*@*'`. Rename each file (`photo@2x.webp` → `photo-2x.webp`) and update its imports. The built URL keeps the `@`, which Cloudflare redirects to the `%40`-encoded URL on every load.
+
+After applying:
+- `bun run build` logs `Added N trailing-slash 301 rules to _redirects.` and no "left out" warning. `grep -c ' 301$' dist/client/_redirects` is about twice the number of pages.
+- `bun run preview`, then: `curl -sI http://127.0.0.1:8787/<inner-page>` (no slash) → `301` with `location: …/<inner-page>/`; `curl -sI http://127.0.0.1:8787/<inner-page>/index.html` → `301` to the same; `curl -sI http://127.0.0.1:8787/<inner-page>/` → `200`; `curl -sI http://127.0.0.1:8787/no-such-page/` → `404`; every `/~/` route and every rule the site already had in `public/_redirects` still answers as before.
+- `find src public -name '*@*'` returns nothing.

@@ -120,6 +120,8 @@ Invoke the `fonts` skill for any custom font. Fonts go through the Astro Fonts A
 - External placeholders (Unsplash): plain `<img>`. `loading="eager"` above the fold, `loading="lazy"` below.
 - `hakuto-review` carries the full rules, the Astro internals behind them, and a symptom table.
 
+No `@` in asset filenames (`photo@2x.webp` → `photo-2x.webp`). The built URL keeps the `@`, and Cloudflare redirects it to the `%40`-encoded URL on every page view.
+
 **Never reference `/src/assets/...` as a string path in `src`.** Vite serves it in dev, but the path doesn't exist in the build, so the image 404s on the live site while looking fine locally. Import the asset instead (`import photo from "@/assets/photo.jpg"`). Files that need a stable public URL go in `public/` and are referenced as `/name.ext`. Before declaring a page done, grep it for `/src/assets` — expect zero matches.
 
 ### Tailwind CSS v4
@@ -204,11 +206,12 @@ The site builds with `output: "static"` — every page is prerendered. **Runtime
 
 ### Worker and `wrangler.toml`
 
-`run_worker_first = ["/~*"]` sends `/~*` paths to `worker/index.js`; everything else is served from `dist/client/` by Cloudflare's asset layer, so the worker needs no `env.ASSETS` fallback. `not_found_handling = "404-page"` serves the prerendered `404.astro`. These rules apply under `bun run preview` and in production — **not** under `bun run dev`. Test any `/~/` route with `bun run preview`. Handler conventions are in `worker/README.md`.
+`run_worker_first = ["/~*"]` sends `/~*` paths to `worker/index.js`; everything else is served from `dist/client/` by Cloudflare's asset layer, so the worker needs no `env.ASSETS` fallback. `html_handling = "force-trailing-slash"` redirects `/pricing` and `/pricing/index.html` to `/pricing/` with a temporary 307; the build appends a 301 rule per page to `dist/client/_redirects` (`src/lib/slash-redirects.ts`), which the asset layer applies first. `not_found_handling = "404-page"` serves the prerendered `404.astro`. These rules apply under `bun run preview` and in production — **not** under `bun run dev`. Test any `/~/` route with `bun run preview`. Handler conventions are in `worker/README.md`.
 
 ### `public/` Rules
 
 - **Site-wide `_headers` rules go under `/*`.** A rule scoped to `/` is an exact match for the homepage only and fails silently. Verify with `curl -sI <origin>/some/inner/page/`, never just `/`.
+- `public/_redirects` is kept: the build appends its trailing-slash rules after yours, and skips any source you already redirect. Cloudflare reads at most 2,000 static rules; the build warns when pages are left without a 301.
 - `public/` and `src/pages/` share one URL namespace — `public/robots.txt` would collide with `src/pages/robots.txt.ts`.
 - Security headers in `_headers` are tuned for the default marketing stack (GTM, Cookiebot, Plausible, FB Pixel, Paddle, Vimeo/YouTube); adding another third party or a feature like `camera` means updating the matching directive.
 

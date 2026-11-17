@@ -146,6 +146,20 @@ describe("scaffold preview server (bun run preview) smoke", () => {
     expect(r.status).toBe(404);
   });
 
+  test("a page without its trailing slash gets a permanent redirect", async () => {
+    // html_handling = "force-trailing-slash" would answer with a 307; the
+    // build-time _redirects rules (src/lib/slash-redirects.ts) win and send a 301.
+    for (const [path, expected] of [
+      ["/404?ref=x", "/404/?ref=x"],
+      ["/index.html", "/"],
+    ]) {
+      const r = await fetch(BASE + path, { redirect: "manual" });
+      expect(r.status).toBe(301);
+      const location = new URL(r.headers.get("location") ?? "", BASE);
+      expect(location.pathname + location.search).toBe(expected);
+    }
+  });
+
   test("/404/ renders the prerendered 404.astro page", async () => {
     const r = await fetch(BASE + "/404/");
     expect(r.headers.get("content-type") ?? "").toContain("text/html");
