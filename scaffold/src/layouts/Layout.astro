@@ -22,6 +22,27 @@ interface Props {
 // Set to false to stop exposing tools to agents.
 const ENABLE_WEBMCP = true;
 
+// Speculation Rules: prerender a same-origin page when the visitor hovers or
+// starts to tap a link to it, so the click lands on an already-rendered page.
+// Chromium only; other browsers ignore the script. Exclude worker routes
+// (/~/*) and anything that changes state. Add `class="no-prerender"` to a
+// link to opt it out. Set to false to turn speculative loading off.
+const ENABLE_PRERENDER = true;
+const SPECULATION_RULES = {
+	prerender: [
+		{
+			where: {
+				and: [
+					{ href_matches: "/*" },
+					{ not: { href_matches: "/~/*" } },
+					{ not: { selector_matches: ".no-prerender, [rel~=nofollow], [download]" } },
+				],
+			},
+			eagerness: "moderate",
+		},
+	],
+};
+
 const { url } = Astro;
 const {
 	title: pageTitle,
@@ -57,6 +78,9 @@ const title = pageTitle ? `${pageTitle} | ${SITE_NAME}` : SITE_NAME;
     {feedUrl && (
       <link rel="alternate" type="application/rss+xml" title={SITE_NAME} href={feedUrl} />
     )}
+    {ENABLE_PRERENDER && (
+      <script is:inline type="speculationrules" set:html={JSON.stringify(SPECULATION_RULES)} />
+    )}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
@@ -88,24 +112,13 @@ const title = pageTitle ? `${pageTitle} | ${SITE_NAME}` : SITE_NAME;
         // UI uses — `pagefind()` is in astro.config.mjs, so `astro build` always
         // writes /pagefind/, whether or not a search page exists.
         (function () {
-          // The spec moved from navigator.modelContext to document.modelContext;
-          // shipping implementations are split, so accept either.
-          var ctx =
-            (typeof document !== "undefined" && document.modelContext) ||
-            (typeof navigator !== "undefined" && navigator.modelContext);
+          // The registry lives on `document` (the `navigator` one is deprecated since Chromium 150).
+          var ctx = document.modelContext;
           if (!ctx || typeof ctx.registerTool !== "function") return;
 
-          // Tool results are MCP CallToolResult objects: { content: [{ type, text }] }.
-          function reply(value) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: typeof value === "string" ? value : JSON.stringify(value, null, 2),
-                },
-              ],
-            };
-          }
+          // `execute` returns any JSON-serializable value. A thrown error reaches
+          // the agent as a generic failure, so recoverable errors are returned as
+          // { error } values instead.
 
           var pagefindPromise = null;
           function loadPagefind() {
@@ -125,36 +138,48 @@ const title = pageTitle ? `${pageTitle} | ${SITE_NAME}` : SITE_NAME;
           ctx.registerTool({
             name: "search-site",
             description:
-              "Full-text search across every page of this site. Returns the best matching pages with their title, URL and a highlighted excerpt. Use this before guessing a URL.",
+              "Full-text search across every page of this site. Returns the best matching pages with their title, URL and an excerpt. Use this before guessing a URL.",
             inputSchema: {
               type: "object",
               properties: {
                 query: { type: "string", description: "Search terms, e.g. 'pricing' or 'refund policy'" },
                 limit: {
-                  type: "number",
-                  description: "Maximum number of results to return (1-20, default 5)",
+                  type: "integer",
+                  minimum: 1,
+                  maximum: 20,
+                  default: 5,
+                  description: "How many pages to return.",
                 },
               },
               required: ["query"],
             },
-            async execute({ query, limit }) {
-              var max = Math.min(Math.max(Number(limit) || 5, 1), 20);
+            // The browser neither validates input against inputSchema nor applies
+            // defaults, so both happen here.
+            async execute({ query, limit }, opts) {
+              var signal = opts && opts.signal;
+              if (typeof query !== "string" || !query.trim()) {
+                return { error: "Pass the words to search for as `query`." };
+              }
+              var max = Math.min(Math.max(Math.floor(Number(limit)) || 5, 1), 20);
               var pf;
               try {
                 pf = await loadPagefind();
               } catch (e) {
                 // The index is only emitted by `astro build`, so this is the normal
                 // answer on `astro dev`, not a site defect.
-                return reply(
-                  "Search index unavailable on this origin (it is generated at build time). Fall back to /sitemap-index.xml or /llms.txt.",
-                );
+                return {
+                  error:
+                    "Search index unavailable on this origin (it is generated at build time). Fall back to /sitemap-index.xml or /llms.txt.",
+                };
               }
-              var search = await pf.search(String(query));
+              if (signal) signal.throwIfAborted();
+              var search = await pf.search(query);
+              if (signal) signal.throwIfAborted();
               var results = await Promise.all(search.results.slice(0, max).map((r) => r.data()));
               if (results.length === 0) {
-                return reply({ query: query, total: 0, results: [], message: "No pages matched." });
+                return { query: query, total: 0, results: [], message: "No pages matched." };
               }
-              return reply({
+              return {
                 query: query,
                 total: search.results.length,
                 results: results.map((r) => ({
@@ -163,22 +188,24 @@ const title = pageTitle ? `${pageTitle} | ${SITE_NAME}` : SITE_NAME;
                   // Pagefind wraps matches in <mark>; agents want plain text.
                   excerpt: String(r.excerpt || "").replace(/<[^>]+>/g, ""),
                 })),
-              });
+              };
             },
+            annotations: { readOnlyHint: true },
           });
 
           ctx.registerTool({
             name: "get-page-content",
             description: "Get the main text content of the page currently open, as plain text.",
             inputSchema: { type: "object", properties: {}, required: [] },
-            async execute() {
+            execute() {
               var main = document.querySelector("main");
-              return reply({
+              return {
                 title: document.title,
                 url: window.location.href,
                 content: (main || document.body).innerText.slice(0, 4000),
-              });
+              };
             },
+            annotations: { readOnlyHint: true },
           });
 
           ctx.registerTool({
@@ -189,14 +216,14 @@ const title = pageTitle ? `${pageTitle} | ${SITE_NAME}` : SITE_NAME;
               properties: { path: { type: "string", description: "Site path to navigate to" } },
               required: ["path"],
             },
-            async execute({ path }) {
+            execute({ path }) {
               // Same-origin only — this tool must not be a redirect gadget.
               var target = new URL(String(path), window.location.origin);
               if (target.origin !== window.location.origin) {
-                return reply("Refused: this tool only navigates within " + window.location.origin + ".");
+                return { error: "Refused: this tool only navigates within " + window.location.origin + "." };
               }
               window.location.href = target.href;
-              return reply("Navigating to " + target.pathname + ".");
+              return "Navigating to " + target.pathname + ".";
             },
           });
         })();

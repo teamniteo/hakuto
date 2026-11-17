@@ -25,6 +25,7 @@ applied on a site that never had the file.
 - [0.24.0 — Content dates from frontmatter, not git](#0240-content-dates-from-frontmatter-not-git)
 - [0.26.0 — Permanent trailing-slash redirects](#0260-permanent-trailing-slash-redirects)
 - [0.27.0 — Trailing-slash rules before wildcard rules](#0270-trailing-slash-rules-before-wildcard-rules)
+- [0.28.0 — Prerendering, page transitions, text wrapping, WebMCP return values](#0280-prerendering-page-transitions-text-wrapping-webmcp-return-values)
 
 ---
 
@@ -495,3 +496,40 @@ Apply from scaffold:
 After applying:
 - `bun run build`, then in `dist/client/_redirects` the `# Permanent trailing-slash redirects` block comes before the first line whose source contains `*` or `:`.
 - `bun run preview`, then `curl -sI http://127.0.0.1:8787/<inner-page>` (no slash) → `301`.
+
+---
+
+### 0.28.0 — Prerendering, page transitions, text wrapping, WebMCP return values
+
+Four independent changes from [Modern Web Guidance](https://github.com/GoogleChrome/modern-web-guidance):
+
+- **Speculation rules.** `Layout.astro` emits `<script type="speculationrules">` that prerenders same-origin pages at `moderate` eagerness (hover or pointerdown), excluding `/~/*`, `[rel~=nofollow]`, `[download]` and `.no-prerender`.
+- **Cross-document view transitions.** `src/index.css` ends with `@view-transition { navigation: auto; }` inside `@media (prefers-reduced-motion: no-preference)`.
+- **Text wrapping.** `@layer base` sets `text-wrap: balance` on `h1`–`h6` and `text-wrap: pretty` on `p`, `li`, `blockquote`, `figcaption`.
+- **WebMCP.** The 0.10.0 tools returned MCP `CallToolResult` objects and accepted `navigator.modelContext`. The current spec serializes whatever `execute` returns to JSON, so agents received the wrapper as text, and `navigator.modelContext` is deprecated. The tools now return plain values, return errors as `{ error }`, carry `readOnlyHint` where they only read, and put `limit`'s range and default in the schema.
+
+**Detect:** all must hold. The WebMCP marker is skipped on sites without the WebMCP block.
+```sh
+grep -q 'speculationrules' src/layouts/Layout.astro &&
+  grep -q '@view-transition' src/index.css &&
+  grep -q 'text-wrap: balance' src/index.css &&
+  { ! grep -q 'registerTool' src/layouts/Layout.astro || ! grep -q 'navigator.modelContext' src/layouts/Layout.astro; }
+```
+
+Apply from scaffold when not heavily customized:
+- `src/layouts/Layout.astro`
+- `src/index.css`
+- The `@layer base` text-wrap bullet under `### Tailwind CSS v4` and the `### Navigation: Prerendering and Page Transitions` section from the scaffold's `AGENTS.md`, plus `speculation rules` in the `Layout.astro` line under `## Key Files`.
+
+Manual edits for customized sites:
+
+1. **`Layout.astro` frontmatter.** Copy the `ENABLE_PRERENDER` and `SPECULATION_RULES` constants from the scaffold, and in `<head>` add `{ENABLE_PRERENDER && (<script is:inline type="speculationrules" set:html={JSON.stringify(SPECULATION_RULES)} />)}`. Before keeping it on, find links whose target changes state on load: `grep -rnE 'href="[^"]*(logout|signout|unsubscribe|token=|add-to-cart)' src`. Add `class="no-prerender"` to each, or add the pattern to the rule's `not` list. If the site uses Astro's `<ClientRouter />`, skip the script: the router intercepts link clicks, so prerendered documents are never used.
+2. **Analytics.** Prerendered pages run their scripts before the visitor sees them. Plausible (`plausible-analytics` skill) defers its pageview until the page is visible. For any other tag in the layout (GA, Meta pixel, Ads), tell the user that prerendered-but-unvisited pages may count as page views unless the vendor's script handles prerendering, and ask whether to keep `ENABLE_PRERENDER`.
+3. **`src/index.css`.** Append the `@view-transition` block at the end of the file, outside every `@layer`. If the site already uses Astro's `<ClientRouter />` (`astro:transitions`), skip this block: the router already animates navigations.
+4. **Text wrapping.** Add the two `text-wrap` rules to the last `@layer base` block. Skip `balance` on any heading class the site uses for long multi-line text.
+5. **WebMCP block** (skip if `ENABLE_WEBMCP` is absent). Resolve `var ctx = document.modelContext;` only. Delete the `reply()` helper and return its argument directly. Turn string error replies into `{ error: "…" }`. Add `annotations: { readOnlyHint: true }` after `execute` on `search-site` and `get-page-content`. Change `search-site`'s `limit` to `{ type: "integer", minimum: 1, maximum: 20, default: 5, description: "How many pages to return." }` and validate `query` in `execute`. Site-specific tools the site added: apply the same return-value change.
+
+After applying:
+- `bun run build`, then `grep -c speculationrules dist/client/index.html` → `1`, and `grep -l '@view-transition' dist/client/_astro/*.css` finds the stylesheet.
+- `bun run preview`, open `http://127.0.0.1:8787/` in Chrome, DevTools → Application → Speculative loads: rules listed, hovering an inner link shows it as prerendered. Clicking it cross-fades.
+- `grep -n 'reply(\|navigator.modelContext' src/layouts/Layout.astro` returns nothing.

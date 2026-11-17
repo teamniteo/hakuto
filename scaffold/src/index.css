@@ -259,4 +259,33 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Even line lengths on short text. Browsers balance at most ~6 lines
+     (Chromium) and fall back to normal wrapping beyond that. Don't widen this
+     to long text or `*` — the algorithm is expensive. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-wrap: balance;
+  }
+
+  /* No single-word last lines in body copy. */
+  p,
+  li,
+  blockquote,
+  figcaption {
+    text-wrap: pretty;
+  }
+}
+
+/* Cross-fade between pages on same-origin navigation (MPA view transitions).
+   Keep it top-level, outside @layer. Browsers without support navigate
+   instantly. Customize with ::view-transition-old(root) / -new(root). */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
 }
