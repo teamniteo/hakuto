@@ -206,12 +206,12 @@ The site builds with `output: "static"` — every page is prerendered. **Runtime
 
 ### Worker and `wrangler.toml`
 
-`run_worker_first = ["/~*"]` sends `/~*` paths to `worker/index.js`; everything else is served from `dist/client/` by Cloudflare's asset layer, so the worker needs no `env.ASSETS` fallback. `html_handling = "force-trailing-slash"` redirects `/pricing` and `/pricing/index.html` to `/pricing/` with a temporary 307; the build appends a 301 rule per page to `dist/client/_redirects` (`src/lib/slash-redirects.ts`), which the asset layer applies first. `not_found_handling = "404-page"` serves the prerendered `404.astro`. These rules apply under `bun run preview` and in production — **not** under `bun run dev`. Test any `/~/` route with `bun run preview`. Handler conventions are in `worker/README.md`.
+`run_worker_first = ["/~*"]` sends `/~*` paths to `worker/index.js`; everything else is served from `dist/client/` by Cloudflare's asset layer, so the worker needs no `env.ASSETS` fallback. `html_handling = "force-trailing-slash"` redirects `/pricing` and `/pricing/index.html` to `/pricing/` with a temporary 307; the build adds a 301 rule per page to `dist/client/_redirects` (`src/lib/slash-redirects.ts`), which the asset layer applies first. `not_found_handling = "404-page"` serves the prerendered `404.astro`. These rules apply under `bun run preview` and in production — **not** under `bun run dev`. Test any `/~/` route with `bun run preview`. Handler conventions are in `worker/README.md`.
 
 ### `public/` Rules
 
 - **Site-wide `_headers` rules go under `/*`.** A rule scoped to `/` is an exact match for the homepage only and fails silently. Verify with `curl -sI <origin>/some/inner/page/`, never just `/`.
-- `public/_redirects` is kept: the build appends its trailing-slash rules after yours, and skips any source you already redirect. Cloudflare reads at most 2,000 static rules; the build warns when pages are left without a 301.
+- `public/_redirects` is kept: the build skips any source you already redirect and puts its trailing-slash rules before your first wildcard rule, because Cloudflare counts every rule after a wildcard against its 100 dynamic-rule cap. Cloudflare reads at most 2,000 static rules; the build warns when pages are left without a 301.
 - `public/` and `src/pages/` share one URL namespace — `public/robots.txt` would collide with `src/pages/robots.txt.ts`.
 - Security headers in `_headers` are tuned for the default marketing stack (GTM, Cookiebot, Plausible, FB Pixel, Paddle, Vimeo/YouTube); adding another third party or a feature like `camera` means updating the matching directive.
 

@@ -24,6 +24,7 @@ applied on a site that never had the file.
 - [0.21.0 — Favicon tags on Astro 7, sitemap lastmod, AI-crawler policy](#0210-favicon-tags-on-astro-7-sitemap-lastmod-ai-crawler-policy)
 - [0.24.0 — Content dates from frontmatter, not git](#0240-content-dates-from-frontmatter-not-git)
 - [0.26.0 — Permanent trailing-slash redirects](#0260-permanent-trailing-slash-redirects)
+- [0.27.0 — Trailing-slash rules before wildcard rules](#0270-trailing-slash-rules-before-wildcard-rules)
 
 ---
 
@@ -450,7 +451,7 @@ After applying:
 
 ### 0.26.0 — Permanent trailing-slash redirects
 
-`html_handling = "force-trailing-slash"` answers `/pricing` with a **307** to `/pricing/`, and `/pricing/index.html` with a 307 to `/pricing/`. The build now appends a 301 rule for each page to `dist/client/_redirects`. Cloudflare's asset layer applies `_redirects` before `html_handling`, so these URLs get a 301 without a Worker invocation. The worker and `wrangler.toml` are unchanged.
+`html_handling = "force-trailing-slash"` answers `/pricing` with a **307** to `/pricing/`, and `/pricing/index.html` with a 307 to `/pricing/`. The build now adds a 301 rule for each page to `dist/client/_redirects`. Cloudflare's asset layer applies `_redirects` before `html_handling`, so these URLs get a 301 without a Worker invocation. The worker and `wrangler.toml` are unchanged.
 
 **Detect:** all must hold.
 ```sh
@@ -472,3 +473,25 @@ After applying:
 - `bun run build` logs `Added N trailing-slash 301 rules to _redirects.` and no "left out" warning. `grep -c ' 301$' dist/client/_redirects` is about twice the number of pages.
 - `bun run preview`, then: `curl -sI http://127.0.0.1:8787/<inner-page>` (no slash) → `301` with `location: …/<inner-page>/`; `curl -sI http://127.0.0.1:8787/<inner-page>/index.html` → `301` to the same; `curl -sI http://127.0.0.1:8787/<inner-page>/` → `200`; `curl -sI http://127.0.0.1:8787/no-such-page/` → `404`; every `/~/` route and every rule the site already had in `public/_redirects` still answers as before.
 - `find src public -name '*@*'` returns nothing.
+
+---
+
+### 0.27.0 — Trailing-slash rules before wildcard rules
+
+The 0.26.0 integration appended its rules to the end of `_redirects`. Cloudflare counts every rule after the first dynamic rule (a `*` splat or `:name` placeholder in the source) against the 100-rule dynamic cap, so on a site whose `public/_redirects` has a wildcard rule, the appended 301s were ignored and those URLs kept the 307. The integration now inserts its rules before the first dynamic rule.
+
+Prerequisite: 0.26.0. Apply that entry first if `src/lib/slash-redirects.ts` is missing.
+
+**Detect:**
+```sh
+grep -q 'insertStaticRules' src/lib/slash-redirects.ts
+```
+
+Apply from scaffold:
+- `src/lib/slash-redirects.ts`
+- `test/slash-redirects.test.ts`
+- The `public/_redirects` sentence about wildcard rules: the `_redirects` bullet under ``### `public/` Rules`` in the scaffold's `AGENTS.md`, or the `html_handling` bullet on sites whose rules file has the older "Other directives" list.
+
+After applying:
+- `bun run build`, then in `dist/client/_redirects` the `# Permanent trailing-slash redirects` block comes before the first line whose source contains `*` or `:`.
+- `bun run preview`, then `curl -sI http://127.0.0.1:8787/<inner-page>` (no slash) → `301`.

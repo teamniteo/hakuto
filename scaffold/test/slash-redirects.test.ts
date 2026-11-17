@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { STATIC_RULE_LIMIT, slashRedirectRules } from "../src/lib/slash-redirects";
+import { insertStaticRules, STATIC_RULE_LIMIT, slashRedirectRules } from "../src/lib/slash-redirects";
 
 describe("slashRedirectRules", () => {
   test("301s the unslashed path and index.html to the slashed page", () => {
@@ -26,5 +26,24 @@ describe("slashRedirectRules", () => {
     expect(rules).toHaveLength(STATIC_RULE_LIMIT - 1);
     expect(rules.every((rule) => !rule.includes("index.html"))).toBe(true);
     expect(dropped).toBe(STATIC_RULE_LIMIT + 1);
+  });
+});
+
+describe("insertStaticRules", () => {
+  test("appends when the file has no dynamic rule", () => {
+    expect(insertStaticRules("/old /new/ 301\n", ["/a /a/ 301"])).toBe(
+      "/old /new/ 301\n# Permanent trailing-slash redirects (src/lib/slash-redirects.ts)\n/a /a/ 301\n",
+    );
+  });
+
+  test("goes before the first dynamic rule and the comments above it", () => {
+    const existing = "/old /new/ 301\n\n# Wildcards\n/blog/* /posts/:splat 301\n/x /y/ 301\n";
+    expect(insertStaticRules(existing, ["/a /a/ 301"])).toBe(
+      "/old /new/ 301\n# Permanent trailing-slash redirects (src/lib/slash-redirects.ts)\n/a /a/ 301\n\n# Wildcards\n/blog/* /posts/:splat 301\n/x /y/ 301\n",
+    );
+  });
+
+  test("leaves the file alone when there is nothing to add", () => {
+    expect(insertStaticRules("/old /new/ 301\n", [])).toBe("/old /new/ 301\n");
   });
 });
