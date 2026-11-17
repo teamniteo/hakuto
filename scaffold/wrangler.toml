@@ -12,9 +12,10 @@ mode = "smart"
 
 [assets]
 directory = "./dist/client"
+binding = "ASSETS"
 not_found_handling = "404-page"
 html_handling = "force-trailing-slash"
-run_worker_first = ["/~*"]
+run_worker_first = true
 
 # Routes are template placeholders. Uncomment and set your domain when ready.
 # [[routes]]

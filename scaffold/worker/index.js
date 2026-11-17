@@ -1,10 +1,12 @@
 /**
  * Cloudflare Workers Entry Point
  *
- * Handles requests before serving static assets from Astro build.
- * Routes are defined with run_worker_first = ["/~*"] in wrangler.toml.
+ * run_worker_first = true in wrangler.toml sends every request here. Paths
+ * under /~ are dispatched to ROUTES; everything else is served from the Astro
+ * build by serveAsset() (see assets.js).
  */
 
+import { serveAsset } from './assets.js';
 import { problem } from './problem.js';
 
 /**
@@ -31,6 +33,10 @@ export default {
   async fetch(request, env, ctx) {
     const pathname = new URL(request.url).pathname;
 
+    if (!pathname.startsWith('/~')) {
+      return serveAsset(request, env);
+    }
+
     const route = Object.entries(ROUTES).find(([prefix]) => pathname.startsWith(prefix));
 
     if (route) {
@@ -54,7 +60,7 @@ export default {
       code: 'route_not_found',
       title: 'Not Found',
       detail: `No worker route is registered for ${pathname}.`,
-      resolution: 'Only paths under /~/ reach this worker. Site pages are served as static assets — see /sitemap-index.xml for what exists.',
+      resolution: 'Only paths under /~/ are worker routes. Site pages are served as static assets — see /sitemap-index.xml for what exists.',
     });
   },
 };

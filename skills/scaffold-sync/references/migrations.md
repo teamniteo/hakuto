@@ -23,6 +23,7 @@ applied on a site that never had the file.
 - [0.18.0 — No CLAUDE.md](#0180-no-claudemd)
 - [0.21.0 — Favicon tags on Astro 7, sitemap lastmod, AI-crawler policy](#0210-favicon-tags-on-astro-7-sitemap-lastmod-ai-crawler-policy)
 - [0.24.0 — Content dates from frontmatter, not git](#0240-content-dates-from-frontmatter-not-git)
+- [0.26.0 — Permanent trailing-slash redirects](#0260-permanent-trailing-slash-redirects)
 
 ---
 
@@ -444,3 +445,32 @@ Manual edits for customized sites:
 After applying:
 - `bun run build`, then `grep -c '<lastmod>' dist/client/sitemap-0.xml` — it should equal the number of blog/docs URLs that have a date, and no static page URL (`/`, `/about/`, `/pricing/`) should carry one.
 - `grep -o '<lastmod>[^<]*' dist/client/sitemap-0.xml | sort | uniq -c | sort -rn | head -3` — the dates should follow the posts' `date:`/`updated:` values, not cluster on one recent day.
+
+---
+
+### 0.26.0 — Permanent trailing-slash redirects
+
+`html_handling = "force-trailing-slash"` answers `/pricing` with a **307** to `/pricing/`, and `/pricing/index.html` with a 307 to `/pricing/`. Search engines treat a 307 as temporary and keep the old URL indexed. The worker now receives every request (`run_worker_first = true`), serves pages through the `ASSETS` binding, and returns those two redirects as 301s. Every request is now a Worker invocation, which counts toward the account's Workers request quota.
+
+**Detect:** all must hold.
+```sh
+test -f worker/assets.js && grep -q 'permanentSlashRedirect' worker/assets.js &&
+  test -f wrangler.toml && grep -q '^run_worker_first = true' wrangler.toml && grep -q '^binding = "ASSETS"' wrangler.toml &&
+  grep -q 'serveAsset' worker/index.js
+```
+
+Apply from scaffold when not heavily customized:
+- `worker/assets.js` (new)
+- `worker/README.md`
+- In `wrangler.toml`, under `[assets]`: add `binding = "ASSETS"` and set `run_worker_first = true`. Don't re-copy the file — it holds the site's `name` and routes.
+- The ``### Worker and `wrangler.toml` `` section and the `@` filename rule under `### Images` from the scaffold's `AGENTS.md`, in whichever file holds the site's rules (`CLAUDE.md` on sites older than 0.17.0).
+
+Manual edits for customized sites:
+
+1. **`worker/index.js`.** Never re-copy it — it holds the site's `ROUTES`. Import `serveAsset` from `./assets.js` and, at the top of `fetch()`, return `serveAsset(request, env)` for any path that doesn't start with `/~`, before route matching. Change the 404 `resolution` text from "Only paths under /~/ reach this worker." to "Only paths under /~/ are worker routes."
+2. **Site already sends more than `/~*` to the worker** (a `run_worker_first` array with other patterns, or `true` with its own `env.ASSETS.fetch()` fallback): keep its routing and wrap its existing asset fetch with `permanentSlashRedirect(response, url) ?? response` from `worker/assets.js` instead of adding a second fallback.
+3. **`@` in asset filenames.** `find src public -name '*@*'`. Rename each file (`photo@2x.webp` → `photo-2x.webp`) and update its imports. The built URL keeps the `@`, which Cloudflare redirects to the `%40`-encoded URL on every load.
+
+After applying:
+- `bun run preview`, then: `curl -sI http://127.0.0.1:8787/<inner-page>` (no slash) → `301` with `location: …/<inner-page>/`; `curl -sI http://127.0.0.1:8787/<inner-page>/` → `200` with the `_headers` security headers present; `curl -sI http://127.0.0.1:8787/no-such-page/` → `404`; every `/~/` route still answers as before.
+- `find src public -name '*@*'` returns nothing.
