@@ -78,13 +78,26 @@ export async function handleForm(request, env, ctx) {
 
   // TODO: submissions are not stored or sent anywhere yet — this only logs them,
   // and logs are off in wrangler.toml. Pick a destination (SKILL.md "Where
-  // submissions go"). KV example, needs the FORMS_KV binding:
+  // submissions go") and replace the console.log. KV example, needs the
+  // FORMS_KV binding:
   //
   // await env.FORMS_KV.put(
   //   `${formName}:${submission.receivedAt}:${crypto.randomUUID()}`,
   //   JSON.stringify(submission),
   // );
-  console.log('Form submission', submission);
+  try {
+    console.log('Form submission', submission);
+  } catch (error) {
+    // Log the error, never the submission: it holds the visitor's personal data.
+    console.error(`Form "${formName}" delivery failed:`, error);
+    return problem({
+      status: 502,
+      code: 'delivery_failed',
+      title: 'Bad Gateway',
+      detail: 'The submission was valid but could not be delivered.',
+      resolution: 'Retry in a few minutes. The submission was not saved, so send it again.',
+    });
+  }
 
   return Response.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
 }
