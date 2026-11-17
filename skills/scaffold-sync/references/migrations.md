@@ -543,10 +543,11 @@ The scaffold's `AGENTS.md` told the agent never to create commits or branches, w
 
 **Detect:**
 ```sh
-test -f AGENTS.md && ! grep -q "Don't create commits or branches" AGENTS.md
+! { test -f AGENTS.md && grep -qi "create commits or branches" AGENTS.md; } &&
+  ! { test -f CLAUDE.md && grep -qi "create commits or branches" CLAUDE.md; }
 ```
 
-Apply by hand: under `## Working Style` in `AGENTS.md`, replace the `Don't create commits or branches` bullet with the scaffold's version-control bullet, or with the site's own rule where the project has one.
+Apply by hand: under `## Working Style` in `AGENTS.md`, replace the `Don't create commits or branches` bullet with the scaffold's version-control bullet, or with the site's own rule where the project has one. Sites older than 0.17.0 carry it as `Do NOT create commits or branches - user manages version control. Focus only on file creation and editing.` in `CLAUDE.md`; replace that line the same way.
 
 After applying:
-- `grep -n "Don't create commits" AGENTS.md` returns nothing.
+- `grep -ni "create commits or branches" AGENTS.md CLAUDE.md` returns nothing.
