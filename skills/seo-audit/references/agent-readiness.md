@@ -158,9 +158,7 @@ advertises something the site cannot serve. Hand it to the user as a manual step
 - **Tools only work on a built origin.** `astro dev` has no `/pagefind/`, so `search-site`
   returns "search index unavailable" and points at `/sitemap-index.xml` and `/llms.txt`.
   Expected — verify with `bun run preview` or on a deploy preview.
-- **Results are MCP `CallToolResult` objects** (`{ content: [{ type: "text", text }] }`), and
-  registration accepts `document.modelContext` (current spec) or `navigator.modelContext`
-  (earlier drafts). Keep both branches when editing.
-- **Adding a tool:** register it in the same block, write the description for a reader who
-  cannot see the page, and return through the `reply()` helper so the shape stays uniform.
-  `navigate` is deliberately same-origin only — do not relax that.
+- **`execute` returns a plain JSON-serializable value.** The browser serializes it to a JSON string for the agent. Don't wrap it in an MCP `CallToolResult` (`{ content: [{ type: "text", text }] }`); the agent would receive the wrapper as text. Return recoverable errors as `{ error: "…" }` values: a thrown error reaches the agent only as a generic failure.
+- **Registration uses `document.modelContext` only.** `navigator.modelContext` was deprecated in Chromium 150.
+- **Adding a tool:** register it in the same block. The description says what the tool does and when to use it, for a reader who cannot see the page. Limits, defaults and allowed values go in `inputSchema` (`minimum`, `maximum`, `default`, `enum`), not in the description. The browser doesn't validate input against `inputSchema` or apply defaults, so `execute` does both. Set `annotations: { readOnlyHint: true }` on tools that only read, and `consequentialHint: true` on tools that send, buy or delete. Pass the second `execute` argument's `signal` to `fetch` in any tool that makes network calls. `navigate` is deliberately same-origin only — do not relax that.
+- **A `<form>` can be a tool without JavaScript.** Add `toolname` and `tooldescription` attributes (the declarative API). The browser builds the schema from the form's labelled controls. Leave out `toolautosubmit` on forms that send a message to a person, such as a contact form, so the visitor confirms the submission.
