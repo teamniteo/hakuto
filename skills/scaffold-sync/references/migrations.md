@@ -26,6 +26,7 @@ applied on a site that never had the file.
 - [0.26.0 — Permanent trailing-slash redirects](#0260-permanent-trailing-slash-redirects)
 - [0.27.0 — Trailing-slash rules before wildcard rules](#0270-trailing-slash-rules-before-wildcard-rules)
 - [0.28.0 — Prerendering, page transitions, text wrapping, WebMCP return values](#0280-prerendering-page-transitions-text-wrapping-webmcp-return-values)
+- [0.30.0 — Version control follows the project](#0300-version-control-follows-the-project)
 
 ---
 
@@ -533,3 +534,19 @@ After applying:
 - `bun run build`, then `grep -c speculationrules dist/client/index.html` → `1`, and `grep -l '@view-transition' dist/client/_astro/*.css` finds the stylesheet.
 - `bun run preview`, open `http://127.0.0.1:8787/` in Chrome, DevTools → Application → Speculative loads: rules listed, hovering an inner link shows it as prerendered. Clicking it cross-fades.
 - `grep -n 'reply(\|navigator.modelContext' src/layouts/Layout.astro` returns nothing.
+
+---
+
+### 0.30.0 — Version control follows the project
+
+The scaffold's `AGENTS.md` told the agent never to create commits or branches, which overrides the project's own git conventions. It now follows them, and asks before committing when there are none.
+
+**Detect:**
+```sh
+test -f AGENTS.md && ! grep -q "Don't create commits or branches" AGENTS.md
+```
+
+Apply by hand: under `## Working Style` in `AGENTS.md`, replace the `Don't create commits or branches` bullet with the scaffold's version-control bullet, or with the site's own rule where the project has one.
+
+After applying:
+- `grep -n "Don't create commits" AGENTS.md` returns nothing.
