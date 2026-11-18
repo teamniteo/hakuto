@@ -3,7 +3,7 @@ title: "Welcome to the blog"
 slug: "welcome"
 date: "2026-01-15"
 author: "TODO: Author Name"
-# Optional — drives the Gravatar avatar. Delete the line to show no avatar.
+# Optional — the RSS author. The avatar comes from src/lib/authors.ts.
 # authorEmail: "author@yourdomain.com"
 authorBio: "TODO: One line about the author."
 category: "News"

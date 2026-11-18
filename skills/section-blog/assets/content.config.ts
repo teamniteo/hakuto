@@ -23,8 +23,8 @@ const blog = defineCollection({
       // dateModified and sitemap <lastmod>; without it both use `date`.
       updated: z.coerce.date().optional(),
       author: z.string(),
-      // Optional. Drives the Gravatar avatar and the RSS <author>; without it the
-      // post shows no avatar and the feed omits the author.
+      // Optional. The RSS <author>; without it the feed omits the author. The
+      // avatar comes from src/lib/authors.ts, keyed by `author`.
       authorEmail: z.email().optional(),
       authorBio: z.string().optional(),
       // Where the byline links to: an author page, an /about/ anchor, or a profile.

@@ -3,12 +3,12 @@
 // older/newer links and related posts.
 import Layout from "@/layouts/Layout.astro";
 import PostCard from "@/components/blog/PostCard.astro";
-import { Picture } from "astro:assets";
+import { Image, Picture } from "astro:assets";
 import type { GetStaticPaths, ImageMetadata } from "astro";
 import { render } from "astro:content";
-import { createHash } from "node:crypto";
 import type { BlogPosting, WithContext } from "schema-dts";
 import { fallbackFormat } from "@/lib/image-fallback";
+import { authorPhoto } from "@/lib/authors";
 import { categoryHref, dateFmt, getPosts, postHref } from "@/lib/blog";
 import { SITE_NAME } from "@/lib/site";
 import "@/styles/blog-content.css";
@@ -45,13 +45,8 @@ const related = allPosts
   .filter((p) => p.id !== post.id && p.data.category === post.data.category)
   .slice(0, 3);
 
-// Gravatar: `s=` is the only sizing control for an external image, so request
-// 2x the rendered size — 32px byline → s=64, 64px author box → s=128.
-// No `authorEmail` → no avatar (and no third-party request).
-const emailHash = post.data.authorEmail
-  ? createHash("md5").update(post.data.authorEmail.trim().toLowerCase()).digest("hex")
-  : undefined;
-const gravatar = (px: number) => `https://gravatar.com/avatar/${emailHash}?s=${px * 2}&d=mp`;
+// No entry in src/lib/authors.ts → no avatar.
+const photo = authorPhoto(post.data.author);
 
 const authorUrl = post.data.authorUrl
   ? new URL(post.data.authorUrl, Astro.site).href
@@ -110,12 +105,13 @@ const schema: WithContext<BlogPosting> = {
       <p class="text-lg text-muted-foreground leading-relaxed mb-6">{post.data.description}</p>
 
       <div class="flex items-center gap-3 text-sm text-muted-foreground">
-        {emailHash && (
-          <img
-            src={gravatar(32)}
+        {photo && (
+          <Image
+            src={photo}
             alt=""
-            width="32"
-            height="32"
+            width={32}
+            height={32}
+            densities={[1, 2]}
             loading="lazy"
             decoding="async"
             class="rounded-full"
@@ -159,12 +155,13 @@ const schema: WithContext<BlogPosting> = {
 
     <footer class="max-w-3xl mx-auto pt-8 pb-12 border-t border-border">
       <div class="flex items-start gap-4">
-        {emailHash && (
-          <img
-            src={gravatar(64)}
+        {photo && (
+          <Image
+            src={photo}
             alt=""
-            width="64"
-            height="64"
+            width={64}
+            height={64}
+            densities={[1, 2]}
             loading="lazy"
             decoding="async"
             class="rounded-full shrink-0"
