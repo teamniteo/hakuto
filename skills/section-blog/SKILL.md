@@ -56,7 +56,7 @@ survive to launch. Write new placeholders the same way.
 frontmatter below.
 
 **User wants a new post:** ask for title, slug, date, author, category, description.
-Optional: authorEmail (Gravatar avatar and RSS author), authorBio, authorUrl, featured image.
+Optional: author photo (see [Author photos](#author-photos)), authorEmail (RSS author), authorBio, authorUrl, featured image.
 `TODO:` placeholder text if no content.
 
 ### Step 3: Install Dependencies
@@ -76,6 +76,7 @@ bun add @astrojs/rss rehype-external-links
 | `assets/content.config.ts` | `src/content.config.ts` — **merge**, keep existing collections |
 | `assets/content/blog/welcome.md` | `src/content/blog/welcome.md` (sample post only) |
 | `assets/lib/blog.ts` | `src/lib/blog.ts` |
+| `assets/lib/authors.ts` | `src/lib/authors.ts` |
 | `assets/lib/image-fallback.ts` | `src/lib/image-fallback.ts` — skip if present |
 | `assets/lib/remark-blog-headings.ts` | `src/lib/remark-blog-headings.ts` |
 | `assets/lib/rehype-content-images.ts` | `src/lib/rehype-content-images.ts` |
@@ -223,7 +224,7 @@ slug: "article-title"
 date: "2026-01-20"
 updated: "2026-03-02"                 # optional — only when the content changed, see below
 author: "Author Name"
-authorEmail: "author@example.com"     # optional — Gravatar avatar and RSS author
+authorEmail: "author@example.com"     # optional — RSS author
 authorBio: "Short author bio for the author box."
 authorUrl: "/about/#author-name"
 category: "Category"
@@ -253,16 +254,13 @@ so the title stays the page's only `<h1>`.
   in `[...slug].astro`; if that column changes, change them together. Don't annotate
   individual posts.
 
-### Gravatar
+### Author photos
 
-Avatars appear only when the post sets `authorEmail`. They are `<img>`, not `<Picture>` —
-Astro cannot resize an external image, so `s=` is the only sizing control. Request **2× the rendered size and no more** (32px byline → `s=64`,
-64px author box → `s=128`); the template's `gravatar(px)` helper does this. Never mark an
-avatar `loading="eager"`.
+Avatars are self-hosted. Don't use Gravatar or another third-party image host: Astro cannot resize an external image, and every post would send each reader's IP to that host. Put the photo in `src/assets/authors/<first-last>.jpg` (square, at least 256px) and add it to the map in `src/lib/authors.ts`, keyed by the exact `author` string from the frontmatter. An author without an entry gets no avatar.
 
-Gravatar is a third-party request on every post, which exposes each reader's IP to an
-external host. On a site whose positioning is privacy, self-host the few author avatars under
-`src/assets/authors/` with `<Picture>` and drop the dependency.
+The template renders them with `<Image densities={[1, 2]}>` at the displayed size (32px byline, 64px author box), so the pipeline emits 1× and 2× WebP. Never mark an avatar `loading="eager"`.
+
+If the user only has a Gravatar, download it once at `s=256` into `src/assets/authors/` and use the file.
 
 ---
 
