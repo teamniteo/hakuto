@@ -133,7 +133,7 @@ Walk `$SCAFFOLD` recursively, excluding the same paths used in Step 2's hash plu
 **Hard-exclude** (never compare, never apply, never delete):
 - `node_modules/`, `.astro/`, `dist/`, `.wrangler/`, `.git/` — build output and tool state
 - `.devenv/`, `.direnv/`, `.devenv.flake.nix` — local devenv/direnv state, generated per machine
-- `bun.lockb`, `bun.lock`, `package-lock.json`, `pnpm-lock.yaml`, `devenv.lock` (lockfiles are user state)
+- `bun.lockb`, `bun.lock`, `package-lock.json`, `pnpm-lock.yaml`, `devenv.lock`, `.github/workflows/actions.lock` (lockfiles are user state)
 - `.DS_Store`
 - `.hakuto-sync.json` itself
 
@@ -310,6 +310,8 @@ It moves only those packages to the scaffold's tested versions and leaves the re
 
 For `AGENTS.md`: sites keep their build plan in `site-specification.md`, so the rules above the `page_summary` block stay mostly scaffold-owned and an untouched file fast-forwards cleanly. A site that added its own rules lands in `both-changed` — recommend hunk-level review over wholesale replace, which would delete them. A legacy site may still carry a `## Project Plan` section (in `AGENTS.md` after the 0.17.0 move, or in a pre-0.17.0 `CLAUDE.md`) — if the local file contains one, call it out before showing the diff and recommend moving the plan to `site-specification.md` first.
 
+`.github/workflows/verify-lockfile.yml` can differ from the scaffold's only because a site set its own `runs-on` or `branches`. In that case, recommend **Skip** in the question for that file, so the site keeps its values.
+
 ### 9. Apply approved changes
 
 - **Apply upstream version** → `Write` tool, full file replace.
@@ -317,6 +319,8 @@ For `AGENTS.md`: sites keep their build plan in `site-specification.md`, so the 
 - **Delete locally** → `Bash rm -- "<path>"` (one file per call, never `-rf`).
 
 Never run `git add`, `git commit`, `bun install`, `bun run build`, or any other side-effecting command. The user owns version control and dependency management.
+
+If any applied or deleted path is under `.github/workflows/`, put `gh actions-lock` and then `gh actions-lock --verify` under Recommended Next Steps. The first regenerates `.github/workflows/actions.lock` so it lists the site's workflows as they now are; the second must pass before the change is committed, or the site's `verify-lockfile` check fails the pull request.
 
 ### 10. Update state
 
@@ -438,6 +442,7 @@ Scaffold Sync Report
 
 - `bun install` — if `package.json` changed
 - `bun add --exact astro@6.5.2 @astrojs/cloudflare@13.8.1` — if Astro packages are behind and `package.json` was not applied
+- `gh actions-lock`, then `gh actions-lock --verify` — if anything under `.github/workflows/` changed (regenerates `.github/workflows/actions.lock`)
 - `bun run check` — type-check
 - `bun run build` — confirm production build (also regenerates the `page_summary` block of `AGENTS.md`)
 - `git diff` — review what changed before committing

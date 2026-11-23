@@ -38,6 +38,14 @@ pipeline reports the *tail's* status, so a build that never ran looks like it pa
 - **Do not hand-edit `version` in `.claude-plugin/plugin.json` or `.codex-plugin/plugin.json`.**
   `.github/workflows/bump-plugin-version.yml` bumps the minor in both on every same-repo PR.
   Merging to `main` is the release — the Migration Registry entry uses that bumped version.
+- **Never edit `.github/workflows/actions.lock` by hand.** It holds the commit behind each
+  `uses:` tag in this repo's own workflows. After any `uses:` change or a new workflow, run
+  `gh actions-lock`; `verify-lockfile.yml` fails the pull request until the lockfile matches.
+  Nothing moves these versions automatically. `scaffold/.github/workflows/actions.lock` is
+  the lockfile every new site starts with: after a `uses:` change under
+  `scaffold/.github/workflows/`, run `gh actions-lock` inside `scaffold/`, or the
+  `verify-scaffold` job fails. Keep the scaffold's tags on the same full versions as this
+  repo's.
 - **`bun run dev` does not run the worker.** `astro.config.mjs` disables the Cloudflare
   adapter in development, so `/~/*` returns Astro's HTML 404. Test worker routes with
   `bun run preview` (build + `wrangler dev` on `127.0.0.1:8787`).
