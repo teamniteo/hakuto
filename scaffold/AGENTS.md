@@ -55,6 +55,10 @@ Use skills proactively when a request matches — don't wait to be asked.
 - Follow the project's version-control conventions; if there are none, ask before committing.
 - Read `package.json` first on a new task to see the setup and scripts.
 
+## GitHub Actions
+
+`uses:` lines in `.github/workflows/` name exact version tags, and `.github/workflows/actions.lock` holds the commit each one runs. **Never edit `actions.lock` by hand.** After any `uses:` change, a new workflow, or a scaffold sync that touches a workflow, run `gh actions-lock` to regenerate it; install the version `verify-lockfile.yml` pins, with `gh extension install github/gh-actions-lock --pin <version>`. The `verify-lockfile` workflow fails a pull request until the lockfile matches. Nothing moves these versions automatically: to upgrade an action, change its tag and run `gh actions-lock`.
+
 ## Mandatory Workflow
 
 1. **Start `website-builder`** before creating components. It drives the interview, directions and style preview.

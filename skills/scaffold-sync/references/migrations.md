@@ -27,6 +27,7 @@ applied on a site that never had the file.
 - [0.27.0 — Trailing-slash rules before wildcard rules](#0270-trailing-slash-rules-before-wildcard-rules)
 - [0.28.0 — Prerendering, page transitions, text wrapping, WebMCP return values](#0280-prerendering-page-transitions-text-wrapping-webmcp-return-values)
 - [0.30.0 — Version control follows the project](#0300-version-control-follows-the-project)
+- [0.33.0 — GitHub Actions lockfile](#0330-github-actions-lockfile)
 
 ---
 
@@ -551,3 +552,29 @@ Apply by hand: under `## Working Style` in `AGENTS.md`, replace the `Don't creat
 
 After applying:
 - `grep -ni "create commits or branches" AGENTS.md CLAUDE.md` returns nothing.
+
+---
+
+### 0.33.0 — GitHub Actions lockfile
+
+The scaffold's workflows named actions by a moving major tag such as `v5`, so the commit a run used could change between runs. They now name full version tags, and a new `verify-lockfile` workflow runs `gh actions-lock --verify` on every pull request and every push to `main`. Each site keeps its own `.github/workflows/actions.lock`, which lists that site's workflows. New sites start with the scaffold's lockfile; the sync never copies it, because an existing site's workflows can differ from the scaffold's.
+
+**Detect:**
+```sh
+test -f .github/workflows/verify-lockfile.yml && test -f .github/workflows/actions.lock
+```
+
+Apply from scaffold when not heavily customized:
+- `.github/workflows/build.yml`
+- `.github/workflows/astro-upgrade.yml`
+- `.github/workflows/verify-lockfile.yml` (new)
+- The `## GitHub Actions` section from the scaffold's `AGENTS.md`, after `## Working Style`.
+
+Manual edits for customized sites:
+
+1. **Tags.** Leave customized workflows as they are: `gh actions-lock` narrows each major tag to the full version at the same commit.
+2. **`verify-lockfile.yml`.** Copy it, then set `branches:` to the site's default branch and `runs-on:` to the value the site's other workflows use.
+
+After applying:
+- Install the version `verify-lockfile.yml` pins with `gh extension install github/gh-actions-lock --pin <version>`, then run `gh actions-lock`, then `gh actions-lock --verify`. It exits 0 and prints `Scanning <N> workflows`, with N the number of files in `.github/workflows/` other than `actions.lock`.
+- On the site's next pull request, the `Actions lockfile / Verify GitHub Actions lockfile` check passes.
